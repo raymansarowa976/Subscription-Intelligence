@@ -1,0 +1,17 @@
+# Web Framework
+django==5.1.1
+
+# Configuration & Security
+django-environ==0.11.2
+whitenoise==6.7.0
+
+# Task Queue & Background Jobs (Automated Emails)
+huey==2.5.2
+redis==5.0.8
+
+# Testing & TDD
+pytest-django==4.9.0
+pytest-cov==5.0.0
+
+# Linting & Formatting
+ruff==0.6.4
