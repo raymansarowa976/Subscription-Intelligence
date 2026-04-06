@@ -1,5 +1,6 @@
 import environ
 import os
+import sys
 from pathlib import Path
 # Initialize environ
 ROOT_URLCONF = 'config.urls'
@@ -19,18 +20,29 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 
-# ... down in the Database section ...
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'Subscription_Tracker',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': '127.0.0.1',
-        'PORT': '5678',
-        'CONN_MAX_AGE': 0, # This prevents hanging connections
+RUNNING_TESTS = 'pytest' in sys.modules or 'test' in sys.argv
+
+# Default to PostgreSQL for development, but use SQLite for tests so test runs
+# do not depend on a manually created local database.
+if RUNNING_TESTS:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'test_db.sqlite3',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': env('DB_ENGINE', default='django.db.backends.postgresql'),
+            'NAME': env('DB_NAME', default='Subscription_Tracker'),
+            'USER': env('DB_USER', default='postgres'),
+            'PASSWORD': env('DB_PASSWORD', default='postgres'),
+            'HOST': env('DB_HOST', default='127.0.0.1'),
+            'PORT': env('DB_PORT', default='5678'),
+            'CONN_MAX_AGE': env.int('DB_CONN_MAX_AGE', default=0),
+        }
+    }
 
 # ... at the bottom for Huey ...
 HUEY = {
@@ -50,7 +62,7 @@ MIDDLEWARE = [
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -82,7 +94,7 @@ INSTALLED_APPS = [
 AUTH_PASSWORD_VALIDATORS = [
     # ... keep the default ones ...
     {
-        'NAME': 'users.validators.ComplexPasswordValidator',
+        'NAME': 'users.auth.validators.ComplexPasswordValidator',
     },
 ]
 
