@@ -33,16 +33,12 @@ if RUNNING_TESTS:
     }
 else:
     DATABASES = {
-        'default': {
-            'ENGINE': env('DB_ENGINE', default='django.db.backends.postgresql'),
-            'NAME': env('DB_NAME', default='Subscription_Tracker'),
-            'USER': env('DB_USER', default='postgres'),
-            'PASSWORD': env('DB_PASSWORD', default='postgres'),
-            'HOST': env('DB_HOST', default='127.0.0.1'),
-            'PORT': env('DB_PORT', default='5678'),
-            'CONN_MAX_AGE': env.int('DB_CONN_MAX_AGE', default=0),
-        }
+        'default': env.db(
+            'DATABASE_URL',
+            default='postgres://postgres:postgres@127.0.0.1:5678/subscription_db',
+        )
     }
+    DATABASES['default']['CONN_MAX_AGE'] = env.int('DB_CONN_MAX_AGE', default=0)
 
 # ... at the bottom for Huey ...
 HUEY = {
