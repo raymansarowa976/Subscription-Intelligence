@@ -79,6 +79,12 @@ INSTALLED_APPS = [
     # Third Party
     'huey.contrib.djhuey',
 ]
+AUTH_PASSWORD_VALIDATORS = [
+    # ... keep the default ones ...
+    {
+        'NAME': 'users.validators.ComplexPasswordValidator',
+    },
+]
 
 
 # The URL to use when referring to static files (CSS, JavaScript, Images)
