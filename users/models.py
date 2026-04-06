@@ -1,9 +1,6 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser  # Fixes "AbstractUser is not defined"
+from django.db import models                         # Fixes "models is not defined"
 
-class CustomUser(AbstractUser):
-    """
-    Standard AbstractUser for now. 
-    We use this so we can add 'tier' or 'profile_pic' 
-    later without breaking the database.
-    """
-    pass
+class User(AbstractUser):
+    email = models.EmailField(unique=True)
+    force_migration = models.BooleanField(default=False) # ADD THIS

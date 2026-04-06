@@ -62,7 +62,7 @@ TEMPLATES = [
         },
     },
 ]
-AUTH_USER_MODEL = 'users.CustomUser'
+AUTH_USER_MODEL = 'users.User'
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -98,3 +98,6 @@ STATICFILES_DIRS = [
 
 # This is where Django will "collect" all files for production (good to have now)
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Add this to the bottom of settings.py
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
