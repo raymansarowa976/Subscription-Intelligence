@@ -1,72 +1,246 @@
 {% extends "subscriptions/app_shell.html" %}
 
 {% block title %}Dashboard | Subscription Intelligence{% endblock %}
-{% block app_title %}Subscription command center{% endblock %}
-{% block app_copy %}Track live recurring spend, review machine-detected candidates, and turn raw transaction evidence into a clean portfolio of confirmed subscriptions.{% endblock %}
-{% block dashboard_nav_class %}bg-white text-ink px-5 py-3 shadow-sm{% endblock %}
+{% block app_title %}Subscription workspace{% endblock %}
+{% block page_heading %}Subscription workspace{% endblock %}
+{% block app_copy %}See your spend, upcoming renewals, active subscriptions, and newly detected services in one operator-ready dashboard built for fast decisions.{% endblock %}
 
 {% block app_panel %}
-<section class="mt-6 grid gap-5 md:grid-cols-3">
-        <article class="rounded-[24px] border border-black/10 bg-white/90 p-6 shadow-panel">
-            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Workspace overview</p>
-            <p class="mt-3 text-4xl font-extrabold text-ink">{{ subscriptions|length }}</p>
-            <p class="mt-4 text-sm leading-7 text-stone-500">Confirmed recurring services now tracked in your workspace.</p>
-        </article>
-        <article class="rounded-[24px] border border-black/10 bg-white/90 p-6 shadow-panel">
-            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Pending candidates</p>
-            <p class="mt-3 text-4xl font-extrabold text-ink">{{ candidate_count }}</p>
-            <p class="mt-4 text-sm leading-7 text-stone-500">Recurring charges waiting for review and confirmation.</p>
-        </article>
-        <article class="rounded-[24px] border border-black/10 bg-white/90 p-6 shadow-panel">
-            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Review queue</p>
-            <p class="mt-3 text-4xl font-extrabold text-ink">{% if candidate_count %}Open{% else %}Clear{% endif %}</p>
-            <p class="mt-4 text-sm leading-7 text-stone-500">Use the review flow to approve subscription candidates surfaced from transactions.</p>
-        </article>
+{{ category_labels|json_script:"category-labels" }}
+{{ category_values|json_script:"category-values" }}
+{{ trend_labels|json_script:"trend-labels" }}
+{{ trend_values|json_script:"trend-values" }}
+
+<section class="mt-6 grid gap-5 xl:grid-cols-3">
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Total monthly spend</p>
+        <p class="mt-4 text-4xl font-extrabold tracking-tight text-ink">${{ total_monthly_spend|floatformat:2 }}</p>
+        <p class="mt-4 text-sm leading-7 text-stone-500">The current monthly cost of your active recurring services.</p>
+    </article>
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Upcoming renewals</p>
+        <p class="mt-4 text-4xl font-extrabold tracking-tight text-ink">${{ upcoming_renewals_cost|floatformat:2 }}</p>
+        <p class="mt-4 text-sm leading-7 text-stone-500">{{ upcoming_renewal_count }} renewal{{ upcoming_renewal_count|pluralize }} due in the next 7 days.</p>
+    </article>
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Annual run-rate</p>
+        <p class="mt-4 text-4xl font-extrabold tracking-tight text-ink">${{ annual_run_rate|floatformat:2 }}</p>
+        <p class="mt-4 text-sm leading-7 text-stone-500">What this portfolio costs over 12 months if nothing changes.</p>
+    </article>
 </section>
 
-<section class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.9fr)]">
-    <section class="rounded-[28px] border border-black/10 bg-white/90 p-8 shadow-panel">
-        <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-                <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Tracked services</p>
-                <h2 class="mt-2 text-3xl font-extrabold text-ink">Active subscriptions</h2>
-                <p class="mt-3 max-w-2xl text-sm leading-7 text-stone-500">Your confirmed subscriptions are listed here once transaction evidence has been reviewed and approved.</p>
-            </div>
-            <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'transactions:candidates' %}">Review candidates</a>
-        </div>
-
-        <div class="mt-6 space-y-4">
-            {% for subscription in subscriptions %}
-            <article class="rounded-[24px] border border-black/10 bg-stone-50 p-6">
-                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                    <div>
-                        <h3 class="text-2xl font-extrabold text-ink">{{ subscription.merchant_name }}</h3>
-                        <p class="mt-1 text-sm text-stone-500">{{ subscription.cadence|title }} recurring charge</p>
+<section class="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(340px,0.9fr)]">
+    <section class="space-y-6">
+        <section class="overflow-hidden rounded-[32px] border border-black/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(255,248,239,0.96))] shadow-panel">
+            <div class="grid gap-6 p-7 lg:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.85fr)] lg:items-stretch">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Personalized snapshot</p>
+                    <h2 class="mt-2 max-w-3xl text-3xl font-extrabold tracking-tight text-ink">Hello, {{ display_name }}, you have {{ upcoming_renewal_count }} renewal{{ upcoming_renewal_count|pluralize }} this week.</h2>
+                    <p class="mt-3 max-w-3xl text-sm leading-7 text-stone-500">Everything on this dashboard is filtered to your account so you can review recurring spend with confidence, spot overlap, and stay ahead of the next billing cycle.</p>
+                    <div class="mt-6 flex flex-wrap gap-3">
+                        <a class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" href="{% url 'transactions:add_subscription' %}">Quick add subscription</a>
+                        <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'transactions:candidates' %}">Review subscriptions</a>
                     </div>
-                    <p class="text-3xl font-extrabold text-ink">${{ subscription.amount }}</p>
+                </div>
+                <div class="grid gap-4 rounded-[28px] border border-black/10 bg-ink p-5 text-white">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">Portfolio overview</p>
+                        <p class="mt-3 text-4xl font-extrabold">{{ active_subscription_count }}</p>
+                        <p class="mt-2 text-sm text-white/70">Active subscriptions tracked right now.</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="rounded-[20px] bg-white/10 p-4">
+                            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">Inactive</p>
+                            <p class="mt-2 text-2xl font-extrabold">{{ inactive_subscription_count }}</p>
+                        </div>
+                        <div class="rounded-[20px] bg-white/10 p-4">
+                            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">Candidates</p>
+                            <p class="mt-2 text-2xl font-extrabold">{{ candidate_count }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid gap-6 lg:grid-cols-2">
+            <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
+                <div class="flex items-center justify-between gap-4">
+                    <div>
+                        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Spending by category</p>
+                        <h2 class="mt-2 text-2xl font-extrabold text-ink">Category mix</h2>
+                    </div>
+                </div>
+                <div class="mt-6 h-64">
+                    <canvas id="categoryChart" aria-label="Spending by category chart"></canvas>
                 </div>
             </article>
-            {% empty %}
-            <div class="rounded-[24px] border border-dashed border-black/15 bg-stone-50 p-8 text-center text-stone-500">
-                No subscriptions confirmed yet.
-            </div>
-            {% endfor %}
-        </div>
+
+            <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
+                <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Monthly trend</p>
+                <h2 class="mt-2 text-2xl font-extrabold text-ink">6-month spend curve</h2>
+                <div class="mt-6 h-64">
+                    <canvas id="trendChart" aria-label="Monthly spend trend chart"></canvas>
+                </div>
+            </article>
+        </section>
+
     </section>
 
     <aside class="space-y-6">
-        <section class="rounded-[28px] border border-black/10 bg-white/90 p-8 shadow-panel">
-            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Operator summary</p>
-            <h2 class="mt-2 text-3xl font-extrabold text-ink">Welcome back, {{ request.user.username }}</h2>
-            <p class="mt-3 text-sm leading-7 text-stone-500">This workspace is tuned for review-first subscription tracking, giving you a clean path from raw transactions to trusted recurring spend records.</p>
+        <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Renewal calendar</p>
+            <h2 class="mt-2 text-2xl font-extrabold text-ink">Next five charges</h2>
+            <div class="mt-5 space-y-4">
+                {% for entry in next_five_renewals %}
+                <article class="rounded-[22px] border border-black/10 bg-stone-50 p-4">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-base font-bold text-ink">{{ entry.subscription.merchant_name }}</p>
+                            <p class="mt-1 text-sm text-stone-500">{{ entry.subscription.dashboard_category_label }} • {{ entry.subscription.cadence|title }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-lg font-extrabold text-ink">${{ entry.subscription.amount|floatformat:2 }}</p>
+                            <p class="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">{{ entry.next_renewal|date:"M j" }}</p>
+                        </div>
+                    </div>
+                </article>
+                {% empty %}
+                <div class="rounded-[22px] border border-dashed border-black/15 bg-stone-50 p-6 text-sm text-stone-500">
+                    Add or confirm subscriptions to populate your renewal timeline.
+                </div>
+                {% endfor %}
+            </div>
         </section>
 
-        <section class="rounded-[28px] border border-black/10 bg-white/90 p-8 shadow-panel">
-            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Next step</p>
-            <h2 class="mt-2 text-2xl font-extrabold text-ink">Review your pending candidates</h2>
-            <p class="mt-3 text-sm leading-7 text-stone-500">Confirm likely recurring charges, reject one-off purchases, and steadily improve the quality of your portfolio.</p>
-            <a class="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" href="{% url 'transactions:candidates' %}">Open review queue</a>
+        <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
+            <div class="flex items-center justify-between gap-4">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Recently found</p>
+                    <h2 class="mt-2 text-2xl font-extrabold text-ink">Pending detections</h2>
+                </div>
+                <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">{{ candidate_count }}</span>
+            </div>
+            <div class="mt-5 space-y-4">
+                {% for candidate in recent_candidates %}
+                <article class="rounded-[22px] border border-black/10 bg-stone-50 p-4">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-base font-bold text-ink">Found a new receipt from {{ candidate.merchant_name }}</p>
+                            <p class="mt-1 text-sm text-stone-500">{{ candidate.cadence_label }} • {{ candidate.formatted_amount }}</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex flex-wrap gap-3">
+                        <form method="post" action="{% url 'transactions:confirm_candidate' candidate.id %}">
+                            {% csrf_token %}
+                            <button class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-4 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" type="submit">Confirm</button>
+                        </form>
+                        <form method="post" action="{% url 'transactions:reject_candidate' candidate.id %}">
+                            {% csrf_token %}
+                            <button class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-bold text-ink transition hover:border-rose-200 hover:text-rose-600" type="submit">Reject</button>
+                        </form>
+                    </div>
+                </article>
+                {% empty %}
+                <div class="rounded-[22px] border border-dashed border-black/15 bg-stone-50 p-6 text-sm text-stone-500">
+                    No new receipts are waiting for review.
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Potential savings</p>
+            <h2 class="mt-2 text-2xl font-extrabold text-ink">Overlap signals</h2>
+            <div class="mt-5 space-y-4">
+                {% for insight in savings_insights %}
+                <article class="rounded-[22px] border border-emerald-100 bg-emerald-50 p-4">
+                    <p class="text-base font-bold text-emerald-900">{{ insight.title }}</p>
+                    <p class="mt-2 text-sm leading-7 text-emerald-800">{{ insight.detail }}</p>
+                </article>
+                {% empty %}
+                <div class="rounded-[22px] border border-dashed border-black/15 bg-stone-50 p-6 text-sm text-stone-500">
+                    No redundant service signals detected yet.
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Security check</p>
+            <h2 class="mt-2 text-2xl font-extrabold text-ink">Last synced</h2>
+            <p class="mt-3 text-sm leading-7 text-stone-500">
+                {% if latest_sync %}
+                {{ latest_sync|date:"M j, Y g:i A" }} from your connected transaction source.
+                {% else %}
+                No sync has been recorded yet for your account.
+                {% endif %}
+            </p>
         </section>
     </aside>
 </section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const categoryLabels = JSON.parse(document.getElementById("category-labels").textContent);
+    const categoryValues = JSON.parse(document.getElementById("category-values").textContent);
+    const trendLabels = JSON.parse(document.getElementById("trend-labels").textContent);
+    const trendValues = JSON.parse(document.getElementById("trend-values").textContent);
+
+    const chartDefaults = {
+        plugins: {
+            legend: {
+                labels: {
+                    color: "#374151",
+                    font: { family: "ui-sans-serif, system-ui, sans-serif", weight: "600" },
+                },
+            },
+        },
+    };
+
+    const categoryCanvas = document.getElementById("categoryChart");
+    if (categoryCanvas && categoryLabels.length) {
+        new Chart(categoryCanvas, {
+            type: "doughnut",
+            data: {
+                labels: categoryLabels,
+                datasets: [{
+                    data: categoryValues,
+                    backgroundColor: ["#0f766e", "#14b8a6", "#c96f3b", "#334155", "#a8a29e"],
+                    borderWidth: 0,
+                }],
+            },
+            options: {
+                ...chartDefaults,
+                maintainAspectRatio: false,
+            },
+        });
+    }
+
+    const trendCanvas = document.getElementById("trendChart");
+    if (trendCanvas) {
+        new Chart(trendCanvas, {
+            type: "line",
+            data: {
+                labels: trendLabels,
+                datasets: [{
+                    label: "Spend",
+                    data: trendValues,
+                    borderColor: "#0f766e",
+                    backgroundColor: "rgba(15, 118, 110, 0.15)",
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.35,
+                }],
+            },
+            options: {
+                ...chartDefaults,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { ticks: { color: "#6b7280" }, grid: { display: false } },
+                    y: { ticks: { color: "#6b7280" }, grid: { color: "rgba(15, 23, 42, 0.08)" } },
+                },
+            },
+        });
+    }
+</script>
 {% endblock %}

@@ -2,8 +2,9 @@
 
 {% block title %}Subscription Candidates | Subscription Intelligence{% endblock %}
 {% block app_title %}Recurring charge review queue{% endblock %}
+{% block page_heading %}Recurring charge review queue{% endblock %}
 {% block app_copy %}Review recurring transaction clusters, confirm the subscriptions that belong in your portfolio, and keep one-off spend out of the final dataset.{% endblock %}
-{% block candidates_nav_class %}bg-white text-ink px-5 py-3 shadow-sm{% endblock %}
+{% block candidates_nav_class %}bg-white text-ink px-4 py-2.5 shadow-sm{% endblock %}
 
 {% block app_panel %}
 <section class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
@@ -31,10 +32,16 @@
                     </div>
                 </div>
 
-                <form method="post" action="{% url 'transactions:confirm_candidate' candidate.id %}" class="mt-5">
-                    {% csrf_token %}
-                    <button class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" type="submit" name="action" value="confirm">Confirm subscription</button>
-                </form>
+                <div class="mt-5 flex flex-wrap gap-3">
+                    <form method="post" action="{% url 'transactions:confirm_candidate' candidate.id %}">
+                        {% csrf_token %}
+                        <button class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" type="submit" name="action" value="confirm">Confirm subscription</button>
+                    </form>
+                    <form method="post" action="{% url 'transactions:reject_candidate' candidate.id %}">
+                        {% csrf_token %}
+                        <button class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-rose-200 hover:text-rose-600" type="submit">Reject</button>
+                    </form>
+                </div>
             </article>
             {% empty %}
             <div class="rounded-[24px] border border-dashed border-black/15 bg-stone-50 p-8 text-center text-stone-500">
