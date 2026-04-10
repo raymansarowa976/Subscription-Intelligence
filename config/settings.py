@@ -21,14 +21,15 @@ SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 
 RUNNING_TESTS = 'pytest' in sys.modules or 'test' in sys.argv
+USE_SQLITE = env.bool('USE_SQLITE', default=False)
 
-# Default to PostgreSQL for development, but use SQLite for tests so test runs
-# do not depend on a manually created local database.
-if RUNNING_TESTS:
+# Use SQLite for tests so test runs do not depend on a manually created
+# database. Local development can also opt into SQLite with USE_SQLITE=True.
+if RUNNING_TESTS or USE_SQLITE:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'test_db.sqlite3',
+            'NAME': BASE_DIR / ('test_db.sqlite3' if RUNNING_TESTS else 'db.sqlite3'),
         }
     }
 else:
@@ -48,6 +49,7 @@ HUEY = {
 }
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware', # E410 fix
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -106,6 +108,19 @@ STATICFILES_DIRS = [
 
 # This is where Django will "collect" all files for production (good to have now)
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE_BACKEND = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+if not DEBUG and not RUNNING_TESTS:
+    STATICFILES_STORAGE_BACKEND = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': STATICFILES_STORAGE_BACKEND,
+    },
+}
 
 # Add this to the bottom of settings.py
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+LOGIN_URL = '/accounts/login/'
