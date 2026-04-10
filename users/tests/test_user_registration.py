@@ -13,6 +13,8 @@ class RegistrationTest(TestCase):
         # FIX 1: Corrected string syntax (no extra quotes around colon)
         self.signup_url = reverse('accounts:signup')
         self.user_data = {
+            'first_name': 'Taylor',
+            'last_name': 'Jordan',
             'username': 'tester',
             'email': 'tester@example.com',
             'password': 'Complex123!',

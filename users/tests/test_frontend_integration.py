@@ -12,6 +12,8 @@ class FrontendIntegrationTest(TestCase):
         self.login_url = reverse("accounts:login")
         self.dashboard_url = reverse("dashboard")
         self.valid_signup = {
+            "first_name": "Taylor",
+            "last_name": "Jordan",
             "username": "frontenduser",
             "email": "frontend@example.com",
             "password": "Complex123!",
@@ -23,10 +25,14 @@ class FrontendIntegrationTest(TestCase):
 
         self.assertContains(response, "Subscription Manager")
         self.assertContains(response, "Create your account")
+        self.assertContains(response, 'name="first_name"', html=False)
+        self.assertContains(response, 'name="last_name"', html=False)
         self.assertContains(response, 'name="username"', html=False)
         self.assertContains(response, 'name="email"', html=False)
         self.assertContains(response, 'name="password"', html=False)
         self.assertContains(response, 'name="confirm_password"', html=False)
+        self.assertContains(response, "Password strength")
+        self.assertContains(response, "At least 1 uppercase letter")
 
     def test_signup_rejects_mismatched_passwords_with_visible_error(self):
         payload = self.valid_signup.copy()
@@ -36,6 +42,17 @@ class FrontendIntegrationTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Passwords do not match.")
+        self.assertFalse(User.objects.filter(email=payload["email"]).exists())
+
+    def test_signup_rejects_invalid_name_characters(self):
+        payload = self.valid_signup.copy()
+        payload["first_name"] = "T4ylor"
+        payload["last_name"] = "Jordan!"
+
+        response = self.client.post(self.signup_url, payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Use letters only with no numbers or special characters.", count=2)
         self.assertFalse(User.objects.filter(email=payload["email"]).exists())
 
     def test_signup_redirects_to_login_with_success_message(self):
