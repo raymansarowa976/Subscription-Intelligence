@@ -16,7 +16,7 @@ class RegistrationTest(TestCase):
             'first_name': 'Taylor',
             'last_name': 'Jordan',
             'username': 'tester',
-            'email': 'tester@example.com',
+            'email': 'tester@gmail.com',
             'password': 'Complex123!',
             'confirm_password': 'Complex123!'
         }
@@ -24,7 +24,7 @@ class RegistrationTest(TestCase):
     def test_signup_creates_inactive_user(self):
         """Test: Users must be inactive until they verify email."""
         self.client.post(self.signup_url, self.user_data)
-        user = User.objects.get(email='tester@example.com')
+        user = User.objects.get(email='tester@gmail.com')
         self.assertFalse(user.is_active)
 
     def test_signup_sends_email(self):
@@ -32,6 +32,19 @@ class RegistrationTest(TestCase):
         self.client.post(self.signup_url, self.user_data)
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn('Activate your account', mail.outbox[0].subject)
+
+    def test_signup_rejects_unsupported_email_domain(self):
+        payload = self.user_data.copy()
+        payload['email'] = 'tester@company.org'
+
+        response = self.client.post(self.signup_url, payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            'Use a valid email from a supported provider like gmail.com, hotmail.com, or outlook.com.',
+        )
+        self.assertFalse(User.objects.filter(email='tester@company.org').exists())
 
     def test_activation_with_valid_token(self):
         """Test: Clicking the email link actually activates the user."""
