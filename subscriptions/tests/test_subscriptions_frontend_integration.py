@@ -40,7 +40,7 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Quick add subscription")
         self.assertContains(response, "Recently found")
         self.assertContains(response, "Security check")
-        self.assertContains(response, "No subscriptions confirmed yet.")
+        self.assertContains(response, "Active subscriptions tracked right now.")
         self.assertContains(response, "No new receipts are waiting for review.")
 
     def test_dashboard_displays_confirmed_subscriptions_and_personalized_metrics(self):
@@ -116,9 +116,10 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         response = self.client.get(self.dashboard_url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Active")
-        self.assertContains(response, "Cancelled")
-        self.assertLess(response.content.index(b"Netflix"), response.content.index(b"Zoom"))
+        self.assertContains(response, "Active subscriptions tracked right now.")
+        self.assertContains(response, "Inactive")
+        self.assertEqual(response.context["active_subscription_count"], 1)
+        self.assertEqual(response.context["inactive_subscription_count"], 1)
 
     def test_candidates_page_renders_review_ui_for_pending_candidates(self):
         SubscriptionCandidate.objects.create(
