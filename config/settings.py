@@ -84,7 +84,7 @@ INSTALLED_APPS = [
 
     # Your Apps - Add these lines:
     'users.apps.UsersConfig',  # Change 'users' to this
-    'subscriptions',
+    'subscriptions.apps.SubscriptionsConfig',
 
     # Third Party
     'huey.contrib.djhuey',
