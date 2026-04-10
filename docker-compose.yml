@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:15
+    container_name: sub_tracker_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=subscription_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5678:5432"
+
+  redis:
+    image: redis:7
+    container_name: sub_tracker_redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:

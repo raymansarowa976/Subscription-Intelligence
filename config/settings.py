@@ -1,5 +1,6 @@
 import environ
 import os
+import sys
 from pathlib import Path
 # Initialize environ
 ROOT_URLCONF = 'config.urls'
@@ -19,18 +20,26 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 
-# ... down in the Database section ...
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'Subscription_Tracker',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': '127.0.0.1',
-        'PORT': '5678',
-        'CONN_MAX_AGE': 0, # This prevents hanging connections
+RUNNING_TESTS = 'pytest' in sys.modules or 'test' in sys.argv
+USE_SQLITE = env.bool('USE_SQLITE', default=False)
+
+# Use SQLite for tests so test runs do not depend on a manually created
+# database. Local development can also opt into SQLite with USE_SQLITE=True.
+if RUNNING_TESTS or USE_SQLITE:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / ('test_db.sqlite3' if RUNNING_TESTS else 'db.sqlite3'),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': env.db(
+            'DATABASE_URL',
+            default='postgres://postgres:postgres@127.0.0.1:5678/subscription_db',
+        )
+    }
+    DATABASES['default']['CONN_MAX_AGE'] = env.int('DB_CONN_MAX_AGE', default=0)
 
 # ... at the bottom for Huey ...
 HUEY = {
@@ -40,6 +49,7 @@ HUEY = {
 }
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware', # E410 fix
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -50,7 +60,7 @@ MIDDLEWARE = [
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -62,7 +72,7 @@ TEMPLATES = [
         },
     },
 ]
-AUTH_USER_MODEL = 'users.CustomUser'
+AUTH_USER_MODEL = 'users.User'
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -79,6 +89,12 @@ INSTALLED_APPS = [
     # Third Party
     'huey.contrib.djhuey',
 ]
+AUTH_PASSWORD_VALIDATORS = [
+    # ... keep the default ones ...
+    {
+        'NAME': 'users.auth.validators.ComplexPasswordValidator',
+    },
+]
 
 
 # The URL to use when referring to static files (CSS, JavaScript, Images)
@@ -92,3 +108,33 @@ STATICFILES_DIRS = [
 
 # This is where Django will "collect" all files for production (good to have now)
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE_BACKEND = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+if not DEBUG and not RUNNING_TESTS:
+    STATICFILES_STORAGE_BACKEND = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': STATICFILES_STORAGE_BACKEND,
+    },
+}
+
+# Add this to the bottom of settings.py
+EMAIL_BACKEND = env(
+    'EMAIL_BACKEND',
+    default='django.core.mail.backends.console.EmailBackend',
+)
+DEFAULT_FROM_EMAIL = env(
+    'DEFAULT_FROM_EMAIL',
+    default='noreply@subscriptionintelligence.com',
+)
+EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+EMAIL_USE_SSL = env.bool('EMAIL_USE_SSL', default=False)
+SHOW_LOGIN_TOKEN_IN_UI = env.bool('SHOW_LOGIN_TOKEN_IN_UI', default=DEBUG and not RUNNING_TESTS)
+LOGIN_URL = '/accounts/login/'

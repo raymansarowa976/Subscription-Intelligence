@@ -1,9 +1,15 @@
 from django.contrib import admin
+from django.shortcuts import redirect
 from django.urls import path, include
 
+def root_redirect(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    return redirect('accounts:login')
+
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    # Once you're ready, you'll likely add your apps here:
-    # path('subscriptions/', include('subscriptions.urls')),
-    # path('users/', include('users.urls')),
+    path('', root_redirect, name='home'),
+    path('admin/', admin.site.urls),  # Keep this one
+    path('dashboard/', include('subscriptions.urls')),
+    path('accounts/', include(('users.auth.urls', 'accounts'), namespace='accounts')),
 ]
