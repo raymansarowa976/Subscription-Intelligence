@@ -191,6 +191,26 @@ class FrontendIntegrationTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "This account is inactive.")
+        self.assertContains(response, "Reactivate account")
+
+    def test_legacy_account_can_be_reactivated_after_valid_inactive_login(self):
+        user = User.objects.create_user(
+            username="legacyuser",
+            email="legacy@gmail.com",
+            password="Complex123!",
+            is_active=False,
+        )
+
+        self.client.post(
+            self.login_url,
+            {"username": user.username, "password": "Complex123!"},
+        )
+        response = self.client.post(reverse("accounts:reactivate_account"), follow=True)
+
+        user.refresh_from_db()
+        self.assertTrue(user.is_active)
+        self.assertRedirects(response, self.login_url)
+        self.assertContains(response, "Legacy account reactivated. Sign in again to receive your verification token.")
 
     def test_dashboard_requires_authentication(self):
         response = self.client.get(self.dashboard_url)
@@ -213,3 +233,21 @@ class FrontendIntegrationTest(TestCase):
         response = self.client.get(self.dashboard_url)
 
         self.assertRedirects(response, self.verify_url)
+
+    def test_cancel_verification_returns_user_to_login(self):
+        user = User.objects.create_user(
+            username="canceluser",
+            email="cancel@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+        self.client.post(
+            self.login_url,
+            {"username": user.username, "password": "Complex123!"},
+        )
+
+        response = self.client.get(reverse("accounts:cancel_verification"), follow=True)
+
+        self.assertRedirects(response, self.login_url)
+        self.assertContains(response, "Signed out of the pending verification session.")
+        self.assertContains(response, "Welcome back")
