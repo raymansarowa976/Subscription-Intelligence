@@ -67,12 +67,27 @@ class Subscription(models.Model):
         (STATUS_CANCELLED, "Cancelled"),
     ]
 
+    CATEGORY_STREAMING = "streaming"
+    CATEGORY_MUSIC = "music"
+    CATEGORY_SOFTWARE = "software"
+    CATEGORY_UTILITIES = "utilities"
+    CATEGORY_OTHER = "other"
+    CATEGORY_CHOICES = [
+        (CATEGORY_STREAMING, "Streaming"),
+        (CATEGORY_MUSIC, "Music"),
+        (CATEGORY_SOFTWARE, "Software"),
+        (CATEGORY_UTILITIES, "Utilities"),
+        (CATEGORY_OTHER, "Other"),
+    ]
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     merchant_name = models.CharField(max_length=255)
     normalized_vendor = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     currency = models.CharField(max_length=10, default="USD")
     cadence = models.CharField(max_length=20)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default=CATEGORY_OTHER)
+    next_renewal = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE)
     created_at = models.DateTimeField(auto_now_add=True)
 
