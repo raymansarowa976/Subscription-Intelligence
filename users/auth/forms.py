@@ -98,8 +98,34 @@ class SignupForm(forms.ModelForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data["email"]
-        user.is_active = False
         user.set_password(self.cleaned_data["password"])
         if commit:
             user.save()
         return user
+
+
+class LoginTokenVerificationForm(forms.Form):
+    token = forms.CharField(max_length=6, min_length=6)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        input_classes = (
+            "block w-full rounded-2xl border-black/10 bg-stone-50 px-4 py-3 "
+            "text-sm shadow-sm transition focus:border-pine focus:ring-pine"
+        )
+        for _, field in self.fields.items():
+            field.widget.attrs.setdefault("class", input_classes)
+            field.widget.attrs.setdefault("placeholder", field.label)
+        self.fields["token"].help_text = "Enter the 6-digit verification token from your email."
+        self.fields["token"].widget.attrs["inputmode"] = "numeric"
+        self.fields["token"].widget.attrs["autocomplete"] = "one-time-code"
+
+    def clean_token(self):
+        token = self.cleaned_data["token"].strip()
+        if not token.isdigit():
+            raise forms.ValidationError("Enter a 6-digit numeric token.")
+        return token
+
+
+class ResendTokenForm(forms.Form):
+    pass
