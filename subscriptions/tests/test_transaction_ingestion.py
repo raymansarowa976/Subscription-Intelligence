@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+from subscriptions.models import SubscriptionCandidate
 
 User = get_user_model()
 
@@ -142,3 +143,40 @@ class TransactionIngestionTest(TestCase):
         self.assertContains(response, "Subscription saved")
         self.assertContains(response, "Netflix")
         self.assertContains(response, "Active subscriptions")
+
+    def test_user_can_reject_a_subscription_candidate(self):
+        self.client.post(
+            reverse("transactions:ingest"),
+            data=self.sample_payload,
+            content_type="application/json",
+        )
+
+        response = self.client.post(
+            reverse("transactions:reject_candidate", kwargs={"candidate_id": 1}),
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Candidate dismissed")
+        self.assertEqual(
+            SubscriptionCandidate.objects.get(pk=1).status,
+            SubscriptionCandidate.STATUS_REJECTED,
+        )
+
+    def test_user_can_manually_add_a_subscription(self):
+        response = self.client.post(
+            reverse("transactions:add_subscription"),
+            data={
+                "merchant_name": "YouTube Premium",
+                "amount": "13.99",
+                "currency": "USD",
+                "cadence": "monthly",
+                "category": "streaming",
+                "next_renewal": "2026-04-20",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Subscription added")
+        self.assertContains(response, "YouTube Premium")
