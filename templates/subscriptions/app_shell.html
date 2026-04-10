@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block body_class %}bg-[radial-gradient(circle_at_top_left,rgba(201,111,59,0.18),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(14,90,82,0.18),transparent_22%),linear-gradient(135deg,#f8f3ec_0%,#efe5d5_100%)]{% endblock %}
+
+{% block content %}
+<main class="mx-auto min-h-screen max-w-7xl p-4 md:p-6 lg:p-8">
+    <section class="rounded-[32px] border border-white/15 bg-gradient-to-br from-pine via-pine to-pineDeep p-6 text-stone-50 shadow-panel md:p-8">
+        <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div class="max-w-3xl">
+                <div class="inline-flex items-center rounded-full bg-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-100/90">
+                    Subscription intelligence
+                </div>
+                <h1 class="mt-5 text-4xl font-extrabold leading-tight md:text-5xl lg:text-6xl">{% block app_title %}Command center{% endblock %}</h1>
+                <p class="mt-4 max-w-2xl text-sm leading-7 text-stone-100/80 md:text-base md:leading-8">{% block app_copy %}Operate every renewal, subscription, and spend decision from one focused workspace.{% endblock %}</p>
+            </div>
+
+            <div class="rounded-[28px] border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
+                <div class="flex items-center gap-4">
+                    <span class="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-white/25 to-clay text-sm font-extrabold tracking-[0.12em] text-white">SI</span>
+                    <div>
+                        <p class="text-base font-extrabold text-white">Subscription Intelligence</p>
+                        <p class="text-sm text-stone-100/70">Revenue operations platform</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 flex flex-col gap-3 md:flex-row md:flex-wrap">
+            <a class="inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-bold transition {% block dashboard_nav_class %}border border-white/20 bg-white/10 text-white backdrop-blur-sm hover:bg-white/15{% endblock %}" href="{% url 'dashboard' %}">Dashboard</a>
+            <a class="inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-bold transition {% block candidates_nav_class %}border border-white/20 bg-white/10 text-white backdrop-blur-sm hover:bg-white/15{% endblock %}" href="{% url 'transactions:candidates' %}">Candidates</a>
+            <a class="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-bold text-white backdrop-blur-sm transition hover:bg-white/15" href="{% url 'accounts:cancel_verification' %}">Switch account</a>
+        </div>
+    </section>
+
+    {% if messages %}
+    <section class="mt-6 space-y-3">
+        {% for message in messages %}
+        <div class="rounded-2xl px-4 py-3 text-sm font-semibold shadow-sm {% if message.tags == 'success' %}border border-emerald-100 bg-emerald-50 text-emerald-800{% elif message.tags == 'error' %}border border-rose-100 bg-rose-50 text-rose-800{% else %}border border-stone-200 bg-white/90 text-stone-700{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    {% block app_panel %}{% endblock %}
+</main>
+{% endblock %}
