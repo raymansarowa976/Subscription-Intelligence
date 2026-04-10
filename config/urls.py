@@ -11,5 +11,6 @@ urlpatterns = [
     path('', root_redirect, name='home'),
     path('admin/', admin.site.urls),  # Keep this one
     path('dashboard/', include('subscriptions.urls')),
+    path('transactions/', include(('subscriptions.transaction_urls', 'transactions'), namespace='transactions')),
     path('accounts/', include(('users.auth.urls', 'accounts'), namespace='accounts')),
 ]
