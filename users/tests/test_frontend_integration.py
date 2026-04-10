@@ -116,7 +116,7 @@ class FrontendIntegrationTest(TestCase):
         )
 
         self.assertRedirects(response, self.dashboard_url)
-        self.assertContains(response, "Workspace overview")
+        self.assertContains(response, "Subscription workspace")
 
     def test_resend_token_sends_fresh_code(self):
         user = User.objects.create_user(
