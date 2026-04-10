@@ -32,7 +32,7 @@ const initPasswordStrength = (root = document) => {
     const strengthState = (score, hasValue) => {
         if (!hasValue) {
             return {
-                label: "Enter a password",
+                label: "",
                 width: "0%",
                 barClass: "bg-stone-200",
             };

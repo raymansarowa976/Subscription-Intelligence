@@ -1,7 +1,7 @@
 {% extends "registration/auth_base.html" %}
 {% load static %}
 
-{% block title %}Create Account | Subscription Manager{% endblock %}
+{% block title %}Create Account | Subscription Intelligence{% endblock %}
 {% block hero_title %}Build a calmer subscription workflow{% endblock %}
 {% block hero_copy %}Create your workspace to centralize subscription records, reduce renewal risk, and give your team a stronger financial operating cadence.{% endblock %}
 
@@ -23,7 +23,7 @@
             <div class="mt-4 rounded-2xl border border-black/10 bg-stone-50 p-4">
                 <div class="flex items-center justify-between gap-3">
                     <span class="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">Password strength</span>
-                    <span id="password-strength-label" class="text-sm font-semibold text-stone-600">Enter a password</span>
+                    <span id="password-strength-label" class="text-sm font-semibold text-stone-600"></span>
                 </div>
                 <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-stone-200">
                     <div id="password-strength-bar" class="h-2 rounded-full bg-stone-200 transition-all duration-300" style="width: 0%;"></div>
@@ -36,6 +36,9 @@
                     <li data-password-rule="symbol">At least 1 special character</li>
                 </ul>
             </div>
+            {% endif %}
+            {% if field.name == "confirm_password" %}
+            <p id="confirm-password-status" class="mt-3 hidden text-sm font-semibold"></p>
             {% endif %}
             {% if field.errors %}
             <ul class="mt-2 list-disc pl-5 text-sm text-rose-700">
