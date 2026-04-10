@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.contrib import messages
 
 from .forms import SignupForm
+from .authentication_forms import SubscriptionAuthenticationForm
 
 User = get_user_model()
 
@@ -16,6 +17,7 @@ User = get_user_model()
 class SubscriptionLoginView(LoginView):
     template_name = "registration/login.html"
     redirect_authenticated_user = True
+    authentication_form = SubscriptionAuthenticationForm
 
     def get_success_url(self):
         return reverse("dashboard")

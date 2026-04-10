@@ -1,7 +1,13 @@
-document.addEventListener("DOMContentLoaded", () => {
-    const passwordInput = document.getElementById("id_password");
+const initPasswordStrength = (root = document) => {
+    const passwordInput = root.getElementById
+        ? root.getElementById("id_password")
+        : document.getElementById("id_password");
+    const confirmPasswordInput = root.getElementById
+        ? root.getElementById("id_confirm_password")
+        : document.getElementById("id_confirm_password");
     const strengthBar = document.getElementById("password-strength-bar");
     const strengthLabel = document.getElementById("password-strength-label");
+    const confirmPasswordStatus = document.getElementById("confirm-password-status");
     const requirementNodes = {
         length: document.querySelector("[data-password-rule='length']"),
         lowercase: document.querySelector("[data-password-rule='lowercase']"),
@@ -10,9 +16,10 @@ document.addEventListener("DOMContentLoaded", () => {
         symbol: document.querySelector("[data-password-rule='symbol']"),
     };
 
-    if (!passwordInput || !strengthBar || !strengthLabel) {
+    if (!passwordInput || !strengthBar || !strengthLabel || passwordInput.dataset.strengthBound === "true") {
         return;
     }
+    passwordInput.dataset.strengthBound = "true";
 
     const rules = {
         length: (value) => value.length >= 8,
@@ -71,6 +78,41 @@ document.addEventListener("DOMContentLoaded", () => {
         strengthBar.style.width = state.width;
     };
 
+    const updatePasswordMatch = () => {
+        if (!confirmPasswordInput || !confirmPasswordStatus) {
+            return;
+        }
+
+        if (!confirmPasswordInput.value) {
+            confirmPasswordStatus.textContent = "";
+            confirmPasswordStatus.className = "mt-3 hidden text-sm font-semibold";
+            return;
+        }
+
+        if (confirmPasswordInput.value === passwordInput.value) {
+            confirmPasswordStatus.textContent = "Password does match";
+            confirmPasswordStatus.className = "mt-3 text-sm font-semibold text-emerald-700";
+            return;
+        }
+
+        confirmPasswordStatus.textContent = "Password does not match";
+        confirmPasswordStatus.className = "mt-3 text-sm font-semibold text-rose-700";
+    };
+
     passwordInput.addEventListener("input", updateStrength);
+    passwordInput.addEventListener("input", updatePasswordMatch);
+    if (confirmPasswordInput && confirmPasswordInput.dataset.matchBound !== "true") {
+        confirmPasswordInput.addEventListener("input", updatePasswordMatch);
+        confirmPasswordInput.dataset.matchBound = "true";
+    }
     updateStrength();
+    updatePasswordMatch();
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+    initPasswordStrength();
+});
+
+document.body.addEventListener("htmx:load", (event) => {
+    initPasswordStrength(event.target);
 });
