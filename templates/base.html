@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Subscription Manager{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ink: "#1d1b19",
+                        sand: "#f4efe7",
+                        clay: "#c96f3b",
+                        pine: "#0e5a52",
+                        pineDeep: "#0a403a"
+                    },
+                    fontFamily: {
+                        sans: ["Manrope", "ui-sans-serif", "system-ui", "sans-serif"]
+                    },
+                    boxShadow: {
+                        panel: "0 24px 60px rgba(48, 38, 26, 0.14)"
+                    }
+                }
+            }
+        };
+    </script>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-screen bg-sand text-ink antialiased {% block body_class %}{% endblock %}">
+    {% block content %}{% endblock %}
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

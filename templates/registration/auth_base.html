@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block body_class %}bg-[radial-gradient(circle_at_top_left,rgba(201,111,59,0.18),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(14,90,82,0.18),transparent_22%),linear-gradient(135deg,#f8f3ec_0%,#efe5d5_100%)]{% endblock %}
+
+{% block content %}
+<main class="mx-auto grid min-h-screen max-w-7xl gap-7 p-4 md:p-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,480px)] lg:p-8">
+    <section class="rounded-[28px] border border-white/15 bg-gradient-to-br from-pine via-pine to-pineDeep p-8 text-stone-50 shadow-panel md:p-12">
+        <div class="inline-flex items-center rounded-full bg-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-100/90">
+            Subscription intelligence
+        </div>
+        <h1 class="mt-5 max-w-4xl text-5xl font-extrabold leading-none md:text-6xl lg:text-7xl">{% block hero_title %}Take control of recurring spend{% endblock %}</h1>
+        <p class="mt-4 max-w-2xl text-base leading-8 text-stone-100/80 md:text-lg">{% block hero_copy %}Bring subscriptions, renewals, and billing visibility into one focused workspace built for modern teams.{% endblock %}</p>
+        <div class="mt-10 grid gap-4 md:grid-cols-3">
+            <div class="rounded-2xl bg-white/10 p-5 ring-1 ring-white/10 backdrop-blur-sm">
+                <span class="block text-3xl font-extrabold">99.9%</span>
+                <span class="mt-2 block text-sm text-stone-100/75">renewal visibility</span>
+            </div>
+            <div class="rounded-2xl bg-white/10 p-5 ring-1 ring-white/10 backdrop-blur-sm">
+                <span class="block text-3xl font-extrabold">24/7</span>
+                <span class="mt-2 block text-sm text-stone-100/75">access to account activity</span>
+            </div>
+            <div class="rounded-2xl bg-white/10 p-5 ring-1 ring-white/10 backdrop-blur-sm">
+                <span class="block text-3xl font-extrabold">1 place</span>
+                <span class="mt-2 block text-sm text-stone-100/75">for finance and operations</span>
+            </div>
+        </div>
+    </section>
+    <section class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl md:p-8">
+        <div class="mb-7 flex items-center gap-4">
+            <span class="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-pine to-clay text-sm font-extrabold tracking-[0.12em] text-white">SM</span>
+            <div>
+                <p class="m-0 text-base font-extrabold text-ink">Subscription Manager</p>
+                <p class="m-0 text-sm text-stone-500">Revenue operations platform</p>
+            </div>
+        </div>
+
+        {% if messages %}
+        <div class="mb-5 grid gap-3" aria-live="polite">
+            {% for message in messages %}
+            <div class="rounded-xl px-4 py-3 text-sm font-semibold {% if message.tags == 'success' %}bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100{% elif message.tags == 'error' %}bg-rose-50 text-rose-800 ring-1 ring-rose-100{% else %}bg-stone-100 text-stone-700 ring-1 ring-stone-200{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block panel_content %}{% endblock %}
+    </section>
+</main>
+{% endblock %}

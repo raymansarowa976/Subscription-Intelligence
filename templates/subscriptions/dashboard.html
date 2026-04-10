@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Subscription Manager{% endblock %}
+{% block body_class %}bg-[radial-gradient(circle_at_top_left,rgba(201,111,59,0.18),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(14,90,82,0.18),transparent_22%),linear-gradient(135deg,#f8f3ec_0%,#efe5d5_100%)]{% endblock %}
+
+{% block content %}
+<main class="mx-auto min-h-screen max-w-6xl p-4 md:p-6 lg:p-8">
+    <section class="grid gap-5 rounded-[28px] border border-white/15 bg-gradient-to-br from-pine via-pine to-pineDeep p-8 text-stone-50 shadow-panel md:grid-cols-[1fr_auto] md:p-10">
+        <div>
+            <p class="inline-flex items-center rounded-full bg-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-100/90">Workspace overview</p>
+            <h1 class="mt-5 text-4xl font-extrabold leading-tight md:text-5xl">Welcome back, {{ request.user.username }}</h1>
+            <p class="mt-4 max-w-2xl text-base leading-8 text-stone-100/80">Your subscription command center is ready. Track renewals, tighten spend controls, and keep every stakeholder aligned.</p>
+        </div>
+        <a class="inline-flex items-center justify-center self-start rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-bold text-white backdrop-blur-sm transition hover:bg-white/15" href="{% url 'accounts:login' %}">Account access</a>
+    </section>
+
+    <section class="mt-7 grid gap-5 md:grid-cols-3">
+        <article class="rounded-[24px] border border-black/10 bg-white/90 p-6 shadow-panel">
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Active subscriptions</p>
+            <p class="mt-3 text-4xl font-extrabold text-ink">128</p>
+            <p class="mt-4 text-sm leading-7 text-stone-500">Consolidated across teams and vendors.</p>
+        </article>
+        <article class="rounded-[24px] border border-black/10 bg-white/90 p-6 shadow-panel">
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Renewals due this month</p>
+            <p class="mt-3 text-4xl font-extrabold text-ink">11</p>
+            <p class="mt-4 text-sm leading-7 text-stone-500">Review contracts before auto-renew windows close.</p>
+        </article>
+        <article class="rounded-[24px] border border-black/10 bg-white/90 p-6 shadow-panel">
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Potential savings</p>
+            <p class="mt-3 text-4xl font-extrabold text-ink">$14.2K</p>
+            <p class="mt-4 text-sm leading-7 text-stone-500">Opportunities identified from duplicate and underused tools.</p>
+        </article>
+    </section>
+</main>
+{% endblock %}
