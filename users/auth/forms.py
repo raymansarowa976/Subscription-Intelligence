@@ -9,6 +9,19 @@ User = get_user_model()
 
 class SignupForm(forms.ModelForm):
     NAME_PATTERN = re.compile(r"^[A-Za-z]{2,}$")
+    ALLOWED_EMAIL_DOMAINS = {
+        "gmail.com",
+        "hotmail.com",
+        "outlook.com",
+        "live.com",
+        "msn.com",
+        "yahoo.com",
+        "icloud.com",
+        "me.com",
+        "aol.com",
+        "proton.me",
+        "protonmail.com",
+    }
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
         strip=False,
@@ -36,6 +49,9 @@ class SignupForm(forms.ModelForm):
         self.fields["last_name"].required = True
         self.fields["first_name"].help_text = "Letters only, at least 2 characters."
         self.fields["last_name"].help_text = "Letters only, at least 2 characters."
+        self.fields["email"].help_text = (
+            "Use a valid personal email from a supported provider like gmail.com or outlook.com."
+        )
         self.fields["password"].help_text = (
             "Use at least 8 characters with uppercase, lowercase, a number, and a special character."
         )
@@ -54,6 +70,11 @@ class SignupForm(forms.ModelForm):
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
+        domain = email.rsplit("@", 1)[-1] if "@" in email else ""
+        if domain not in self.ALLOWED_EMAIL_DOMAINS:
+            raise forms.ValidationError(
+                "Use a valid email from a supported provider like gmail.com, hotmail.com, or outlook.com."
+            )
         if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError("An account with this email already exists.")
         return email
