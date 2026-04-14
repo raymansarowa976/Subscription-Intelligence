@@ -9,7 +9,7 @@ from django.urls import reverse
 
 from .authentication_forms import SubscriptionAuthenticationForm
 from .forms import LoginTokenVerificationForm, ResendTokenForm, SignupForm
-from .token_service import clear_email_token, get_email_token, issue_email_token, verify_email_token
+from .token_service import clear_email_token, issue_email_token, verify_email_token
 
 
 User = get_user_model()
@@ -19,15 +19,13 @@ LEGACY_REACTIVATION_SESSION_KEY = "legacy_reactivation_user_id"
 
 def send_verification_token_email(user):
     token = issue_email_token(user.email)
-    if settings.SHOW_LOGIN_TOKEN_IN_UI:
-        return token
     send_mail(
         "Your Subscription Intelligence login token",
         (
             "Use this verification token to complete sign in: "
             f"{token}\n\nThis token expires in 10 minutes."
         ),
-        "noreply@subscriptionintelligence.com",
+        settings.DEFAULT_FROM_EMAIL,
         [user.email],
         fail_silently=False,
     )
@@ -106,9 +104,6 @@ def verify_token_view(request):
         {
             "form": form,
             "resend_form": resend_form,
-            "development_token": (
-                get_email_token(request.user.email) if settings.SHOW_LOGIN_TOKEN_IN_UI else None
-            ),
         },
     )
 
@@ -129,9 +124,6 @@ def resend_token_view(request):
         {
             "form": LoginTokenVerificationForm(),
             "resend_form": ResendTokenForm(),
-            "development_token": (
-                get_email_token(request.user.email) if settings.SHOW_LOGIN_TOKEN_IN_UI else None
-            ),
         },
     )
 

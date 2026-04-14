@@ -95,6 +95,7 @@ class FrontendIntegrationTest(TestCase):
         self.assertContains(response, "Verify your login")
         self.assertContains(response, 'name="token"', html=False)
         self.assertContains(response, "Resend token")
+        self.assertNotContains(response, "Development token")
 
     def test_verify_token_with_valid_code_activates_user(self):
         user = User.objects.create_user(
