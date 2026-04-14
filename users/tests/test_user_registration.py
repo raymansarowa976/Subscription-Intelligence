@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.test.utils import override_settings
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.core import mail
@@ -74,3 +75,13 @@ class RegistrationTest(TestCase):
         self.assertRedirects(response, self.verify_url)
         self.assertEqual(len(mail.outbox), 2)
         self.assertIn('login token', mail.outbox[-1].subject.lower())
+
+    @override_settings(SHOW_LOGIN_TOKEN_IN_UI=True)
+    def test_login_still_sends_email_when_development_token_is_visible(self):
+        self.client.post(self.signup_url, self.user_data)
+        user = User.objects.get(email='tester@gmail.com')
+
+        response = self.client.post(self.login_url, {'username': user.username, 'password': 'Complex123!'})
+
+        self.assertRedirects(response, self.verify_url)
+        self.assertEqual(len(mail.outbox), 1)
