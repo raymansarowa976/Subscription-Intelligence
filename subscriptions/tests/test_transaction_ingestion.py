@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from subscriptions.models import SubscriptionCandidate
+from subscriptions.models import SubscriptionCandidate, TransactionEvidence, TransactionImportRun
 
 User = get_user_model()
 
@@ -83,6 +83,70 @@ class TransactionIngestionTest(TestCase):
         self.assertEqual(duplicate_response.status_code, 202)
         self.assertEqual(duplicate_response.json()["ingested_transactions"], 0)
         self.assertEqual(duplicate_response.json()["duplicate_transactions"], 2)
+        latest_run = TransactionImportRun.objects.filter(user=self.user).first()
+        self.assertEqual(latest_run.status, TransactionImportRun.STATUS_SUCCEEDED)
+        self.assertEqual(latest_run.duplicate_transactions, 2)
+
+    def test_ingestion_rejects_malformed_payload_with_useful_errors(self):
+        payload = {
+            "provider": "plaid",
+            "account_id": "acct_123",
+            "transactions": [
+                {
+                    "provider_transaction_id": "",
+                    "merchant_name": "Netflix",
+                    "amount": "not-a-number",
+                    "posted_at": "04/01/2026",
+                }
+            ],
+        }
+
+        response = self.client.post(
+            reverse("transactions:ingest"),
+            data=payload,
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        body = response.json()
+        self.assertEqual(body["status"], "rejected")
+        self.assertIn("errors", body)
+        self.assertIn("provider_transaction_id is required.", body["errors"][0]["message"])
+        latest_run = TransactionImportRun.objects.get(pk=body["import_run_id"])
+        self.assertEqual(latest_run.status, TransactionImportRun.STATUS_FAILED)
+
+    def test_ingestion_rejects_exact_duplicate_charge_even_with_new_provider_transaction_id(self):
+        self.client.post(
+            reverse("transactions:ingest"),
+            data=self.sample_payload,
+            content_type="application/json",
+        )
+
+        duplicate_payload = {
+            "provider": "plaid",
+            "account_id": "acct_123",
+            "transactions": [
+                {
+                    "provider_transaction_id": "txn_netflix_003",
+                    "merchant_name": "Netflix",
+                    "description": "NETFLIX.COM",
+                    "amount": "15.49",
+                    "currency": "USD",
+                    "posted_at": "2026-04-01",
+                }
+            ],
+        }
+
+        response = self.client.post(
+            reverse("transactions:ingest"),
+            data=duplicate_payload,
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.json()["ingested_transactions"], 0)
+        self.assertEqual(response.json()["duplicate_transactions"], 1)
+        self.assertEqual(TransactionEvidence.objects.filter(user=self.user).count(), 2)
 
     def test_recurring_transactions_create_a_pending_subscription_candidate(self):
         self.client.post(

@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from subscriptions.models import Subscription, SubscriptionCandidate, TransactionEvidence
+from subscriptions.models import Subscription, SubscriptionCandidate, TransactionEvidence, TransactionImportRun
 
 
 User = get_user_model()
@@ -40,6 +40,10 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Quick add subscription")
         self.assertContains(response, "Recently found")
         self.assertContains(response, "Security check")
+        self.assertContains(response, "Import transactions")
+        self.assertContains(response, "Run transaction import")
+        self.assertContains(response, reverse("transactions:ingest"))
+        self.assertContains(response, "No sync has been recorded yet for your account.")
         self.assertContains(response, "Active subscriptions tracked right now.")
         self.assertContains(response, "No new receipts are waiting for review.")
 
@@ -64,12 +68,22 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
             category=Subscription.CATEGORY_SOFTWARE,
             next_renewal=date.today() + timedelta(days=30),
         )
+        import_run = TransactionImportRun.objects.create(
+            user=self.user,
+            provider="plaid",
+            account_id="acct_dashboard",
+            status=TransactionImportRun.STATUS_SUCCEEDED,
+            requested_transaction_count=1,
+            ingested_transactions=1,
+        )
         TransactionEvidence.objects.create(
             user=self.user,
+            import_run=import_run,
             provider="plaid",
             account_id="acct_dashboard",
             provider_transaction_id="txn_sync_001",
             merchant_name="Netflix",
+            normalized_merchant_name="netflix",
             description="NETFLIX.COM",
             amount="15.49",
             currency="USD",
@@ -88,7 +102,9 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Netflix")
         self.assertContains(response, "$15.49")
         self.assertContains(response, "Streaming")
+        self.assertContains(response, "Endpoint:")
         self.assertContains(response, "Last synced")
+        self.assertContains(response, "Sync status: Succeeded")
         self.assertContains(response, "Portfolio overview")
 
     def test_dashboard_orders_active_subscriptions_before_cancelled_ones(self):
