@@ -1,10 +1,18 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
-from subscriptions.models import Subscription, SubscriptionCandidate, TransactionEvidence
+from subscriptions.models import (
+    EmailScanRun,
+    EmailSubscriptionLead,
+    Subscription,
+    SubscriptionCandidate,
+    TransactionEvidence,
+    TransactionImportRun,
+)
 
 
 User = get_user_model()
@@ -37,11 +45,16 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Annual run-rate")
         self.assertContains(response, "Subscriptions")
         self.assertContains(response, "Log out")
-        self.assertContains(response, "Quick add subscription")
-        self.assertContains(response, "Recently found")
-        self.assertContains(response, "Security check")
+        self.assertContains(response, "Scan email for subscriptions")
+        self.assertContains(response, "Scan inbox now")
+        self.assertContains(response, "No inbox scan has been run yet for this account.")
+        self.assertNotContains(response, "Quick add subscription")
+        self.assertNotContains(response, "Import transactions")
+        self.assertNotContains(response, "Run transaction import")
         self.assertContains(response, "Active subscriptions tracked right now.")
-        self.assertContains(response, "No new receipts are waiting for review.")
+        self.assertNotContains(response, "Likely subscriptions from email")
+        self.assertNotContains(response, "Next five charges")
+        self.assertNotContains(response, "Potential savings")
 
     def test_dashboard_displays_confirmed_subscriptions_and_personalized_metrics(self):
         Subscription.objects.create(
@@ -64,16 +77,45 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
             category=Subscription.CATEGORY_SOFTWARE,
             next_renewal=date.today() + timedelta(days=30),
         )
+        import_run = TransactionImportRun.objects.create(
+            user=self.user,
+            provider="plaid",
+            account_id="acct_dashboard",
+            status=TransactionImportRun.STATUS_SUCCEEDED,
+            requested_transaction_count=1,
+            ingested_transactions=1,
+        )
         TransactionEvidence.objects.create(
             user=self.user,
+            import_run=import_run,
             provider="plaid",
             account_id="acct_dashboard",
             provider_transaction_id="txn_sync_001",
             merchant_name="Netflix",
+            normalized_merchant_name="netflix",
             description="NETFLIX.COM",
             amount="15.49",
             currency="USD",
             posted_at=date.today(),
+        )
+        email_scan = EmailScanRun.objects.create(
+            user=self.user,
+            mailbox="INBOX",
+            status=EmailScanRun.STATUS_SUCCEEDED,
+            scanned_message_count=12,
+            matched_message_count=2,
+        )
+        EmailSubscriptionLead.objects.create(
+            user=self.user,
+            scan_run=email_scan,
+            message_id="<msg-1@example.com>",
+            sender="billing@netflix.com",
+            sender_name="Netflix",
+            subject="Your Netflix monthly receipt",
+            merchant_name="Netflix",
+            snippet="Your Netflix subscription will renew next month.",
+            confidence_score=84,
+            received_at=timezone.make_aware(datetime.combine(date.today(), datetime.min.time())),
         )
 
         response = self.client.get(self.dashboard_url)
@@ -82,14 +124,11 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Hello, productuser, you have 1 renewal this week.")
         self.assertContains(response, "$25.49")
         self.assertContains(response, "$305.88")
-        self.assertContains(response, "Next five charges")
         self.assertContains(response, "Category mix")
         self.assertContains(response, "6-month spend curve")
-        self.assertContains(response, "Netflix")
-        self.assertContains(response, "$15.49")
-        self.assertContains(response, "Streaming")
-        self.assertContains(response, "Last synced")
         self.assertContains(response, "Portfolio overview")
+        self.assertContains(response, "Review subscriptions")
+        self.assertContains(response, "Last inbox scan:")
 
     def test_dashboard_orders_active_subscriptions_before_cancelled_ones(self):
         Subscription.objects.create(
@@ -135,18 +174,22 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         response = self.client.get(self.candidates_url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Recurring charge review queue")
-        self.assertContains(response, "Pending subscription candidates")
+        self.assertContains(response, "Review subscriptions")
+        self.assertContains(response, "Recurring subscription candidates")
         self.assertContains(response, "Spotify")
         self.assertContains(response, "Confirm subscription")
         self.assertContains(response, "Reject")
-        self.assertContains(response, "Queue status")
+        self.assertContains(response, "Likely subscriptions from email")
+        self.assertContains(response, "Next five charges")
+        self.assertContains(response, "Potential savings")
+        self.assertContains(response, "Source health")
 
     def test_candidates_page_shows_empty_state_when_no_candidates_exist(self):
         response = self.client.get(self.candidates_url)
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "No pending candidates yet.")
+        self.assertContains(response, "Run an inbox scan to surface likely subscription emails here.")
 
     def test_dashboard_only_shows_current_users_data(self):
         other_user = User.objects.create_user(

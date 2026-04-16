@@ -9,11 +9,15 @@ from users.auth.views import LOGIN_TOKEN_VERIFIED_SESSION_KEY
 from .forms import ManualSubscriptionForm
 from .models import Subscription, SubscriptionCandidate, TransactionEvidence
 from .services import (
+    IngestionValidationError,
+    InboxScanError,
     build_dashboard_context,
     calculate_next_renewal,
     infer_subscription_category,
     ingest_transactions,
     parse_request_json,
+    record_failed_import_run,
+    scan_email_inbox_for_subscriptions,
 )
 
 
@@ -38,8 +42,42 @@ def ingest_transactions_view(request):
     gate = _require_verified_session(request)
     if gate:
         return gate
-    payload = ingest_transactions(request.user, parse_request_json(request))
-    return JsonResponse(payload, status=202)
+    try:
+        payload = parse_request_json(request)
+        response_payload = ingest_transactions(request.user, payload)
+    except IngestionValidationError as exc:
+        request_payload = payload if "payload" in locals() else {}
+        import_run = record_failed_import_run(request.user, request_payload, exc.errors)
+        return JsonResponse(
+            {
+                "status": "rejected",
+                "import_run_id": import_run.id,
+                "errors": exc.errors,
+            },
+            status=400,
+        )
+    return JsonResponse(response_payload, status=202)
+
+
+@require_POST
+def scan_inbox_view(request):
+    gate = _require_verified_session(request)
+    if gate:
+        return gate
+
+    try:
+        result = scan_email_inbox_for_subscriptions(request.user)
+    except InboxScanError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(
+            request,
+            (
+                f"Inbox scan complete. Checked {result['scanned_message_count']} messages and found "
+                f"{result['matched_message_count']} likely subscription emails."
+            ),
+        )
+    return redirect("transactions:candidates")
 
 
 def candidate_list_view(request):
@@ -50,7 +88,9 @@ def candidate_list_view(request):
         user=request.user,
         status=SubscriptionCandidate.STATUS_PENDING,
     )
-    return render(request, "subscriptions/candidates.html", {"candidates": candidates})
+    context = build_dashboard_context(request.user)
+    context["candidates"] = candidates
+    return render(request, "subscriptions/candidates.html", context)
 
 
 @require_POST
