@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from subscriptions.models import SubscriptionCandidate, TransactionEvidence, TransactionImportRun
+from subscriptions.models import Subscription, SubscriptionCandidate, TransactionEvidence, TransactionImportRun
 
 User = get_user_model()
 
@@ -158,7 +158,7 @@ class TransactionIngestionTest(TestCase):
         response = self.client.get(reverse("transactions:candidates"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Pending subscription candidates")
+        self.assertContains(response, "Recurring subscription candidates")
         self.assertContains(response, "Netflix")
         self.assertContains(response, "Monthly")
         self.assertContains(response, "$15.49")
@@ -205,8 +205,11 @@ class TransactionIngestionTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Subscription saved")
-        self.assertContains(response, "Netflix")
-        self.assertContains(response, "Active subscriptions")
+        self.assertEqual(Subscription.objects.filter(user=self.user, merchant_name="Netflix").count(), 1)
+        self.assertEqual(
+            SubscriptionCandidate.objects.get(pk=1).status,
+            SubscriptionCandidate.STATUS_CONFIRMED,
+        )
 
     def test_user_can_reject_a_subscription_candidate(self):
         self.client.post(
@@ -243,4 +246,4 @@ class TransactionIngestionTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Subscription added")
-        self.assertContains(response, "YouTube Premium")
+        self.assertEqual(Subscription.objects.filter(user=self.user, merchant_name="YouTube Premium").count(), 1)
