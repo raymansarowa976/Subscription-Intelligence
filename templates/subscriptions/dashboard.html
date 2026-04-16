@@ -63,6 +63,88 @@
         </section>
 
         <section class="grid gap-6 lg:grid-cols-2">
+            <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl lg:col-span-2">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Inbox discovery</p>
+                        <h2 class="mt-2 text-2xl font-extrabold text-ink">Scan email for subscriptions</h2>
+                        <p class="mt-3 max-w-3xl text-sm leading-7 text-stone-500">Connect through IMAP using the mailbox credentials in your environment and search recent emails for billing, renewal, receipt, and membership signals that look like subscriptions.</p>
+                    </div>
+                    <div class="rounded-[22px] border border-dashed border-black/10 bg-stone-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                        {{ inbox_lead_count }} inbox lead{{ inbox_lead_count|pluralize }}
+                    </div>
+                </div>
+
+                <div class="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+                    <div class="rounded-[24px] border border-black/10 bg-stone-50 p-5 text-sm leading-7 text-stone-500">
+                        {% if latest_email_scan %}
+                        Last inbox scan: {{ latest_email_scan.completed_at|date:"M j, Y g:i A" }} from {{ latest_email_scan.mailbox }}.
+                        Checked {{ latest_email_scan.scanned_message_count }} message{{ latest_email_scan.scanned_message_count|pluralize }} and matched {{ latest_email_scan.matched_message_count }}.
+                        {% else %}
+                        No inbox scan has been run yet for this account.
+                        {% endif %}
+                    </div>
+                    <form method="post" action="{% url 'scan_inbox' %}">
+                        {% csrf_token %}
+                        <button class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" type="submit">Scan inbox now</button>
+                    </form>
+                </div>
+            </article>
+
+            <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl lg:col-span-2">
+                <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Transaction source</p>
+                        <h2 class="mt-2 text-2xl font-extrabold text-ink">Import transactions</h2>
+                        <p class="mt-3 max-w-3xl text-sm leading-7 text-stone-500">Paste a provider payload or load a `.json` file to push transactions through the live ingestion API and refresh recurring charge candidates.</p>
+                    </div>
+                    <div class="rounded-[22px] border border-dashed border-black/10 bg-stone-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                        Endpoint: {% url 'transactions:ingest' %}
+                    </div>
+                </div>
+
+                <form id="transaction-import-form" class="mt-6 space-y-4">
+                    {% csrf_token %}
+                    <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+                        <label class="block">
+                            <span class="text-sm font-semibold text-ink">Provider payload</span>
+                            <textarea id="transaction-import-payload" class="mt-2 min-h-64 w-full rounded-[24px] border border-black/10 bg-stone-50 px-4 py-4 font-mono text-sm text-ink shadow-inner outline-none transition focus:border-pine focus:ring-2 focus:ring-pine/20" spellcheck="false" placeholder='{
+  "provider": "plaid",
+  "account_id": "acct_demo",
+  "transactions": [
+    {
+      "provider_transaction_id": "txn_demo_001",
+      "merchant_name": "Netflix",
+      "description": "NETFLIX.COM",
+      "amount": "15.49",
+      "currency": "USD",
+      "posted_at": "2026-04-01"
+    }
+  ]
+}'></textarea>
+                        </label>
+
+                        <div class="space-y-4">
+                            <label class="block">
+                                <span class="text-sm font-semibold text-ink">JSON file</span>
+                                <input id="transaction-import-file" class="mt-2 block w-full rounded-[18px] border border-dashed border-black/15 bg-stone-50 px-4 py-3 text-sm text-stone-600 file:mr-3 file:rounded-xl file:border-0 file:bg-white file:px-3 file:py-2 file:font-semibold file:text-ink" type="file" accept=".json,application/json">
+                            </label>
+
+                            <div class="rounded-[24px] border border-black/10 bg-stone-50 p-4 text-sm leading-7 text-stone-500">
+                                Keep the payload shape aligned with the ingestion contract:
+                                <code class="mt-2 block whitespace-pre-wrap rounded-2xl bg-white px-3 py-3 text-xs text-ink">provider, account_id, transactions[].provider_transaction_id, merchant_name, amount, posted_at</code>
+                            </div>
+
+                            <button id="transaction-import-submit" class="inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70" type="submit">
+                                Run transaction import
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <div id="transaction-import-result" class="mt-4 hidden rounded-[22px] border px-4 py-4 text-sm leading-7"></div>
+            </article>
+
             <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
                 <div class="flex items-center justify-between gap-4">
                     <div>
@@ -87,6 +169,37 @@
     </section>
 
     <aside class="space-y-6">
+        <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
+            <div class="flex items-center justify-between gap-4">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Inbox matches</p>
+                    <h2 class="mt-2 text-2xl font-extrabold text-ink">Likely subscriptions from email</h2>
+                </div>
+                <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">{{ inbox_lead_count }}</span>
+            </div>
+            <div class="mt-5 space-y-4">
+                {% for lead in inbox_leads %}
+                <article class="rounded-[22px] border border-black/10 bg-stone-50 p-4">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-base font-bold text-ink">{{ lead.merchant_name }}</p>
+                            <p class="mt-1 text-sm text-stone-500">{{ lead.subject }}</p>
+                            <p class="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">{{ lead.sender }} • {{ lead.received_at|date:"M j, Y" }}</p>
+                        </div>
+                        <div class="rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">{{ lead.confidence_score }}%</div>
+                    </div>
+                    {% if lead.snippet %}
+                    <p class="mt-3 text-sm leading-7 text-stone-600">{{ lead.snippet }}</p>
+                    {% endif %}
+                </article>
+                {% empty %}
+                <div class="rounded-[22px] border border-dashed border-black/15 bg-stone-50 p-6 text-sm text-stone-500">
+                    Run an inbox scan to surface likely subscription emails here.
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
         <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
             <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Renewal calendar</p>
             <h2 class="mt-2 text-2xl font-extrabold text-ink">Next five charges</h2>
@@ -170,17 +283,128 @@
             <h2 class="mt-2 text-2xl font-extrabold text-ink">Last synced</h2>
             <p class="mt-3 text-sm leading-7 text-stone-500">
                 {% if latest_sync %}
-                {{ latest_sync|date:"M j, Y g:i A" }} from your connected transaction source.
+                {{ latest_sync.completed_at|date:"M j, Y g:i A" }} from {{ latest_sync.provider|title }} for account {{ latest_sync.account_id }}.
                 {% else %}
                 No sync has been recorded yet for your account.
                 {% endif %}
             </p>
+            {% if latest_sync %}
+            <p class="mt-2 text-xs font-semibold uppercase tracking-[0.18em] {% if latest_sync.status == 'succeeded' %}text-emerald-700{% else %}text-rose-700{% endif %}">
+                Sync status: {{ latest_sync.get_status_display }}
+            </p>
+            {% endif %}
+            <p class="mt-5 text-sm leading-7 text-stone-500">
+                {% if latest_email_scan %}
+                Inbox scan: {{ latest_email_scan.completed_at|date:"M j, Y g:i A" }} from {{ latest_email_scan.mailbox }}.
+                {% else %}
+                Inbox scan has not been run yet.
+                {% endif %}
+            </p>
+            {% if latest_email_scan %}
+            <p class="mt-2 text-xs font-semibold uppercase tracking-[0.18em] {% if latest_email_scan.status == 'succeeded' %}text-emerald-700{% else %}text-rose-700{% endif %}">
+                Inbox scan status: {{ latest_email_scan.get_status_display }}
+            </p>
+            {% endif %}
         </section>
     </aside>
 </section>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    const importForm = document.getElementById("transaction-import-form");
+    const importPayloadField = document.getElementById("transaction-import-payload");
+    const importFileField = document.getElementById("transaction-import-file");
+    const importSubmitButton = document.getElementById("transaction-import-submit");
+    const importResult = document.getElementById("transaction-import-result");
+    const importEndpoint = "{% url 'transactions:ingest' %}";
+
+    const setImportResult = (tone, lines) => {
+        if (!importResult) {
+            return;
+        }
+
+        importResult.classList.remove(
+            "hidden",
+            "border-emerald-100",
+            "bg-emerald-50",
+            "text-emerald-900",
+            "border-rose-100",
+            "bg-rose-50",
+            "text-rose-900",
+            "border-stone-200",
+            "bg-stone-50",
+            "text-stone-700",
+        );
+
+        const toneClasses = {
+            success: ["border-emerald-100", "bg-emerald-50", "text-emerald-900"],
+            error: ["border-rose-100", "bg-rose-50", "text-rose-900"],
+            neutral: ["border-stone-200", "bg-stone-50", "text-stone-700"],
+        };
+
+        importResult.classList.add(...(toneClasses[tone] || toneClasses.neutral));
+        importResult.innerHTML = lines.map((line) => `<p>${line}</p>`).join("");
+    };
+
+    if (importFileField && importPayloadField) {
+        importFileField.addEventListener("change", async (event) => {
+            const file = event.target.files && event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            try {
+                importPayloadField.value = await file.text();
+                setImportResult("neutral", [`Loaded ${file.name}. Review the payload, then run the import.`]);
+            } catch (error) {
+                setImportResult("error", ["The selected file could not be read."]);
+            }
+        });
+    }
+
+    if (importForm && importPayloadField && importSubmitButton) {
+        importForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const csrfTokenField = importForm.querySelector("[name=csrfmiddlewaretoken]");
+            importSubmitButton.disabled = true;
+            importSubmitButton.textContent = "Importing...";
+            setImportResult("neutral", ["Submitting transactions to the ingestion service..."]);
+
+            try {
+                const response = await fetch(importEndpoint, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfTokenField ? csrfTokenField.value : "",
+                    },
+                    body: importPayloadField.value,
+                    credentials: "same-origin",
+                });
+
+                const body = await response.json();
+                if (response.ok) {
+                    setImportResult("success", [
+                        `Import run ${body.import_run_id} accepted for ${body.provider} / ${body.account_id}.`,
+                        `${body.ingested_transactions} ingested, ${body.duplicate_transactions} duplicate, ${body.invalid_transactions} invalid.`,
+                        "Refresh the dashboard to see the latest candidates and sync status.",
+                    ]);
+                    return;
+                }
+
+                const errors = Array.isArray(body.errors) && body.errors.length
+                    ? body.errors.map((entry) => `${entry.field}: ${entry.message}`)
+                    : ["The import request was rejected."];
+                setImportResult("error", errors);
+            } catch (error) {
+                setImportResult("error", ["The import request failed before the server returned a response."]);
+            } finally {
+                importSubmitButton.disabled = false;
+                importSubmitButton.textContent = "Run transaction import";
+            }
+        });
+    }
+
     const categoryLabels = JSON.parse(document.getElementById("category-labels").textContent);
     const categoryValues = JSON.parse(document.getElementById("category-values").textContent);
     const trendLabels = JSON.parse(document.getElementById("trend-labels").textContent);
