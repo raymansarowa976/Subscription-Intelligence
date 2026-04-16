@@ -77,7 +77,7 @@ def scan_inbox_view(request):
                 f"{result['matched_message_count']} likely subscription emails."
             ),
         )
-    return redirect("dashboard")
+    return redirect("transactions:candidates")
 
 
 def candidate_list_view(request):
@@ -88,7 +88,9 @@ def candidate_list_view(request):
         user=request.user,
         status=SubscriptionCandidate.STATUS_PENDING,
     )
-    return render(request, "subscriptions/candidates.html", {"candidates": candidates})
+    context = build_dashboard_context(request.user)
+    context["candidates"] = candidates
+    return render(request, "subscriptions/candidates.html", context)
 
 
 @require_POST
