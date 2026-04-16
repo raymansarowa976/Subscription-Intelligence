@@ -45,19 +45,16 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Annual run-rate")
         self.assertContains(response, "Subscriptions")
         self.assertContains(response, "Log out")
-        self.assertContains(response, "Quick add subscription")
-        self.assertContains(response, "Recently found")
-        self.assertContains(response, "Security check")
         self.assertContains(response, "Scan email for subscriptions")
         self.assertContains(response, "Scan inbox now")
         self.assertContains(response, "No inbox scan has been run yet for this account.")
-        self.assertContains(response, "Run an inbox scan to surface likely subscription emails here.")
-        self.assertContains(response, "Import transactions")
-        self.assertContains(response, "Run transaction import")
-        self.assertContains(response, reverse("transactions:ingest"))
-        self.assertContains(response, "No sync has been recorded yet for your account.")
+        self.assertNotContains(response, "Quick add subscription")
+        self.assertNotContains(response, "Import transactions")
+        self.assertNotContains(response, "Run transaction import")
         self.assertContains(response, "Active subscriptions tracked right now.")
-        self.assertContains(response, "No new receipts are waiting for review.")
+        self.assertNotContains(response, "Likely subscriptions from email")
+        self.assertNotContains(response, "Next five charges")
+        self.assertNotContains(response, "Potential savings")
 
     def test_dashboard_displays_confirmed_subscriptions_and_personalized_metrics(self):
         Subscription.objects.create(
@@ -127,19 +124,11 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Hello, productuser, you have 1 renewal this week.")
         self.assertContains(response, "$25.49")
         self.assertContains(response, "$305.88")
-        self.assertContains(response, "Next five charges")
         self.assertContains(response, "Category mix")
         self.assertContains(response, "6-month spend curve")
-        self.assertContains(response, "Netflix")
-        self.assertContains(response, "$15.49")
-        self.assertContains(response, "Streaming")
-        self.assertContains(response, "Likely subscriptions from email")
-        self.assertContains(response, "Your Netflix monthly receipt")
-        self.assertContains(response, "Inbox scan status: Succeeded")
-        self.assertContains(response, "Endpoint:")
-        self.assertContains(response, "Last synced")
-        self.assertContains(response, "Sync status: Succeeded")
         self.assertContains(response, "Portfolio overview")
+        self.assertContains(response, "Review subscriptions")
+        self.assertContains(response, "Last inbox scan:")
 
     def test_dashboard_orders_active_subscriptions_before_cancelled_ones(self):
         Subscription.objects.create(
@@ -185,18 +174,22 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         response = self.client.get(self.candidates_url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Recurring charge review queue")
-        self.assertContains(response, "Pending subscription candidates")
+        self.assertContains(response, "Review subscriptions")
+        self.assertContains(response, "Recurring subscription candidates")
         self.assertContains(response, "Spotify")
         self.assertContains(response, "Confirm subscription")
         self.assertContains(response, "Reject")
-        self.assertContains(response, "Queue status")
+        self.assertContains(response, "Likely subscriptions from email")
+        self.assertContains(response, "Next five charges")
+        self.assertContains(response, "Potential savings")
+        self.assertContains(response, "Source health")
 
     def test_candidates_page_shows_empty_state_when_no_candidates_exist(self):
         response = self.client.get(self.candidates_url)
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "No pending candidates yet.")
+        self.assertContains(response, "Run an inbox scan to surface likely subscription emails here.")
 
     def test_dashboard_only_shows_current_users_data(self):
         other_user = User.objects.create_user(

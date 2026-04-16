@@ -108,6 +108,7 @@ class EmailInboxScanTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Inbox scan complete.")
+        self.assertContains(response, "Review subscriptions")
         self.assertContains(response, "Your Netflix monthly receipt")
         self.assertContains(response, "Likely subscriptions from email")
 
