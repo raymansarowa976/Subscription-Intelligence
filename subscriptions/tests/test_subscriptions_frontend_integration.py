@@ -1,10 +1,18 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
-from subscriptions.models import Subscription, SubscriptionCandidate, TransactionEvidence, TransactionImportRun
+from subscriptions.models import (
+    EmailScanRun,
+    EmailSubscriptionLead,
+    Subscription,
+    SubscriptionCandidate,
+    TransactionEvidence,
+    TransactionImportRun,
+)
 
 
 User = get_user_model()
@@ -40,6 +48,10 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Quick add subscription")
         self.assertContains(response, "Recently found")
         self.assertContains(response, "Security check")
+        self.assertContains(response, "Scan email for subscriptions")
+        self.assertContains(response, "Scan inbox now")
+        self.assertContains(response, "No inbox scan has been run yet for this account.")
+        self.assertContains(response, "Run an inbox scan to surface likely subscription emails here.")
         self.assertContains(response, "Import transactions")
         self.assertContains(response, "Run transaction import")
         self.assertContains(response, reverse("transactions:ingest"))
@@ -89,6 +101,25 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
             currency="USD",
             posted_at=date.today(),
         )
+        email_scan = EmailScanRun.objects.create(
+            user=self.user,
+            mailbox="INBOX",
+            status=EmailScanRun.STATUS_SUCCEEDED,
+            scanned_message_count=12,
+            matched_message_count=2,
+        )
+        EmailSubscriptionLead.objects.create(
+            user=self.user,
+            scan_run=email_scan,
+            message_id="<msg-1@example.com>",
+            sender="billing@netflix.com",
+            sender_name="Netflix",
+            subject="Your Netflix monthly receipt",
+            merchant_name="Netflix",
+            snippet="Your Netflix subscription will renew next month.",
+            confidence_score=84,
+            received_at=timezone.make_aware(datetime.combine(date.today(), datetime.min.time())),
+        )
 
         response = self.client.get(self.dashboard_url)
 
@@ -102,6 +133,9 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Netflix")
         self.assertContains(response, "$15.49")
         self.assertContains(response, "Streaming")
+        self.assertContains(response, "Likely subscriptions from email")
+        self.assertContains(response, "Your Netflix monthly receipt")
+        self.assertContains(response, "Inbox scan status: Succeeded")
         self.assertContains(response, "Endpoint:")
         self.assertContains(response, "Last synced")
         self.assertContains(response, "Sync status: Succeeded")
