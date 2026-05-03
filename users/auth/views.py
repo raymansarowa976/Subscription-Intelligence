@@ -2,7 +2,8 @@ import secrets
 import string
 
 from django.contrib import messages
-from django.contrib.auth import get_user_model, logout
+from django.contrib.auth import get_user_model, logout, update_session_auth_hash
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth import password_validation
 from django.contrib.auth.views import LoginView
 from django.conf import settings
@@ -12,13 +13,31 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 
 from .authentication_forms import SubscriptionAuthenticationForm
-from .forms import AccountRecoveryForm, LoginTokenVerificationForm, ResendTokenForm, SignupForm
+from .forms import (
+    AccountRecoveryForm,
+    LoginTokenVerificationForm,
+    PasswordChangeForm,
+    ResendTokenForm,
+    SignupForm,
+    UsernameChangeRequestForm,
+    UsernameChangeTokenForm,
+)
 from .token_service import clear_email_token, issue_email_token, verify_email_token
 
 
 User = get_user_model()
 LOGIN_TOKEN_VERIFIED_SESSION_KEY = "login_token_verified"
 LEGACY_REACTIVATION_SESSION_KEY = "legacy_reactivation_user_id"
+USERNAME_CHANGE_TOKEN_PURPOSE = "username-change"
+PENDING_USERNAME_SESSION_KEY = "pending_username_change"
+
+
+def _require_verified_session(request):
+    if not request.user.is_authenticated:
+        return redirect("accounts:login")
+    if not request.session.get(LOGIN_TOKEN_VERIFIED_SESSION_KEY):
+        return redirect("accounts:verify_token")
+    return None
 
 
 def send_verification_token_email(user):
@@ -83,6 +102,23 @@ def send_temporary_password_email(user, temporary_password):
         [user.email],
         fail_silently=False,
     )
+
+
+def send_username_change_token_email(user, new_username):
+    token = issue_email_token(user.email, purpose=USERNAME_CHANGE_TOKEN_PURPOSE)
+    send_mail(
+        "Confirm your Subscription Intelligence username change",
+        (
+            "Use this confirmation token to change your Subscription Intelligence username: "
+            f"{token}\n\n"
+            f"Requested username: {new_username}\n\n"
+            "This token expires in 10 minutes. If you did not request this change, ignore this email."
+        ),
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email],
+        fail_silently=False,
+    )
+    return token
 
 
 class SubscriptionLoginView(LoginView):
@@ -165,6 +201,88 @@ def forgot_password_view(request):
     return render(
         request,
         "registration/forgot_password.html",
+        {
+            "form": form,
+        },
+    )
+
+
+@login_required
+def change_username_view(request):
+    gate = _require_verified_session(request)
+    if gate:
+        return gate
+    form = UsernameChangeRequestForm(request.POST or None, user=request.user)
+    if request.method == "POST" and form.is_valid():
+        new_username = form.cleaned_data["new_username"]
+        request.session[PENDING_USERNAME_SESSION_KEY] = new_username
+        send_username_change_token_email(request.user, new_username)
+        messages.success(request, "A confirmation token has been sent to your account email.")
+        return redirect("accounts:confirm_username_change")
+    return render(
+        request,
+        "registration/change_username.html",
+        {
+            "form": form,
+        },
+    )
+
+
+@login_required
+def confirm_username_change_view(request):
+    gate = _require_verified_session(request)
+    if gate:
+        return gate
+    pending_username = request.session.get(PENDING_USERNAME_SESSION_KEY)
+    if not pending_username:
+        messages.error(request, "Start a username change before entering a confirmation token.")
+        return redirect("accounts:change_username")
+
+    form = UsernameChangeTokenForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        if User.objects.filter(username=pending_username).exclude(pk=request.user.pk).exists():
+            request.session.pop(PENDING_USERNAME_SESSION_KEY, None)
+            clear_email_token(request.user.email, purpose=USERNAME_CHANGE_TOKEN_PURPOSE)
+            messages.error(request, "That username is no longer available.")
+            return redirect("accounts:change_username")
+        if verify_email_token(
+            request.user.email,
+            form.cleaned_data["token"],
+            purpose=USERNAME_CHANGE_TOKEN_PURPOSE,
+        ):
+            request.user.username = pending_username
+            request.user.save(update_fields=["username"])
+            request.session.pop(PENDING_USERNAME_SESSION_KEY, None)
+            clear_email_token(request.user.email, purpose=USERNAME_CHANGE_TOKEN_PURPOSE)
+            messages.success(request, "Your username has been updated.")
+            return redirect("dashboard")
+        form.add_error("token", "The confirmation token is invalid or has expired.")
+
+    return render(
+        request,
+        "registration/confirm_username_change.html",
+        {
+            "form": form,
+            "pending_username": pending_username,
+        },
+    )
+
+
+@login_required
+def change_password_view(request):
+    gate = _require_verified_session(request)
+    if gate:
+        return gate
+    form = PasswordChangeForm(request.POST or None, user=request.user)
+    if request.method == "POST" and form.is_valid():
+        request.user.set_password(form.cleaned_data["new_password"])
+        request.user.save(update_fields=["password"])
+        update_session_auth_hash(request, request.user)
+        messages.success(request, "Your password has been updated.")
+        return redirect("dashboard")
+    return render(
+        request,
+        "registration/change_password.html",
         {
             "form": form,
         },

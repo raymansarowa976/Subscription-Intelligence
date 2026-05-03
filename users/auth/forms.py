@@ -146,3 +146,113 @@ class AccountRecoveryForm(forms.Form):
 
     def clean_email(self):
         return self.cleaned_data["email"].strip().lower()
+
+
+class UsernameChangeRequestForm(forms.Form):
+    new_username = forms.CharField(max_length=150, label="New username")
+    confirm_username = forms.CharField(max_length=150, label="Confirm new username")
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        input_classes = (
+            "block w-full rounded-2xl border-black/10 bg-stone-50 px-4 py-3 "
+            "text-sm shadow-sm transition focus:border-pine focus:ring-pine"
+        )
+        for _, field in self.fields.items():
+            field.widget.attrs.setdefault("class", input_classes)
+            field.widget.attrs.setdefault("placeholder", field.label)
+            field.widget.attrs["autocomplete"] = "username"
+        self.fields["new_username"].help_text = "Enter the username you want to use going forward."
+
+    def clean_new_username(self):
+        username = self.cleaned_data["new_username"].strip()
+        if self.user and username == self.user.username:
+            raise forms.ValidationError("Enter a different username than your current one.")
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError("An account with this username already exists.")
+        return username
+
+    def clean_confirm_username(self):
+        return self.cleaned_data["confirm_username"].strip()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        username = cleaned_data.get("new_username")
+        confirm_username = cleaned_data.get("confirm_username")
+        if username and confirm_username and username != confirm_username:
+            self.add_error("confirm_username", "Usernames do not match.")
+        return cleaned_data
+
+
+class UsernameChangeTokenForm(forms.Form):
+    token = forms.CharField(max_length=6, min_length=6, label="Confirmation token")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        input_classes = (
+            "block w-full rounded-2xl border-black/10 bg-stone-50 px-4 py-3 "
+            "text-sm shadow-sm transition focus:border-pine focus:ring-pine"
+        )
+        self.fields["token"].widget.attrs.setdefault("class", input_classes)
+        self.fields["token"].widget.attrs.setdefault("placeholder", "Enter the 6-digit token")
+        self.fields["token"].widget.attrs["inputmode"] = "numeric"
+        self.fields["token"].widget.attrs["autocomplete"] = "one-time-code"
+
+    def clean_token(self):
+        token = self.cleaned_data["token"].strip()
+        if not token.isdigit():
+            raise forms.ValidationError("Enter a 6-digit numeric token.")
+        return token
+
+
+class PasswordChangeForm(forms.Form):
+    old_password = forms.CharField(
+        label="Current password",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
+    )
+    new_password = forms.CharField(
+        label="New password",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
+    confirm_password = forms.CharField(
+        label="Confirm new password",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        input_classes = (
+            "block w-full rounded-2xl border-black/10 bg-stone-50 px-4 py-3 "
+            "text-sm shadow-sm transition focus:border-pine focus:ring-pine"
+        )
+        for _, field in self.fields.items():
+            field.widget.attrs.setdefault("class", input_classes)
+            field.widget.attrs.setdefault("placeholder", field.label)
+        self.fields["new_password"].help_text = (
+            "Use at least 8 characters with uppercase, lowercase, a number, and a special character."
+        )
+
+    def clean_old_password(self):
+        old_password = self.cleaned_data["old_password"]
+        if self.user and not self.user.check_password(old_password):
+            raise forms.ValidationError("Enter your current password.")
+        return old_password
+
+    def clean_new_password(self):
+        new_password = self.cleaned_data.get("new_password")
+        if new_password:
+            password_validation.validate_password(new_password, self.user)
+        return new_password
+
+    def clean(self):
+        cleaned_data = super().clean()
+        new_password = cleaned_data.get("new_password")
+        confirm_password = cleaned_data.get("confirm_password")
+        if new_password and confirm_password and new_password != confirm_password:
+            self.add_error("confirm_password", "Passwords do not match.")
+        return cleaned_data

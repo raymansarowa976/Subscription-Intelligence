@@ -16,6 +16,9 @@ class FrontendIntegrationTest(TestCase):
         self.resend_url = reverse("accounts:resend_token")
         self.forgot_username_url = reverse("accounts:forgot_username")
         self.forgot_password_url = reverse("accounts:forgot_password")
+        self.change_username_url = reverse("accounts:change_username")
+        self.confirm_username_change_url = reverse("accounts:confirm_username_change")
+        self.change_password_url = reverse("accounts:change_password")
         self.dashboard_url = reverse("dashboard")
         self.valid_signup = {
             "first_name": "Taylor",
@@ -255,6 +258,120 @@ class FrontendIntegrationTest(TestCase):
         response = self.client.get(self.dashboard_url)
 
         self.assertRedirects(response, self.verify_url)
+
+    def test_dashboard_links_directly_to_account_change_pages(self):
+        user = User.objects.create_user(
+            username="settingslink",
+            email="settingslink@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+        self.client.force_login(user)
+        session = self.client.session
+        session["login_token_verified"] = True
+        session.save()
+
+        response = self.client.get(self.dashboard_url)
+
+        self.assertContains(response, "Change username")
+        self.assertContains(response, self.change_username_url)
+        self.assertContains(response, "Change password")
+        self.assertContains(response, self.change_password_url)
+
+    def test_account_change_pages_render_for_verified_user(self):
+        user = User.objects.create_user(
+            username="settingsuser",
+            email="settings@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+        self.client.force_login(user)
+        session = self.client.session
+        session["login_token_verified"] = True
+        session.save()
+
+        username_response = self.client.get(self.change_username_url)
+        password_response = self.client.get(self.change_password_url)
+
+        self.assertContains(username_response, 'name="new_username"', html=False)
+        self.assertContains(username_response, 'name="confirm_username"', html=False)
+        self.assertContains(password_response, 'name="old_password"', html=False)
+        self.assertContains(password_response, 'name="new_password"', html=False)
+        self.assertContains(password_response, 'name="confirm_password"', html=False)
+        self.assertContains(password_response, 'data-password-toggle="id_old_password"', html=False)
+        self.assertContains(password_response, 'data-password-toggle="id_new_password"', html=False)
+        self.assertContains(password_response, 'data-password-toggle="id_confirm_password"', html=False)
+        self.assertContains(password_response, 'id="change-password-match-status"', html=False)
+        self.assertContains(password_response, "password_change.js")
+
+    def test_username_confirmation_page_renders_after_token_request(self):
+        user = User.objects.create_user(
+            username="confirmrender",
+            email="confirmrender@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+        self.client.force_login(user)
+        session = self.client.session
+        session["login_token_verified"] = True
+        session.save()
+
+        response = self.client.post(
+            self.change_username_url,
+            {
+                "new_username": "confirmedrender",
+                "confirm_username": "confirmedrender",
+            },
+            follow=True,
+        )
+
+        self.assertRedirects(response, self.confirm_username_change_url)
+        self.assertContains(response, "Confirm username change")
+        self.assertContains(response, "Pending username")
+        self.assertContains(response, "confirmedrender")
+        self.assertContains(response, 'name="token"', html=False)
+        self.assertContains(response, "Confirm username change")
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_account_change_pages_require_verified_login_token(self):
+        user = User.objects.create_user(
+            username="settingspending",
+            email="settingspending@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+        self.client.force_login(user)
+        session = self.client.session
+        session["login_token_verified"] = False
+        session.save()
+
+        protected_urls = [
+            self.change_username_url,
+            self.confirm_username_change_url,
+            self.change_password_url,
+        ]
+
+        for url in protected_urls:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertRedirects(response, self.verify_url)
+
+    def test_username_confirmation_redirects_without_pending_username(self):
+        user = User.objects.create_user(
+            username="nopending",
+            email="nopending@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+        self.client.force_login(user)
+        session = self.client.session
+        session["login_token_verified"] = True
+        session.save()
+
+        response = self.client.get(self.confirm_username_change_url, follow=True)
+
+        self.assertRedirects(response, self.change_username_url)
+        self.assertContains(response, "Start a username change before entering a confirmation token.")
 
     def test_cancel_verification_returns_user_to_login(self):
         user = User.objects.create_user(

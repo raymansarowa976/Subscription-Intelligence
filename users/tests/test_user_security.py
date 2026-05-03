@@ -3,7 +3,8 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
 
-from users.auth.forms import AccountRecoveryForm
+from users.auth.forms import AccountRecoveryForm, PasswordChangeForm, UsernameChangeRequestForm
+from users.auth.token_service import issue_email_token, verify_email_token
 from users.auth.views import _generate_temporary_password
 
 User = get_user_model()
@@ -70,3 +71,89 @@ class UserSecurityTest(TestCase):
         self.assertRegex(temporary_password, r"[A-Z]")
         self.assertRegex(temporary_password, r"[0-9]")
         self.assertRegex(temporary_password, r'[!@#$%^&*(),.?":{}|<>]')
+
+    def test_username_change_form_requires_available_matching_username(self):
+        user = User.objects.create_user(
+            username="currentuser",
+            email="currentuser@gmail.com",
+            password="Complex123!",
+        )
+        User.objects.create_user(
+            username="takenuser",
+            email="takenuser@gmail.com",
+            password="Complex123!",
+        )
+
+        valid_form = UsernameChangeRequestForm(
+            data={"new_username": "freshuser", "confirm_username": "freshuser"},
+            user=user,
+        )
+        current_form = UsernameChangeRequestForm(
+            data={"new_username": "currentuser", "confirm_username": "currentuser"},
+            user=user,
+        )
+        taken_form = UsernameChangeRequestForm(
+            data={"new_username": "takenuser", "confirm_username": "takenuser"},
+            user=user,
+        )
+        mismatch_form = UsernameChangeRequestForm(
+            data={"new_username": "freshuser", "confirm_username": "otheruser"},
+            user=user,
+        )
+
+        self.assertTrue(valid_form.is_valid())
+        self.assertFalse(current_form.is_valid())
+        self.assertFalse(taken_form.is_valid())
+        self.assertFalse(mismatch_form.is_valid())
+        self.assertIn("confirm_username", mismatch_form.errors)
+
+    def test_password_change_form_validates_old_password_and_new_password_rules(self):
+        user = User.objects.create_user(
+            username="passwordform",
+            email="passwordform@gmail.com",
+            password="Complex123!",
+        )
+
+        valid_form = PasswordChangeForm(
+            data={
+                "old_password": "Complex123!",
+                "new_password": "Better456!",
+                "confirm_password": "Better456!",
+            },
+            user=user,
+        )
+        wrong_old_form = PasswordChangeForm(
+            data={
+                "old_password": "Wrong123!",
+                "new_password": "Better456!",
+                "confirm_password": "Better456!",
+            },
+            user=user,
+        )
+        mismatch_form = PasswordChangeForm(
+            data={
+                "old_password": "Complex123!",
+                "new_password": "Better456!",
+                "confirm_password": "Different456!",
+            },
+            user=user,
+        )
+
+        self.assertTrue(valid_form.is_valid())
+        self.assertFalse(wrong_old_form.is_valid())
+        self.assertIn("old_password", wrong_old_form.errors)
+        self.assertFalse(mismatch_form.is_valid())
+        self.assertIn("confirm_password", mismatch_form.errors)
+
+    def test_email_tokens_are_scoped_by_purpose(self):
+        login_token = issue_email_token("scoped@gmail.com")
+        username_token = issue_email_token("scoped@gmail.com", purpose="username-change")
+
+        self.assertTrue(verify_email_token("scoped@gmail.com", login_token))
+        self.assertTrue(
+            verify_email_token("scoped@gmail.com", username_token, purpose="username-change")
+        )
+        self.assertFalse(verify_email_token("scoped@gmail.com", username_token))
+        self.assertFalse(
+            verify_email_token("scoped@gmail.com", login_token, purpose="username-change")
+        )

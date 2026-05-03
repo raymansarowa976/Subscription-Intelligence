@@ -17,6 +17,8 @@
 
                 <nav class="flex flex-wrap gap-3">
                     <a class="inline-flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-bold transition {% block candidates_nav_class %}border border-white/20 bg-white/10 text-white backdrop-blur-sm hover:bg-white/15{% endblock %}" href="{% url 'transactions:candidates' %}">Subscriptions</a>
+                    <a class="inline-flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-bold transition {% block username_nav_class %}border border-white/20 bg-white/10 text-white backdrop-blur-sm hover:bg-white/15{% endblock %}" href="{% url 'accounts:change_username' %}">Change username</a>
+                    <a class="inline-flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-bold transition {% block password_nav_class %}border border-white/20 bg-white/10 text-white backdrop-blur-sm hover:bg-white/15{% endblock %}" href="{% url 'accounts:change_password' %}">Change password</a>
                     <a class="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-bold text-white backdrop-blur-sm transition hover:bg-white/15" href="{% url 'accounts:cancel_verification' %}">Log out</a>
                 </nav>
             </div>
