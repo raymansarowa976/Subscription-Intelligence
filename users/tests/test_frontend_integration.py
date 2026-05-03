@@ -33,6 +33,8 @@ class FrontendIntegrationTest(TestCase):
         response = self.client.get(self.signup_url)
 
         self.assertContains(response, "Subscription Intelligence")
+        self.assertContains(response, 'rel="icon"', html=False)
+        self.assertContains(response, "images/favicon.svg")
         self.assertContains(response, "Create your account")
         self.assertContains(response, 'name="first_name"', html=False)
         self.assertContains(response, 'name="last_name"', html=False)
