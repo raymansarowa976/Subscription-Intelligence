@@ -45,6 +45,10 @@ class SignupForm(forms.ModelForm):
         for name, field in self.fields.items():
             field.widget.attrs.setdefault("class", input_classes)
             field.widget.attrs.setdefault("placeholder", field.label)
+        for name in ["password", "confirm_password"]:
+            self.fields[name].widget.attrs["class"] = (
+                f"{self.fields[name].widget.attrs.get('class', input_classes)} pr-12"
+            )
         self.fields["first_name"].required = True
         self.fields["last_name"].required = True
         self.fields["first_name"].help_text = "Letters only, at least 2 characters."
@@ -233,6 +237,7 @@ class PasswordChangeForm(forms.Form):
         for _, field in self.fields.items():
             field.widget.attrs.setdefault("class", input_classes)
             field.widget.attrs.setdefault("placeholder", field.label)
+            field.widget.attrs["class"] = f"{field.widget.attrs.get('class', input_classes)} pr-12"
         self.fields["new_password"].help_text = (
             "Use at least 8 characters with uppercase, lowercase, a number, and a special character."
         )

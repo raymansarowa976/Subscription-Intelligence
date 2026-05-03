@@ -42,9 +42,9 @@
         </div>
         <div>
             <label class="mb-2 block text-sm font-bold text-ink" for="{{ form.password.id_for_label }}">Password</label>
-            <div class="flex gap-2">
+            <div class="relative">
                 <input
-                    class="block w-full rounded-2xl border-black/10 bg-stone-50 px-4 py-3 text-sm shadow-sm transition focus:border-pine focus:ring-pine"
+                    class="block w-full rounded-2xl border-black/10 bg-stone-50 px-4 py-3 pr-12 text-sm shadow-sm transition focus:border-pine focus:ring-pine"
                     id="{{ form.password.id_for_label }}"
                     name="{{ form.password.html_name }}"
                     type="password"
@@ -52,7 +52,7 @@
                     placeholder="Enter your password"
                     required
                 >
-                <button class="inline-grid h-[46px] w-[46px] shrink-0 place-items-center rounded-2xl border border-black/10 bg-white text-stone-600 shadow-sm transition hover:border-pine hover:text-pine" type="button" data-password-toggle="{{ form.password.id_for_label }}" aria-controls="{{ form.password.id_for_label }}" aria-label="Show password" aria-pressed="false">
+                <button class="absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-2xl text-stone-600 transition hover:text-pine" type="button" data-password-toggle="{{ form.password.id_for_label }}" aria-controls="{{ form.password.id_for_label }}" aria-label="Show password" aria-pressed="false">
                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true" data-eye-open>
                         <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
