@@ -1,4 +1,5 @@
 {% extends "registration/auth_base.html" %}
+{% load static %}
 
 {% block title %}Login | Subscription Intelligence{% endblock %}
 {% block hero_title %}Operate every renewal with confidence{% endblock %}
@@ -41,15 +42,29 @@
         </div>
         <div>
             <label class="mb-2 block text-sm font-bold text-ink" for="{{ form.password.id_for_label }}">Password</label>
-            <input
-                class="block w-full rounded-2xl border-black/10 bg-stone-50 px-4 py-3 text-sm shadow-sm transition focus:border-pine focus:ring-pine"
-                id="{{ form.password.id_for_label }}"
-                name="{{ form.password.html_name }}"
-                type="password"
-                autocomplete="current-password"
-                placeholder="Enter your password"
-                required
-            >
+            <div class="flex gap-2">
+                <input
+                    class="block w-full rounded-2xl border-black/10 bg-stone-50 px-4 py-3 text-sm shadow-sm transition focus:border-pine focus:ring-pine"
+                    id="{{ form.password.id_for_label }}"
+                    name="{{ form.password.html_name }}"
+                    type="password"
+                    autocomplete="current-password"
+                    placeholder="Enter your password"
+                    required
+                >
+                <button class="inline-grid h-[46px] w-[46px] shrink-0 place-items-center rounded-2xl border border-black/10 bg-white text-stone-600 shadow-sm transition hover:border-pine hover:text-pine" type="button" data-password-toggle="{{ form.password.id_for_label }}" aria-controls="{{ form.password.id_for_label }}" aria-label="Show password" aria-pressed="false">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true" data-eye-open>
+                        <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <svg class="hidden h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true" data-eye-closed>
+                        <path d="M3 3l18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M10.6 10.7a3 3 0 0 0 3.8 3.7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M7.4 7.8C4.4 9.4 2.5 12 2.5 12s3.5 6 9.5 6c1.6 0 3-.4 4.3-1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M19.2 15.2c1.5-1.4 2.3-3.2 2.3-3.2s-3.5-6-9.5-6c-.9 0-1.8.1-2.6.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
         </div>
         <button class="inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" type="submit">Sign in</button>
     </form>
@@ -61,4 +76,8 @@
 
     <p class="mt-5 text-sm text-stone-500">New here? <a class="font-bold text-pine hover:text-pineDeep" href="{% url 'accounts:signup' %}">Create your account</a></p>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/password_visibility.js' %}"></script>
 {% endblock %}

@@ -173,6 +173,9 @@ class FrontendIntegrationTest(TestCase):
     def test_login_page_links_to_account_recovery(self):
         response = self.client.get(self.login_url)
 
+        self.assertContains(response, 'data-password-toggle="id_password"', html=False)
+        self.assertContains(response, 'aria-label="Show password"', html=False)
+        self.assertContains(response, "password_visibility.js")
         self.assertContains(response, "Forgot username?")
         self.assertContains(response, self.forgot_username_url)
         self.assertContains(response, "Forgot password?")
