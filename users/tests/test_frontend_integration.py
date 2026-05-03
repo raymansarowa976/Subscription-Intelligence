@@ -311,8 +311,11 @@ class FrontendIntegrationTest(TestCase):
         self.assertContains(password_response, 'data-password-toggle="id_old_password"', html=False)
         self.assertContains(password_response, 'data-password-toggle="id_new_password"', html=False)
         self.assertContains(password_response, 'data-password-toggle="id_confirm_password"', html=False)
+        self.assertContains(password_response, 'aria-label="Show current password"', html=False)
+        self.assertContains(password_response, 'aria-label="Show new password"', html=False)
+        self.assertContains(password_response, 'aria-label="Show confirm new password"', html=False)
         self.assertContains(password_response, 'id="change-password-match-status"', html=False)
-        self.assertContains(password_response, "password_change.js")
+        self.assertContains(password_response, "password_change.js?v=2")
 
     def test_username_confirmation_page_renders_after_token_request(self):
         user = User.objects.create_user(
