@@ -3,6 +3,9 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
 
+from users.auth.forms import AccountRecoveryForm
+from users.auth.views import _generate_temporary_password
+
 User = get_user_model()
 
 class UserSecurityTest(TestCase):
@@ -43,3 +46,27 @@ class UserSecurityTest(TestCase):
         with self.assertRaises(ValidationError):
             # clean_fields is safer than full_clean when the object is incomplete
             user.clean_fields(exclude=['password', 'last_login'])
+
+    def test_account_recovery_form_normalizes_email(self):
+        form = AccountRecoveryForm(data={"email": "  RECOVERY@GMAIL.COM  "})
+
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["email"], "recovery@gmail.com")
+
+    def test_account_recovery_form_rejects_invalid_email(self):
+        form = AccountRecoveryForm(data={"email": "not-an-email"})
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("email", form.errors)
+
+    def test_temporary_password_generator_meets_password_requirements(self):
+        user = User(username="temporaryuser", email="temporary@gmail.com")
+
+        temporary_password = _generate_temporary_password(user)
+
+        validate_password(temporary_password, user)
+        self.assertGreaterEqual(len(temporary_password), 8)
+        self.assertRegex(temporary_password, r"[a-z]")
+        self.assertRegex(temporary_password, r"[A-Z]")
+        self.assertRegex(temporary_password, r"[0-9]")
+        self.assertRegex(temporary_password, r'[!@#$%^&*(),.?":{}|<>]')
