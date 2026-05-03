@@ -14,6 +14,8 @@ class FrontendIntegrationTest(TestCase):
         self.login_url = reverse("accounts:login")
         self.verify_url = reverse("accounts:verify_token")
         self.resend_url = reverse("accounts:resend_token")
+        self.forgot_username_url = reverse("accounts:forgot_username")
+        self.forgot_password_url = reverse("accounts:forgot_password")
         self.dashboard_url = reverse("dashboard")
         self.valid_signup = {
             "first_name": "Taylor",
@@ -157,6 +159,25 @@ class FrontendIntegrationTest(TestCase):
         self.assertRedirects(response, self.verify_url)
         self.assertContains(response, "Enter the 6-digit token we sent to your email to finish signing in.")
         self.assertContains(response, "Verify your login")
+
+    def test_login_page_links_to_account_recovery(self):
+        response = self.client.get(self.login_url)
+
+        self.assertContains(response, "Forgot username?")
+        self.assertContains(response, self.forgot_username_url)
+        self.assertContains(response, "Forgot password?")
+        self.assertContains(response, self.forgot_password_url)
+
+    def test_recovery_pages_render(self):
+        username_response = self.client.get(self.forgot_username_url)
+        password_response = self.client.get(self.forgot_password_url)
+
+        self.assertContains(username_response, "Forgot username")
+        self.assertContains(username_response, 'name="email"', html=False)
+        self.assertContains(username_response, "Email my username")
+        self.assertContains(password_response, "Forgot password")
+        self.assertContains(password_response, 'name="email"', html=False)
+        self.assertContains(password_response, "Send temporary password")
 
     def test_login_invalid_credentials_message_states_case_sensitivity(self):
         user = User.objects.create_user(
