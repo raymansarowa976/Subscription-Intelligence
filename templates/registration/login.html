@@ -54,6 +54,11 @@
         <button class="inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" type="submit">Sign in</button>
     </form>
 
+    <div class="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+        <a class="font-bold text-pine hover:text-pineDeep" href="{% url 'accounts:forgot_username' %}">Forgot username?</a>
+        <a class="font-bold text-pine hover:text-pineDeep" href="{% url 'accounts:forgot_password' %}">Forgot password?</a>
+    </div>
+
     <p class="mt-5 text-sm text-stone-500">New here? <a class="font-bold text-pine hover:text-pineDeep" href="{% url 'accounts:signup' %}">Create your account</a></p>
 </div>
 {% endblock %}
