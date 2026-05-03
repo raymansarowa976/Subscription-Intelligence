@@ -42,10 +42,15 @@ class FrontendIntegrationTest(TestCase):
         self.assertContains(response, 'name="email"', html=False)
         self.assertContains(response, 'name="password"', html=False)
         self.assertContains(response, 'name="confirm_password"', html=False)
+        self.assertContains(response, 'data-password-toggle="id_password"', html=False)
+        self.assertContains(response, 'data-password-toggle="id_confirm_password"', html=False)
+        self.assertContains(response, 'aria-label="Show password"', html=False)
+        self.assertContains(response, 'aria-label="Show confirm password"', html=False)
         self.assertContains(response, "supported provider like gmail.com or outlook.com")
         self.assertContains(response, "Password strength")
         self.assertContains(response, 'id="confirm-password-status"', html=False)
         self.assertContains(response, "At least 1 uppercase letter")
+        self.assertContains(response, "signup.js?v=2")
 
     def test_signup_rejects_mismatched_passwords_with_visible_error(self):
         payload = self.valid_signup.copy()
