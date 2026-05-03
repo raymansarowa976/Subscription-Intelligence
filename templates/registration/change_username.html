@@ -1,0 +1,38 @@
+{% extends "subscriptions/app_shell.html" %}
+
+{% block title %}Change Username | Subscription Intelligence{% endblock %}
+{% block app_title %}Account settings{% endblock %}
+{% block page_heading %}Change username{% endblock %}
+{% block app_copy %}Enter your new username twice. We will email a confirmation token before the change is saved.{% endblock %}
+{% block username_nav_class %}bg-white text-ink px-4 py-2.5 shadow-sm{% endblock %}
+
+{% block app_panel %}
+<section class="mt-6 max-w-2xl rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
+    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Current username</p>
+    <p class="mt-2 text-2xl font-extrabold text-ink">{{ request.user.username }}</p>
+
+    <form method="post" class="mt-6 space-y-5" novalidate hx-boost="true">
+        {% csrf_token %}
+        {% for field in form %}
+        <div>
+            <label class="mb-2 block text-sm font-bold text-ink" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+            <div class="mt-2 text-xs leading-6 text-stone-500">{{ field.help_text }}</div>
+            {% endif %}
+            {% if field.errors %}
+            <ul class="mt-2 list-disc pl-5 text-sm text-rose-700">
+                {% for error in field.errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+        {% endfor %}
+        <div class="flex flex-wrap gap-3">
+            <button class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" type="submit">Send confirmation token</button>
+            <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'dashboard' %}">Back</a>
+        </div>
+    </form>
+</section>
+{% endblock %}
