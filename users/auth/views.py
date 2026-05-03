@@ -1,5 +1,9 @@
+import secrets
+import string
+
 from django.contrib import messages
 from django.contrib.auth import get_user_model, logout
+from django.contrib.auth import password_validation
 from django.contrib.auth.views import LoginView
 from django.conf import settings
 from django.core.mail import send_mail
@@ -8,7 +12,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 
 from .authentication_forms import SubscriptionAuthenticationForm
-from .forms import LoginTokenVerificationForm, ResendTokenForm, SignupForm
+from .forms import AccountRecoveryForm, LoginTokenVerificationForm, ResendTokenForm, SignupForm
 from .token_service import clear_email_token, issue_email_token, verify_email_token
 
 
@@ -30,6 +34,55 @@ def send_verification_token_email(user):
         fail_silently=False,
     )
     return token
+
+
+def _generate_temporary_password(user):
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+    required_characters = [
+        secrets.choice(string.ascii_lowercase),
+        secrets.choice(string.ascii_uppercase),
+        secrets.choice(string.digits),
+        secrets.choice("!@#$%^&*"),
+    ]
+    for _ in range(40):
+        remaining = [secrets.choice(alphabet) for _ in range(12)]
+        characters = required_characters + remaining
+        secrets.SystemRandom().shuffle(characters)
+        password = "".join(characters)
+        try:
+            password_validation.validate_password(password, user)
+        except Exception:
+            continue
+        return password
+    raise RuntimeError("Unable to generate a compliant temporary password.")
+
+
+def send_username_recovery_email(user):
+    send_mail(
+        "Your Subscription Intelligence username",
+        (
+            "We received a request to recover the username for your Subscription Intelligence account.\n\n"
+            f"Your username is: {user.username}\n\n"
+            "If you did not request this, you can ignore this email."
+        ),
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email],
+        fail_silently=False,
+    )
+
+
+def send_temporary_password_email(user, temporary_password):
+    send_mail(
+        "Your temporary Subscription Intelligence password",
+        (
+            "We received a request to reset the password for your Subscription Intelligence account.\n\n"
+            f"Your temporary password is: {temporary_password}\n\n"
+            "Use this temporary password the next time you sign in. Your old password will no longer work."
+        ),
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email],
+        fail_silently=False,
+    )
 
 
 class SubscriptionLoginView(LoginView):
@@ -73,6 +126,49 @@ def signup_view(request):
             messages.success(request, "Your account has been created. Sign in to receive your verification token.")
             return redirect("accounts:login")
     return render(request, "registration/signup.html", {"form": form})
+
+
+def forgot_username_view(request):
+    form = AccountRecoveryForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        email = form.cleaned_data["email"]
+        user = User.objects.filter(email__iexact=email).first()
+        if user is None:
+            form.add_error("email", "No account is associated with this email address.")
+        else:
+            send_username_recovery_email(user)
+            messages.success(request, "Your username has been sent to the email address on the account.")
+            return redirect("accounts:login")
+    return render(
+        request,
+        "registration/forgot_username.html",
+        {
+            "form": form,
+        },
+    )
+
+
+def forgot_password_view(request):
+    form = AccountRecoveryForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        email = form.cleaned_data["email"]
+        user = User.objects.filter(email__iexact=email).first()
+        if user is None:
+            form.add_error("email", "No account is associated with this email address.")
+        else:
+            temporary_password = _generate_temporary_password(user)
+            user.set_password(temporary_password)
+            user.save(update_fields=["password"])
+            send_temporary_password_email(user, temporary_password)
+            messages.success(request, "A temporary password has been sent to the email address on the account.")
+            return redirect("accounts:login")
+    return render(
+        request,
+        "registration/forgot_password.html",
+        {
+            "form": form,
+        },
+    )
 
 
 def verify_token_view(request):

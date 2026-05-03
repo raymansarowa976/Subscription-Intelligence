@@ -3,6 +3,8 @@ from .views import (
     SubscriptionLoginView,
     activate_view,
     cancel_token_verification_view,
+    forgot_password_view,
+    forgot_username_view,
     reactivate_legacy_account_view,
     resend_token_view,
     signup_view,
@@ -13,6 +15,8 @@ app_name = 'accounts'
 
 urlpatterns = [
     path('signup/', signup_view, name='signup'),
+    path('forgot-username/', forgot_username_view, name='forgot_username'),
+    path('forgot-password/', forgot_password_view, name='forgot_password'),
     path('verify-token/', verify_token_view, name='verify_token'),
     path('resend-token/', resend_token_view, name='resend_token'),
     path('cancel-verification/', cancel_token_verification_view, name='cancel_verification'),

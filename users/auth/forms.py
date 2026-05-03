@@ -129,3 +129,20 @@ class LoginTokenVerificationForm(forms.Form):
 
 class ResendTokenForm(forms.Form):
     pass
+
+
+class AccountRecoveryForm(forms.Form):
+    email = forms.EmailField(label="Account email")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        input_classes = (
+            "block w-full rounded-2xl border-black/10 bg-stone-50 px-4 py-3 "
+            "text-sm shadow-sm transition focus:border-pine focus:ring-pine"
+        )
+        self.fields["email"].widget.attrs.setdefault("class", input_classes)
+        self.fields["email"].widget.attrs.setdefault("placeholder", "Enter your account email")
+        self.fields["email"].widget.attrs["autocomplete"] = "email"
+
+    def clean_email(self):
+        return self.cleaned_data["email"].strip().lower()
