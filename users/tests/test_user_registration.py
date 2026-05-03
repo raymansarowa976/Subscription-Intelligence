@@ -16,6 +16,9 @@ class RegistrationTest(TestCase):
         self.login_url = reverse('accounts:login')
         self.forgot_username_url = reverse('accounts:forgot_username')
         self.forgot_password_url = reverse('accounts:forgot_password')
+        self.change_username_url = reverse('accounts:change_username')
+        self.confirm_username_change_url = reverse('accounts:confirm_username_change')
+        self.change_password_url = reverse('accounts:change_password')
         self.user_data = {
             'first_name': 'Taylor',
             'last_name': 'Jordan',
@@ -24,6 +27,12 @@ class RegistrationTest(TestCase):
             'password': 'Complex123!',
             'confirm_password': 'Complex123!'
         }
+
+    def login_verified(self, user):
+        self.client.force_login(user)
+        session = self.client.session
+        session['login_token_verified'] = True
+        session.save()
 
     def test_signup_creates_inactive_user(self):
         """Test: Users can sign up, then verify after login."""
@@ -161,3 +170,167 @@ class RegistrationTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'No account is associated with this email address.')
         self.assertEqual(len(mail.outbox), 0)
+
+    def test_username_change_requires_matching_usernames(self):
+        user = User.objects.create_user(
+            username='currentuser',
+            email='current@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+        self.login_verified(user)
+
+        response = self.client.post(
+            self.change_username_url,
+            {
+                'new_username': 'newuser',
+                'confirm_username': 'differentuser',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Usernames do not match.')
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_username_change_sends_token_and_confirms_change(self):
+        user = User.objects.create_user(
+            username='olduser',
+            email='olduser@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+        self.login_verified(user)
+
+        response = self.client.post(
+            self.change_username_url,
+            {
+                'new_username': 'newuser',
+                'confirm_username': 'newuser',
+            },
+            follow=True,
+        )
+
+        self.assertRedirects(response, self.confirm_username_change_url)
+        self.assertContains(response, 'A confirmation token has been sent')
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('username change', mail.outbox[0].subject.lower())
+        self.assertIn('Requested username: newuser', mail.outbox[0].body)
+        token = re.search(r'(\d{6})', mail.outbox[0].body).group(1)
+
+        confirm_response = self.client.post(
+            self.confirm_username_change_url,
+            {'token': token},
+            follow=True,
+        )
+
+        self.assertRedirects(confirm_response, reverse('dashboard'))
+        self.assertContains(confirm_response, 'Your username has been updated.')
+        user.refresh_from_db()
+        self.assertEqual(user.username, 'newuser')
+
+    def test_username_change_rejects_invalid_token(self):
+        user = User.objects.create_user(
+            username='tokenold',
+            email='tokenold@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+        self.login_verified(user)
+        self.client.post(
+            self.change_username_url,
+            {
+                'new_username': 'tokennew',
+                'confirm_username': 'tokennew',
+            },
+        )
+
+        response = self.client.post(
+            self.confirm_username_change_url,
+            {'token': '999999'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'The confirmation token is invalid or has expired.')
+        user.refresh_from_db()
+        self.assertEqual(user.username, 'tokenold')
+
+    def test_password_change_updates_password_without_email_token(self):
+        user = User.objects.create_user(
+            username='passworduser',
+            email='password@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+        self.login_verified(user)
+
+        response = self.client.post(
+            self.change_password_url,
+            {
+                'old_password': 'Complex123!',
+                'new_password': 'Better456!',
+                'confirm_password': 'Better456!',
+            },
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse('dashboard'))
+        self.assertContains(response, 'Your password has been updated.')
+        self.assertEqual(len(mail.outbox), 0)
+        user.refresh_from_db()
+        self.assertFalse(user.check_password('Complex123!'))
+        self.assertTrue(user.check_password('Better456!'))
+        self.assertEqual(int(self.client.session['_auth_user_id']), user.pk)
+
+    def test_password_change_requires_current_password(self):
+        user = User.objects.create_user(
+            username='wrongold',
+            email='wrongold@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+        self.login_verified(user)
+
+        response = self.client.post(
+            self.change_password_url,
+            {
+                'old_password': 'Wrong123!',
+                'new_password': 'Better456!',
+                'confirm_password': 'Better456!',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Enter your current password.')
+        user.refresh_from_db()
+        self.assertTrue(user.check_password('Complex123!'))
+
+    def test_password_change_requires_matching_valid_new_password(self):
+        user = User.objects.create_user(
+            username='badnewpassword',
+            email='badnewpassword@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+        self.login_verified(user)
+
+        mismatch_response = self.client.post(
+            self.change_password_url,
+            {
+                'old_password': 'Complex123!',
+                'new_password': 'Better456!',
+                'confirm_password': 'Different456!',
+            },
+        )
+        weak_response = self.client.post(
+            self.change_password_url,
+            {
+                'old_password': 'Complex123!',
+                'new_password': 'weak',
+                'confirm_password': 'weak',
+            },
+        )
+
+        self.assertContains(mismatch_response, 'Passwords do not match.')
+        self.assertContains(weak_response, 'The password must contain at least one uppercase letter')
+        user.refresh_from_db()
+        self.assertTrue(user.check_password('Complex123!'))
