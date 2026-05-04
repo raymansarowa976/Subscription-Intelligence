@@ -155,6 +155,11 @@ class AccountRecoveryForm(forms.Form):
 class UsernameChangeRequestForm(forms.Form):
     new_username = forms.CharField(max_length=150, label="New username")
     confirm_username = forms.CharField(max_length=150, label="Confirm new username")
+    current_password = forms.CharField(
+        label="Current password",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
+    )
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -163,11 +168,15 @@ class UsernameChangeRequestForm(forms.Form):
             "block w-full rounded-2xl border-black/10 bg-stone-50 px-4 py-3 "
             "text-sm shadow-sm transition focus:border-pine focus:ring-pine"
         )
-        for _, field in self.fields.items():
+        for name, field in self.fields.items():
             field.widget.attrs.setdefault("class", input_classes)
             field.widget.attrs.setdefault("placeholder", field.label)
-            field.widget.attrs["autocomplete"] = "username"
+            if name != "current_password":
+                field.widget.attrs["autocomplete"] = "username"
+            else:
+                field.widget.attrs["class"] = f"{field.widget.attrs.get('class', input_classes)} pr-12"
         self.fields["new_username"].help_text = "Enter the username you want to use going forward."
+        self.fields["current_password"].help_text = "Confirm your current password before we send a username change token."
 
     def clean_new_username(self):
         username = self.cleaned_data["new_username"].strip()
@@ -179,6 +188,12 @@ class UsernameChangeRequestForm(forms.Form):
 
     def clean_confirm_username(self):
         return self.cleaned_data["confirm_username"].strip()
+
+    def clean_current_password(self):
+        current_password = self.cleaned_data["current_password"]
+        if self.user and not self.user.check_password(current_password):
+            raise forms.ValidationError("Enter your current password.")
+        return current_password
 
     def clean(self):
         cleaned_data = super().clean()
