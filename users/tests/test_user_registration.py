@@ -310,6 +310,7 @@ class RegistrationTest(TestCase):
             {
                 'new_username': 'newuser',
                 'confirm_username': 'differentuser',
+                'current_password': 'Complex123!',
             },
         )
 
@@ -331,6 +332,7 @@ class RegistrationTest(TestCase):
             {
                 'new_username': 'newuser',
                 'confirm_username': 'newuser',
+                'current_password': 'Complex123!',
             },
             follow=True,
         )
@@ -366,6 +368,7 @@ class RegistrationTest(TestCase):
             {
                 'new_username': 'tokennew',
                 'confirm_username': 'tokennew',
+                'current_password': 'Complex123!',
             },
         )
 
@@ -378,6 +381,29 @@ class RegistrationTest(TestCase):
         self.assertContains(response, 'The confirmation token is invalid or has expired.')
         user.refresh_from_db()
         self.assertEqual(user.username, 'tokenold')
+
+    def test_username_change_requires_current_password(self):
+        user = User.objects.create_user(
+            username='passwordprotected',
+            email='passwordprotected@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+        self.login_verified(user)
+
+        response = self.client.post(
+            self.change_username_url,
+            {
+                'new_username': 'passwordprotectednew',
+                'confirm_username': 'passwordprotectednew',
+                'current_password': 'Wrong123!',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Enter your current password.')
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertNotIn('pending_username_change', self.client.session)
 
     def test_password_change_updates_password_without_email_token(self):
         user = User.objects.create_user(

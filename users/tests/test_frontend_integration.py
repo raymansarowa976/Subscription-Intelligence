@@ -326,6 +326,7 @@ class FrontendIntegrationTest(TestCase):
 
         self.assertContains(username_response, 'name="new_username"', html=False)
         self.assertContains(username_response, 'name="confirm_username"', html=False)
+        self.assertContains(username_response, 'name="current_password"', html=False)
         self.assertContains(password_response, 'name="old_password"', html=False)
         self.assertContains(password_response, 'name="new_password"', html=False)
         self.assertContains(password_response, 'name="confirm_password"', html=False)
@@ -355,6 +356,7 @@ class FrontendIntegrationTest(TestCase):
             {
                 "new_username": "confirmedrender",
                 "confirm_username": "confirmedrender",
+                "current_password": "Complex123!",
             },
             follow=True,
         )
