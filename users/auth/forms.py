@@ -261,3 +261,45 @@ class PasswordChangeForm(forms.Form):
         if new_password and confirm_password and new_password != confirm_password:
             self.add_error("confirm_password", "Passwords do not match.")
         return cleaned_data
+
+
+class PasswordResetConfirmForm(forms.Form):
+    new_password = forms.CharField(
+        label="New password",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
+    confirm_password = forms.CharField(
+        label="Confirm new password",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        input_classes = (
+            "block w-full rounded-2xl border-black/10 bg-stone-50 px-4 py-3 "
+            "text-sm shadow-sm transition focus:border-pine focus:ring-pine"
+        )
+        for _, field in self.fields.items():
+            field.widget.attrs.setdefault("class", input_classes)
+            field.widget.attrs.setdefault("placeholder", field.label)
+            field.widget.attrs["class"] = f"{field.widget.attrs.get('class', input_classes)} pr-12"
+        self.fields["new_password"].help_text = (
+            "Use at least 8 characters with uppercase, lowercase, a number, and a special character."
+        )
+
+    def clean_new_password(self):
+        new_password = self.cleaned_data.get("new_password")
+        if new_password:
+            password_validation.validate_password(new_password, self.user)
+        return new_password
+
+    def clean(self):
+        cleaned_data = super().clean()
+        new_password = cleaned_data.get("new_password")
+        confirm_password = cleaned_data.get("confirm_password")
+        if new_password and confirm_password and new_password != confirm_password:
+            self.add_error("confirm_password", "Passwords do not match.")
+        return cleaned_data

@@ -1,22 +1,24 @@
-import secrets
-import string
-
 from django.contrib import messages
 from django.contrib.auth import get_user_model, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import password_validation
+from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.views import LoginView
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import IntegrityError
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.sessions.models import Session
 
 from .authentication_forms import SubscriptionAuthenticationForm
 from .forms import (
     AccountRecoveryForm,
     LoginTokenVerificationForm,
     PasswordChangeForm,
+    PasswordResetConfirmForm,
     ResendTokenForm,
     SignupForm,
     UsernameChangeRequestForm,
@@ -55,27 +57,6 @@ def send_verification_token_email(user):
     return token
 
 
-def _generate_temporary_password(user):
-    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
-    required_characters = [
-        secrets.choice(string.ascii_lowercase),
-        secrets.choice(string.ascii_uppercase),
-        secrets.choice(string.digits),
-        secrets.choice("!@#$%^&*"),
-    ]
-    for _ in range(40):
-        remaining = [secrets.choice(alphabet) for _ in range(12)]
-        characters = required_characters + remaining
-        secrets.SystemRandom().shuffle(characters)
-        password = "".join(characters)
-        try:
-            password_validation.validate_password(password, user)
-        except Exception:
-            continue
-        return password
-    raise RuntimeError("Unable to generate a compliant temporary password.")
-
-
 def send_username_recovery_email(user):
     send_mail(
         "Your Subscription Intelligence username",
@@ -90,13 +71,18 @@ def send_username_recovery_email(user):
     )
 
 
-def send_temporary_password_email(user, temporary_password):
+def send_password_reset_email(request, user):
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    reset_url = request.build_absolute_uri(
+        reverse("accounts:reset_password_confirm", kwargs={"uidb64": uid, "token": token})
+    )
     send_mail(
-        "Your temporary Subscription Intelligence password",
+        "Reset your Subscription Intelligence password",
         (
             "We received a request to reset the password for your Subscription Intelligence account.\n\n"
-            f"Your temporary password is: {temporary_password}\n\n"
-            "Use this temporary password the next time you sign in. Your old password will no longer work."
+            f"Open this password reset link to choose a new password:\n{reset_url}\n\n"
+            "If you did not request this, you can ignore this email."
         ),
         settings.DEFAULT_FROM_EMAIL,
         [user.email],
@@ -192,15 +178,52 @@ def forgot_password_view(request):
         if user is None:
             form.add_error("email", "No account is associated with this email address.")
         else:
-            temporary_password = _generate_temporary_password(user)
-            user.set_password(temporary_password)
-            user.save(update_fields=["password"])
-            send_temporary_password_email(user, temporary_password)
-            messages.success(request, "A temporary password has been sent to the email address on the account.")
+            send_password_reset_email(request, user)
+            messages.success(request, "A password reset link has been sent to the email address on the account.")
             return redirect("accounts:login")
     return render(
         request,
         "registration/forgot_password.html",
+        {
+            "form": form,
+        },
+    )
+
+
+def _get_user_from_uid(uidb64):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return User.objects.filter(pk=uid).first()
+
+
+def _delete_user_sessions(user):
+    user_id = str(user.pk)
+    for session in Session.objects.all():
+        data = session.get_decoded()
+        if data.get("_auth_user_id") == user_id:
+            session.delete()
+
+
+def reset_password_confirm_view(request, uidb64, token):
+    user = _get_user_from_uid(uidb64)
+    token_is_valid = user is not None and default_token_generator.check_token(user, token)
+    if not token_is_valid:
+        messages.error(request, "The password reset link is invalid or has expired.")
+        return redirect("accounts:forgot_password")
+
+    form = PasswordResetConfirmForm(request.POST or None, user=user)
+    if request.method == "POST" and form.is_valid():
+        user.set_password(form.cleaned_data["new_password"])
+        user.save(update_fields=["password"])
+        _delete_user_sessions(user)
+        messages.success(request, "Your password has been reset. Sign in with your new password.")
+        return redirect("accounts:login")
+
+    return render(
+        request,
+        "registration/reset_password_confirm.html",
         {
             "form": form,
         },
