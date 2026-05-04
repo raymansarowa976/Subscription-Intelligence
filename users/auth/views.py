@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.contrib.auth import get_user_model, logout, update_session_auth_hash
+from django.contrib.auth import get_user_model, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.views import LoginView
@@ -372,10 +372,9 @@ def change_password_view(request):
     if request.method == "POST" and form.is_valid():
         request.user.set_password(form.cleaned_data["new_password"])
         request.user.save(update_fields=["password"])
-        update_session_auth_hash(request, request.user)
-        _delete_user_sessions(request.user, keep_session_key=request.session.session_key)
-        messages.success(request, "Your password has been updated.")
-        return redirect("dashboard")
+        _delete_user_sessions(request.user)
+        messages.success(request, "Your password has been updated. Sign in with your new password.")
+        return redirect("accounts:login")
     return render(
         request,
         "registration/change_password.html",
