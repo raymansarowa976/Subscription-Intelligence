@@ -268,9 +268,11 @@ def _get_user_from_uid(uidb64):
     return User.objects.filter(pk=uid).first()
 
 
-def _delete_user_sessions(user):
+def _delete_user_sessions(user, keep_session_key=None):
     user_id = str(user.pk)
     for session in Session.objects.all():
+        if keep_session_key and session.session_key == keep_session_key:
+            continue
         data = session.get_decoded()
         if data.get("_auth_user_id") == user_id:
             session.delete()
@@ -371,6 +373,7 @@ def change_password_view(request):
         request.user.set_password(form.cleaned_data["new_password"])
         request.user.save(update_fields=["password"])
         update_session_auth_hash(request, request.user)
+        _delete_user_sessions(request.user, keep_session_key=request.session.session_key)
         messages.success(request, "Your password has been updated.")
         return redirect("dashboard")
     return render(
