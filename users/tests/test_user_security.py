@@ -28,6 +28,18 @@ class UserSecurityTest(TestCase):
                 with self.assertRaises(ValidationError):
                     validate_password(password, user)
 
+    def test_password_complexity_reports_all_missing_requirements(self):
+        user = User(username='testuser', email='test@example.com')
+
+        with self.assertRaises(ValidationError) as context:
+            validate_password('weak', user)
+
+        messages = [error.message for error in context.exception.error_list]
+        self.assertIn("The password must contain at least 8 characters.", messages)
+        self.assertIn("The password must contain at least one uppercase letter (A-Z).", messages)
+        self.assertIn("The password must contain at least one number (0-9).", messages)
+        self.assertIn("The password must contain at least one special character.", messages)
+
     def test_password_is_hashed(self):
         """Test: The password must never be stored as plain text."""
         raw_password = "ComplexPassword123!"

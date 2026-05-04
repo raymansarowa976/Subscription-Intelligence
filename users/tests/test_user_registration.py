@@ -1,6 +1,7 @@
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.test.utils import override_settings
 from django.contrib.auth import get_user_model
+from django.contrib.sessions.models import Session
 from django.urls import reverse
 from django.core import mail
 from django.core.cache import cache
@@ -253,6 +254,37 @@ class RegistrationTest(TestCase):
         )
         self.assertRedirects(login_response, self.verify_url)
 
+    def test_password_reset_invalidates_existing_sessions(self):
+        user = User.objects.create_user(
+            username='resetloggedin',
+            email='resetloggedin@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+        logged_in_client = Client()
+        logged_in_client.force_login(user)
+        session = logged_in_client.session
+        session['login_token_verified'] = True
+        session.save()
+        session_key = session.session_key
+
+        self.client.post(
+            self.forgot_password_url,
+            {'email': 'resetloggedin@gmail.com'},
+        )
+        reset_path = re.search(r'http://testserver(/[^\s]+)', mail.outbox[0].body).group(1)
+        self.client.post(
+            reset_path,
+            {
+                'new_password': 'Reset456!',
+                'confirm_password': 'Reset456!',
+            },
+        )
+
+        self.assertFalse(Session.objects.filter(session_key=session_key).exists())
+        dashboard_response = logged_in_client.get(reverse('dashboard'))
+        self.assertRedirects(dashboard_response, f"{self.login_url}?next={reverse('dashboard')}")
+
     def test_password_reset_rejects_invalid_link(self):
         response = self.client.get(
             reverse('accounts:reset_password_confirm', kwargs={'uidb64': 'bad-uid', 'token': 'bad-token'}),
@@ -432,6 +464,38 @@ class RegistrationTest(TestCase):
         self.assertTrue(user.check_password('Better456!'))
         self.assertEqual(int(self.client.session['_auth_user_id']), user.pk)
 
+    def test_password_change_invalidates_other_sessions_and_keeps_current_session(self):
+        user = User.objects.create_user(
+            username='multisession',
+            email='multisession@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+        self.login_verified(user)
+
+        other_client = Client()
+        other_client.force_login(user)
+        other_session = other_client.session
+        other_session['login_token_verified'] = True
+        other_session.save()
+        other_session_key = other_session.session_key
+
+        response = self.client.post(
+            self.change_password_url,
+            {
+                'old_password': 'Complex123!',
+                'new_password': 'Better456!',
+                'confirm_password': 'Better456!',
+            },
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse('dashboard'))
+        self.assertEqual(int(self.client.session['_auth_user_id']), user.pk)
+        self.assertFalse(Session.objects.filter(session_key=other_session_key).exists())
+        other_response = other_client.get(reverse('dashboard'))
+        self.assertRedirects(other_response, f"{self.login_url}?next={reverse('dashboard')}")
+
     def test_password_change_requires_current_password(self):
         user = User.objects.create_user(
             username='wrongold',
@@ -482,6 +546,9 @@ class RegistrationTest(TestCase):
         )
 
         self.assertContains(mismatch_response, 'Passwords do not match.')
+        self.assertContains(weak_response, 'The password must contain at least 8 characters')
         self.assertContains(weak_response, 'The password must contain at least one uppercase letter')
+        self.assertContains(weak_response, 'The password must contain at least one number')
+        self.assertContains(weak_response, 'The password must contain at least one special character')
         user.refresh_from_db()
         self.assertTrue(user.check_password('Complex123!'))
