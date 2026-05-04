@@ -1,8 +1,10 @@
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core import mail
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
+from smtplib import SMTPAuthenticationError
+from unittest.mock import patch
 import re
 
 
@@ -172,16 +174,82 @@ class FrontendIntegrationTest(TestCase):
         self.assertContains(response, "Enter the 6-digit token we sent to your email to finish signing in.")
         self.assertContains(response, "Verify your login")
 
+    def test_login_email_delivery_failure_returns_visible_error(self):
+        user = User.objects.create_user(
+            username="mailfail",
+            email="mailfail@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+
+        with patch(
+            "users.auth.views.send_verification_token_email",
+            side_effect=SMTPAuthenticationError(535, b"Bad credentials"),
+        ), patch("users.auth.views.logger.exception"):
+            response = self.client.post(
+                self.login_url,
+                {"username": user.username, "password": "Complex123!"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "We could not send your verification token.")
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertEqual(len(mail.outbox), 0)
+
     def test_login_page_links_to_account_recovery(self):
         response = self.client.get(self.login_url)
 
         self.assertContains(response, 'data-password-toggle="id_password"', html=False)
         self.assertContains(response, 'aria-label="Show password"', html=False)
+        self.assertNotContains(response, 'hx-boost="true"', html=False)
         self.assertContains(response, "password_visibility.js")
         self.assertContains(response, "Forgot username?")
         self.assertContains(response, self.forgot_username_url)
         self.assertContains(response, "Forgot password?")
         self.assertContains(response, self.forgot_password_url)
+
+    def test_login_accepts_valid_csrf_token_when_csrf_checks_are_enforced(self):
+        user = User.objects.create_user(
+            username="csrfvalid",
+            email="csrfvalid@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+        csrf_client = Client(enforce_csrf_checks=True)
+        login_response = csrf_client.get(self.login_url)
+        token = re.search(
+            r'name="csrfmiddlewaretoken" value="([^"]+)"',
+            login_response.content.decode(),
+        ).group(1)
+
+        response = csrf_client.post(
+            self.login_url,
+            {
+                "username": user.username,
+                "password": "Complex123!",
+                "csrfmiddlewaretoken": token,
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], self.verify_url)
+
+    def test_login_csrf_failure_returns_recoverable_login_page(self):
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.get(self.login_url)
+
+        response = csrf_client.post(
+            self.login_url,
+            {
+                "username": "anyone",
+                "password": "Complex123!",
+                "csrfmiddlewaretoken": "a" * 64,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Your sign-in session expired. Please try again.")
+        self.assertContains(response, "Welcome back")
 
     def test_recovery_pages_render(self):
         username_response = self.client.get(self.forgot_username_url)
