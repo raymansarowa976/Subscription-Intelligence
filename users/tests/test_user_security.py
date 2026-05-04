@@ -72,19 +72,43 @@ class UserSecurityTest(TestCase):
         )
 
         valid_form = UsernameChangeRequestForm(
-            data={"new_username": "freshuser", "confirm_username": "freshuser"},
+            data={
+                "new_username": "freshuser",
+                "confirm_username": "freshuser",
+                "current_password": "Complex123!",
+            },
             user=user,
         )
         current_form = UsernameChangeRequestForm(
-            data={"new_username": "currentuser", "confirm_username": "currentuser"},
+            data={
+                "new_username": "currentuser",
+                "confirm_username": "currentuser",
+                "current_password": "Complex123!",
+            },
             user=user,
         )
         taken_form = UsernameChangeRequestForm(
-            data={"new_username": "takenuser", "confirm_username": "takenuser"},
+            data={
+                "new_username": "takenuser",
+                "confirm_username": "takenuser",
+                "current_password": "Complex123!",
+            },
             user=user,
         )
         mismatch_form = UsernameChangeRequestForm(
-            data={"new_username": "freshuser", "confirm_username": "otheruser"},
+            data={
+                "new_username": "freshuser",
+                "confirm_username": "otheruser",
+                "current_password": "Complex123!",
+            },
+            user=user,
+        )
+        wrong_password_form = UsernameChangeRequestForm(
+            data={
+                "new_username": "freshuser",
+                "confirm_username": "freshuser",
+                "current_password": "Wrong123!",
+            },
             user=user,
         )
 
@@ -92,7 +116,9 @@ class UserSecurityTest(TestCase):
         self.assertFalse(current_form.is_valid())
         self.assertFalse(taken_form.is_valid())
         self.assertFalse(mismatch_form.is_valid())
+        self.assertFalse(wrong_password_form.is_valid())
         self.assertIn("confirm_username", mismatch_form.errors)
+        self.assertIn("current_password", wrong_password_form.errors)
 
     def test_password_change_form_validates_old_password_and_new_password_rules(self):
         user = User.objects.create_user(
