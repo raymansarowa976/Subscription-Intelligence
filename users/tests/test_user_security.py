@@ -5,7 +5,6 @@ from django.contrib.auth.password_validation import validate_password
 
 from users.auth.forms import AccountRecoveryForm, PasswordChangeForm, UsernameChangeRequestForm
 from users.auth.token_service import issue_email_token, verify_email_token
-from users.auth.views import _generate_temporary_password
 
 User = get_user_model()
 
@@ -28,6 +27,18 @@ class UserSecurityTest(TestCase):
                 # If this is failing, your settings.py might not have the validator registered
                 with self.assertRaises(ValidationError):
                     validate_password(password, user)
+
+    def test_password_complexity_reports_all_missing_requirements(self):
+        user = User(username='testuser', email='test@example.com')
+
+        with self.assertRaises(ValidationError) as context:
+            validate_password('weak', user)
+
+        messages = [error.message for error in context.exception.error_list]
+        self.assertIn("The password must contain at least 8 characters.", messages)
+        self.assertIn("The password must contain at least one uppercase letter (A-Z).", messages)
+        self.assertIn("The password must contain at least one number (0-9).", messages)
+        self.assertIn("The password must contain at least one special character.", messages)
 
     def test_password_is_hashed(self):
         """Test: The password must never be stored as plain text."""
@@ -60,18 +71,6 @@ class UserSecurityTest(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("email", form.errors)
 
-    def test_temporary_password_generator_meets_password_requirements(self):
-        user = User(username="temporaryuser", email="temporary@gmail.com")
-
-        temporary_password = _generate_temporary_password(user)
-
-        validate_password(temporary_password, user)
-        self.assertGreaterEqual(len(temporary_password), 8)
-        self.assertRegex(temporary_password, r"[a-z]")
-        self.assertRegex(temporary_password, r"[A-Z]")
-        self.assertRegex(temporary_password, r"[0-9]")
-        self.assertRegex(temporary_password, r'[!@#$%^&*(),.?":{}|<>]')
-
     def test_username_change_form_requires_available_matching_username(self):
         user = User.objects.create_user(
             username="currentuser",
@@ -85,19 +84,43 @@ class UserSecurityTest(TestCase):
         )
 
         valid_form = UsernameChangeRequestForm(
-            data={"new_username": "freshuser", "confirm_username": "freshuser"},
+            data={
+                "new_username": "freshuser",
+                "confirm_username": "freshuser",
+                "current_password": "Complex123!",
+            },
             user=user,
         )
         current_form = UsernameChangeRequestForm(
-            data={"new_username": "currentuser", "confirm_username": "currentuser"},
+            data={
+                "new_username": "currentuser",
+                "confirm_username": "currentuser",
+                "current_password": "Complex123!",
+            },
             user=user,
         )
         taken_form = UsernameChangeRequestForm(
-            data={"new_username": "takenuser", "confirm_username": "takenuser"},
+            data={
+                "new_username": "takenuser",
+                "confirm_username": "takenuser",
+                "current_password": "Complex123!",
+            },
             user=user,
         )
         mismatch_form = UsernameChangeRequestForm(
-            data={"new_username": "freshuser", "confirm_username": "otheruser"},
+            data={
+                "new_username": "freshuser",
+                "confirm_username": "otheruser",
+                "current_password": "Complex123!",
+            },
+            user=user,
+        )
+        wrong_password_form = UsernameChangeRequestForm(
+            data={
+                "new_username": "freshuser",
+                "confirm_username": "freshuser",
+                "current_password": "Wrong123!",
+            },
             user=user,
         )
 
@@ -105,7 +128,9 @@ class UserSecurityTest(TestCase):
         self.assertFalse(current_form.is_valid())
         self.assertFalse(taken_form.is_valid())
         self.assertFalse(mismatch_form.is_valid())
+        self.assertFalse(wrong_password_form.is_valid())
         self.assertIn("confirm_username", mismatch_form.errors)
+        self.assertIn("current_password", wrong_password_form.errors)
 
     def test_password_change_form_validates_old_password_and_new_password_rules(self):
         user = User.objects.create_user(

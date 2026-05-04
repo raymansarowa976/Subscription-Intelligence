@@ -1,26 +1,35 @@
-import secrets
-import string
-
 from django.contrib import messages
-from django.contrib.auth import get_user_model, logout, update_session_auth_hash
+from django.contrib.auth import get_user_model, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import password_validation
+from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.views import LoginView
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import IntegrityError
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.sessions.models import Session
 
 from .authentication_forms import SubscriptionAuthenticationForm
 from .forms import (
     AccountRecoveryForm,
     LoginTokenVerificationForm,
     PasswordChangeForm,
+    PasswordResetConfirmForm,
     ResendTokenForm,
     SignupForm,
     UsernameChangeRequestForm,
     UsernameChangeTokenForm,
+)
+from .rate_limiter import (
+    RATE_LIMIT_MESSAGE,
+    clear_attempts,
+    get_client_ip,
+    is_rate_limited,
+    record_attempt,
 )
 from .token_service import clear_email_token, issue_email_token, verify_email_token
 
@@ -30,6 +39,11 @@ LOGIN_TOKEN_VERIFIED_SESSION_KEY = "login_token_verified"
 LEGACY_REACTIVATION_SESSION_KEY = "legacy_reactivation_user_id"
 USERNAME_CHANGE_TOKEN_PURPOSE = "username-change"
 PENDING_USERNAME_SESSION_KEY = "pending_username_change"
+LOGIN_RATE_LIMIT = 5
+RECOVERY_RATE_LIMIT = 5
+TOKEN_VERIFY_RATE_LIMIT = 5
+TOKEN_RESEND_RATE_LIMIT = 3
+RATE_LIMIT_WINDOW_SECONDS = 900
 
 
 def _require_verified_session(request):
@@ -55,27 +69,6 @@ def send_verification_token_email(user):
     return token
 
 
-def _generate_temporary_password(user):
-    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
-    required_characters = [
-        secrets.choice(string.ascii_lowercase),
-        secrets.choice(string.ascii_uppercase),
-        secrets.choice(string.digits),
-        secrets.choice("!@#$%^&*"),
-    ]
-    for _ in range(40):
-        remaining = [secrets.choice(alphabet) for _ in range(12)]
-        characters = required_characters + remaining
-        secrets.SystemRandom().shuffle(characters)
-        password = "".join(characters)
-        try:
-            password_validation.validate_password(password, user)
-        except Exception:
-            continue
-        return password
-    raise RuntimeError("Unable to generate a compliant temporary password.")
-
-
 def send_username_recovery_email(user):
     send_mail(
         "Your Subscription Intelligence username",
@@ -90,13 +83,18 @@ def send_username_recovery_email(user):
     )
 
 
-def send_temporary_password_email(user, temporary_password):
+def send_password_reset_email(request, user):
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    reset_url = request.build_absolute_uri(
+        reverse("accounts:reset_password_confirm", kwargs={"uidb64": uid, "token": token})
+    )
     send_mail(
-        "Your temporary Subscription Intelligence password",
+        "Reset your Subscription Intelligence password",
         (
             "We received a request to reset the password for your Subscription Intelligence account.\n\n"
-            f"Your temporary password is: {temporary_password}\n\n"
-            "Use this temporary password the next time you sign in. Your old password will no longer work."
+            f"Open this password reset link to choose a new password:\n{reset_url}\n\n"
+            "If you did not request this, you can ignore this email."
         ),
         settings.DEFAULT_FROM_EMAIL,
         [user.email],
@@ -129,6 +127,21 @@ class SubscriptionLoginView(LoginView):
     def get_success_url(self):
         return reverse("dashboard")
 
+    def post(self, request, *args, **kwargs):
+        username = request.POST.get("username", "")
+        ip_address = get_client_ip(request)
+        if is_rate_limited(
+            "login",
+            username,
+            ip_address,
+            limit=LOGIN_RATE_LIMIT,
+            window_seconds=RATE_LIMIT_WINDOW_SECONDS,
+        ):
+            form = self.get_form_class()(request, data=request.POST)
+            form.add_error(None, RATE_LIMIT_MESSAGE)
+            return self.render_to_response(self.get_context_data(form=form))
+        return super().post(request, *args, **kwargs)
+
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and not request.session.get(LOGIN_TOKEN_VERIFIED_SESSION_KEY):
             return redirect("accounts:verify_token")
@@ -137,12 +150,21 @@ class SubscriptionLoginView(LoginView):
     def form_valid(self, form):
         response = super().form_valid(form)
         self.request.session.pop(LEGACY_REACTIVATION_SESSION_KEY, None)
+        clear_attempts("login", form.cleaned_data.get("username", ""), get_client_ip(self.request))
         self.request.session[LOGIN_TOKEN_VERIFIED_SESSION_KEY] = False
         send_verification_token_email(self.request.user)
         messages.success(self.request, "Enter the 6-digit token we sent to your email to finish signing in.")
         return redirect("accounts:verify_token")
 
     def form_invalid(self, form):
+        username = self.request.POST.get("username", "")
+        record_attempt(
+            "login",
+            username,
+            get_client_ip(self.request),
+            limit=LOGIN_RATE_LIMIT,
+            window_seconds=RATE_LIMIT_WINDOW_SECONDS,
+        )
         inactive_user = getattr(form, "inactive_user", None)
         if inactive_user is not None:
             self.request.session[LEGACY_REACTIVATION_SESSION_KEY] = inactive_user.pk
@@ -168,13 +190,30 @@ def forgot_username_view(request):
     form = AccountRecoveryForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         email = form.cleaned_data["email"]
-        user = User.objects.filter(email__iexact=email).first()
-        if user is None:
-            form.add_error("email", "No account is associated with this email address.")
+        ip_address = get_client_ip(request)
+        if is_rate_limited(
+            "forgot-username",
+            email,
+            ip_address,
+            limit=RECOVERY_RATE_LIMIT,
+            window_seconds=RATE_LIMIT_WINDOW_SECONDS,
+        ):
+            form.add_error(None, RATE_LIMIT_MESSAGE)
         else:
-            send_username_recovery_email(user)
-            messages.success(request, "Your username has been sent to the email address on the account.")
-            return redirect("accounts:login")
+            record_attempt(
+                "forgot-username",
+                email,
+                ip_address,
+                limit=RECOVERY_RATE_LIMIT,
+                window_seconds=RATE_LIMIT_WINDOW_SECONDS,
+            )
+            user = User.objects.filter(email__iexact=email).first()
+            if user is None:
+                form.add_error("email", "No account is associated with this email address.")
+            else:
+                send_username_recovery_email(user)
+                messages.success(request, "Your username has been sent to the email address on the account.")
+                return redirect("accounts:login")
     return render(
         request,
         "registration/forgot_username.html",
@@ -188,19 +227,75 @@ def forgot_password_view(request):
     form = AccountRecoveryForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         email = form.cleaned_data["email"]
-        user = User.objects.filter(email__iexact=email).first()
-        if user is None:
-            form.add_error("email", "No account is associated with this email address.")
+        ip_address = get_client_ip(request)
+        if is_rate_limited(
+            "forgot-password",
+            email,
+            ip_address,
+            limit=RECOVERY_RATE_LIMIT,
+            window_seconds=RATE_LIMIT_WINDOW_SECONDS,
+        ):
+            form.add_error(None, RATE_LIMIT_MESSAGE)
         else:
-            temporary_password = _generate_temporary_password(user)
-            user.set_password(temporary_password)
-            user.save(update_fields=["password"])
-            send_temporary_password_email(user, temporary_password)
-            messages.success(request, "A temporary password has been sent to the email address on the account.")
-            return redirect("accounts:login")
+            record_attempt(
+                "forgot-password",
+                email,
+                ip_address,
+                limit=RECOVERY_RATE_LIMIT,
+                window_seconds=RATE_LIMIT_WINDOW_SECONDS,
+            )
+            user = User.objects.filter(email__iexact=email).first()
+            if user is None:
+                form.add_error("email", "No account is associated with this email address.")
+            else:
+                send_password_reset_email(request, user)
+                messages.success(request, "A password reset link has been sent to the email address on the account.")
+                return redirect("accounts:login")
     return render(
         request,
         "registration/forgot_password.html",
+        {
+            "form": form,
+        },
+    )
+
+
+def _get_user_from_uid(uidb64):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return User.objects.filter(pk=uid).first()
+
+
+def _delete_user_sessions(user, keep_session_key=None):
+    user_id = str(user.pk)
+    for session in Session.objects.all():
+        if keep_session_key and session.session_key == keep_session_key:
+            continue
+        data = session.get_decoded()
+        if data.get("_auth_user_id") == user_id:
+            session.delete()
+
+
+def reset_password_confirm_view(request, uidb64, token):
+    user = _get_user_from_uid(uidb64)
+    token_is_valid = user is not None and default_token_generator.check_token(user, token)
+    if not token_is_valid:
+        messages.error(request, "The password reset link is invalid or has expired.")
+        return redirect("accounts:forgot_password")
+
+    form = PasswordResetConfirmForm(request.POST or None, user=user)
+    if request.method == "POST" and form.is_valid():
+        user.set_password(form.cleaned_data["new_password"])
+        user.save(update_fields=["password"])
+        _delete_user_sessions(user)
+        messages.success(request, "Your password has been reset. Sign in with your new password.")
+        return redirect("accounts:login")
+
+    return render(
+        request,
+        "registration/reset_password_confirm.html",
         {
             "form": form,
         },
@@ -277,9 +372,9 @@ def change_password_view(request):
     if request.method == "POST" and form.is_valid():
         request.user.set_password(form.cleaned_data["new_password"])
         request.user.save(update_fields=["password"])
-        update_session_auth_hash(request, request.user)
-        messages.success(request, "Your password has been updated.")
-        return redirect("dashboard")
+        _delete_user_sessions(request.user)
+        messages.success(request, "Your password has been updated. Sign in with your new password.")
+        return redirect("accounts:login")
     return render(
         request,
         "registration/change_password.html",
@@ -296,17 +391,34 @@ def verify_token_view(request):
     if request.session.get(LOGIN_TOKEN_VERIFIED_SESSION_KEY):
         return redirect("dashboard")
 
+    ip_address = get_client_ip(request)
+    email = request.user.email
     if request.method == "POST":
         form = LoginTokenVerificationForm(request.POST)
         resend_form = ResendTokenForm()
-        if form.is_valid():
+        if is_rate_limited(
+            "login-token-verify",
+            email,
+            ip_address,
+            limit=TOKEN_VERIFY_RATE_LIMIT,
+            window_seconds=RATE_LIMIT_WINDOW_SECONDS,
+        ):
+            form.add_error("token", RATE_LIMIT_MESSAGE)
+        elif form.is_valid():
             token = form.cleaned_data["token"]
-            email = request.user.email
             if verify_email_token(email, token):
                 request.session[LOGIN_TOKEN_VERIFIED_SESSION_KEY] = True
+                clear_attempts("login-token-verify", email, ip_address)
                 clear_email_token(email)
                 messages.success(request, "Token verified. Welcome back.")
                 return redirect("dashboard")
+            record_attempt(
+                "login-token-verify",
+                email,
+                ip_address,
+                limit=TOKEN_VERIFY_RATE_LIMIT,
+                window_seconds=RATE_LIMIT_WINDOW_SECONDS,
+            )
             form.add_error("token", "The verification token is invalid or has expired.")
     else:
         form = LoginTokenVerificationForm()
@@ -326,10 +438,28 @@ def resend_token_view(request):
     if not request.user.is_authenticated:
         return redirect("accounts:login")
 
+    ip_address = get_client_ip(request)
+    email = request.user.email
     if request.method == "POST":
-        send_verification_token_email(request.user)
-        request.session[LOGIN_TOKEN_VERIFIED_SESSION_KEY] = False
-        messages.success(request, "A new verification token has been sent.")
+        if is_rate_limited(
+            "login-token-resend",
+            email,
+            ip_address,
+            limit=TOKEN_RESEND_RATE_LIMIT,
+            window_seconds=RATE_LIMIT_WINDOW_SECONDS,
+        ):
+            messages.error(request, RATE_LIMIT_MESSAGE)
+        else:
+            record_attempt(
+                "login-token-resend",
+                email,
+                ip_address,
+                limit=TOKEN_RESEND_RATE_LIMIT,
+                window_seconds=RATE_LIMIT_WINDOW_SECONDS,
+            )
+            send_verification_token_email(request.user)
+            request.session[LOGIN_TOKEN_VERIFIED_SESSION_KEY] = False
+            messages.success(request, "A new verification token has been sent.")
         return redirect("accounts:verify_token")
 
     return render(

@@ -1,15 +1,17 @@
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.test.utils import override_settings
 from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import validate_password
+from django.contrib.sessions.models import Session
 from django.urls import reverse
 from django.core import mail
+from django.core.cache import cache
 import re
 
 User = get_user_model()
 
 class RegistrationTest(TestCase):
     def setUp(self):
+        cache.clear()
         self.signup_url = reverse('accounts:signup')
         self.verify_url = reverse('accounts:verify_token')
         self.resend_url = reverse('accounts:resend_token')
@@ -78,6 +80,20 @@ class RegistrationTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'The verification token is invalid or has expired.')
 
+    def test_login_token_verification_is_rate_limited_after_repeated_failures(self):
+        self.client.post(self.signup_url, self.user_data)
+        user = User.objects.get(email='tester@gmail.com')
+        self.client.post(self.login_url, {'username': user.username, 'password': 'Complex123!'})
+
+        for _ in range(5):
+            response = self.client.post(self.verify_url, {'token': '999999'})
+            self.assertContains(response, 'The verification token is invalid or has expired.')
+
+        limited_response = self.client.post(self.verify_url, {'token': '999999'})
+
+        self.assertEqual(limited_response.status_code, 200)
+        self.assertContains(limited_response, 'Too many attempts. Please wait a few minutes and try again.')
+
     def test_resend_token_sends_new_email(self):
         self.client.post(self.signup_url, self.user_data)
         user = User.objects.get(email='tester@gmail.com')
@@ -88,6 +104,21 @@ class RegistrationTest(TestCase):
         self.assertEqual(len(mail.outbox), 2)
         self.assertIn('login token', mail.outbox[-1].subject.lower())
 
+    def test_resend_token_is_rate_limited(self):
+        self.client.post(self.signup_url, self.user_data)
+        user = User.objects.get(email='tester@gmail.com')
+        self.client.post(self.login_url, {'username': user.username, 'password': 'Complex123!'})
+
+        for _ in range(3):
+            response = self.client.post(self.resend_url, follow=True)
+            self.assertContains(response, 'A new verification token has been sent.')
+
+        limited_response = self.client.post(self.resend_url, follow=True)
+
+        self.assertRedirects(limited_response, self.verify_url)
+        self.assertContains(limited_response, 'Too many attempts. Please wait a few minutes and try again.')
+        self.assertEqual(len(mail.outbox), 4)
+
     @override_settings(SHOW_LOGIN_TOKEN_IN_UI=True)
     def test_login_still_sends_email_when_development_token_is_visible(self):
         self.client.post(self.signup_url, self.user_data)
@@ -97,6 +128,30 @@ class RegistrationTest(TestCase):
 
         self.assertRedirects(response, self.verify_url)
         self.assertEqual(len(mail.outbox), 1)
+
+    def test_login_is_rate_limited_after_repeated_invalid_attempts(self):
+        User.objects.create_user(
+            username='ratelimited',
+            email='ratelimited@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+
+        for _ in range(5):
+            response = self.client.post(
+                self.login_url,
+                {'username': 'ratelimited', 'password': 'Wrong123!'},
+            )
+            self.assertContains(response, 'Please enter a correct username and password.')
+
+        limited_response = self.client.post(
+            self.login_url,
+            {'username': 'ratelimited', 'password': 'Complex123!'},
+        )
+
+        self.assertEqual(limited_response.status_code, 200)
+        self.assertContains(limited_response, 'Too many attempts. Please wait a few minutes and try again.')
+        self.assertEqual(len(mail.outbox), 0)
 
     def test_forgot_username_emails_associated_username(self):
         User.objects.create_user(
@@ -129,7 +184,31 @@ class RegistrationTest(TestCase):
         self.assertContains(response, 'No account is associated with this email address.')
         self.assertEqual(len(mail.outbox), 0)
 
-    def test_forgot_password_sends_temporary_password_and_replaces_old_password(self):
+    def test_forgot_username_is_rate_limited(self):
+        User.objects.create_user(
+            username='recoverlimit',
+            email='recoverlimit@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+
+        for _ in range(5):
+            response = self.client.post(
+                self.forgot_username_url,
+                {'email': 'recoverlimit@gmail.com'},
+                follow=True,
+            )
+            self.assertContains(response, 'Your username has been sent')
+
+        limited_response = self.client.post(
+            self.forgot_username_url,
+            {'email': 'recoverlimit@gmail.com'},
+        )
+
+        self.assertContains(limited_response, 'Too many attempts. Please wait a few minutes and try again.')
+        self.assertEqual(len(mail.outbox), 5)
+
+    def test_forgot_password_sends_reset_link_and_changes_password_after_confirm(self):
         user = User.objects.create_user(
             username='resetuser',
             email='reset@gmail.com',
@@ -144,22 +223,76 @@ class RegistrationTest(TestCase):
         )
 
         self.assertRedirects(response, self.login_url)
-        self.assertContains(response, 'A temporary password has been sent')
+        self.assertContains(response, 'A password reset link has been sent')
         self.assertEqual(len(mail.outbox), 1)
-        self.assertIn('temporary', mail.outbox[0].subject.lower())
+        self.assertIn('reset', mail.outbox[0].subject.lower())
         self.assertNotIn('Complex123!', mail.outbox[0].body)
+        self.assertIn('/accounts/reset-password/', mail.outbox[0].body)
 
-        temporary_password = re.search(r'Your temporary password is: ([^\n]+)', mail.outbox[0].body).group(1)
-        validate_password(temporary_password, user)
+        user.refresh_from_db()
+        self.assertTrue(user.check_password('Complex123!'))
+
+        reset_path = re.search(r'http://testserver(/[^\s]+)', mail.outbox[0].body).group(1)
+        confirm_response = self.client.post(
+            reset_path,
+            {
+                'new_password': 'Reset456!',
+                'confirm_password': 'Reset456!',
+            },
+            follow=True,
+        )
+
+        self.assertRedirects(confirm_response, self.login_url)
+        self.assertContains(confirm_response, 'Your password has been reset. Sign in with your new password.')
         user.refresh_from_db()
         self.assertFalse(user.check_password('Complex123!'))
-        self.assertTrue(user.check_password(temporary_password))
+        self.assertTrue(user.check_password('Reset456!'))
 
         login_response = self.client.post(
             self.login_url,
-            {'username': user.username, 'password': temporary_password},
+            {'username': user.username, 'password': 'Reset456!'},
         )
         self.assertRedirects(login_response, self.verify_url)
+
+    def test_password_reset_invalidates_existing_sessions(self):
+        user = User.objects.create_user(
+            username='resetloggedin',
+            email='resetloggedin@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+        logged_in_client = Client()
+        logged_in_client.force_login(user)
+        session = logged_in_client.session
+        session['login_token_verified'] = True
+        session.save()
+        session_key = session.session_key
+
+        self.client.post(
+            self.forgot_password_url,
+            {'email': 'resetloggedin@gmail.com'},
+        )
+        reset_path = re.search(r'http://testserver(/[^\s]+)', mail.outbox[0].body).group(1)
+        self.client.post(
+            reset_path,
+            {
+                'new_password': 'Reset456!',
+                'confirm_password': 'Reset456!',
+            },
+        )
+
+        self.assertFalse(Session.objects.filter(session_key=session_key).exists())
+        dashboard_response = logged_in_client.get(reverse('dashboard'))
+        self.assertRedirects(dashboard_response, f"{self.login_url}?next={reverse('dashboard')}")
+
+    def test_password_reset_rejects_invalid_link(self):
+        response = self.client.get(
+            reverse('accounts:reset_password_confirm', kwargs={'uidb64': 'bad-uid', 'token': 'bad-token'}),
+            follow=True,
+        )
+
+        self.assertRedirects(response, self.forgot_password_url)
+        self.assertContains(response, 'The password reset link is invalid or has expired.')
 
     def test_forgot_password_tells_user_when_email_has_no_account(self):
         response = self.client.post(
@@ -170,6 +303,30 @@ class RegistrationTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'No account is associated with this email address.')
         self.assertEqual(len(mail.outbox), 0)
+
+    def test_forgot_password_is_rate_limited(self):
+        User.objects.create_user(
+            username='resetlimit',
+            email='resetlimit@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+
+        for _ in range(5):
+            response = self.client.post(
+                self.forgot_password_url,
+                {'email': 'resetlimit@gmail.com'},
+                follow=True,
+            )
+            self.assertContains(response, 'A password reset link has been sent')
+
+        limited_response = self.client.post(
+            self.forgot_password_url,
+            {'email': 'resetlimit@gmail.com'},
+        )
+
+        self.assertContains(limited_response, 'Too many attempts. Please wait a few minutes and try again.')
+        self.assertEqual(len(mail.outbox), 5)
 
     def test_username_change_requires_matching_usernames(self):
         user = User.objects.create_user(
@@ -185,6 +342,7 @@ class RegistrationTest(TestCase):
             {
                 'new_username': 'newuser',
                 'confirm_username': 'differentuser',
+                'current_password': 'Complex123!',
             },
         )
 
@@ -206,6 +364,7 @@ class RegistrationTest(TestCase):
             {
                 'new_username': 'newuser',
                 'confirm_username': 'newuser',
+                'current_password': 'Complex123!',
             },
             follow=True,
         )
@@ -241,6 +400,7 @@ class RegistrationTest(TestCase):
             {
                 'new_username': 'tokennew',
                 'confirm_username': 'tokennew',
+                'current_password': 'Complex123!',
             },
         )
 
@@ -254,7 +414,30 @@ class RegistrationTest(TestCase):
         user.refresh_from_db()
         self.assertEqual(user.username, 'tokenold')
 
-    def test_password_change_updates_password_without_email_token(self):
+    def test_username_change_requires_current_password(self):
+        user = User.objects.create_user(
+            username='passwordprotected',
+            email='passwordprotected@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+        self.login_verified(user)
+
+        response = self.client.post(
+            self.change_username_url,
+            {
+                'new_username': 'passwordprotectednew',
+                'confirm_username': 'passwordprotectednew',
+                'current_password': 'Wrong123!',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Enter your current password.')
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertNotIn('pending_username_change', self.client.session)
+
+    def test_password_change_updates_password_and_ends_current_session(self):
         user = User.objects.create_user(
             username='passworduser',
             email='password@gmail.com',
@@ -262,6 +445,7 @@ class RegistrationTest(TestCase):
             is_active=True,
         )
         self.login_verified(user)
+        session_key = self.client.session.session_key
 
         response = self.client.post(
             self.change_password_url,
@@ -273,13 +457,53 @@ class RegistrationTest(TestCase):
             follow=True,
         )
 
-        self.assertRedirects(response, reverse('dashboard'))
-        self.assertContains(response, 'Your password has been updated.')
+        self.assertRedirects(response, self.login_url)
+        self.assertContains(response, 'Your password has been updated. Sign in with your new password.')
         self.assertEqual(len(mail.outbox), 0)
         user.refresh_from_db()
         self.assertFalse(user.check_password('Complex123!'))
         self.assertTrue(user.check_password('Better456!'))
-        self.assertEqual(int(self.client.session['_auth_user_id']), user.pk)
+        self.assertFalse(Session.objects.filter(session_key=session_key).exists())
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+        login_response = self.client.post(
+            self.login_url,
+            {'username': user.username, 'password': 'Better456!'},
+        )
+        self.assertRedirects(login_response, self.verify_url)
+
+    def test_password_change_invalidates_all_user_sessions(self):
+        user = User.objects.create_user(
+            username='multisession',
+            email='multisession@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+        self.login_verified(user)
+        current_session_key = self.client.session.session_key
+
+        other_client = Client()
+        other_client.force_login(user)
+        other_session = other_client.session
+        other_session['login_token_verified'] = True
+        other_session.save()
+        other_session_key = other_session.session_key
+
+        response = self.client.post(
+            self.change_password_url,
+            {
+                'old_password': 'Complex123!',
+                'new_password': 'Better456!',
+                'confirm_password': 'Better456!',
+            },
+            follow=True,
+        )
+
+        self.assertRedirects(response, self.login_url)
+        self.assertFalse(Session.objects.filter(session_key=current_session_key).exists())
+        self.assertFalse(Session.objects.filter(session_key=other_session_key).exists())
+        other_response = other_client.get(reverse('dashboard'))
+        self.assertRedirects(other_response, f"{self.login_url}?next={reverse('dashboard')}")
 
     def test_password_change_requires_current_password(self):
         user = User.objects.create_user(
@@ -331,6 +555,9 @@ class RegistrationTest(TestCase):
         )
 
         self.assertContains(mismatch_response, 'Passwords do not match.')
+        self.assertContains(weak_response, 'The password must contain at least 8 characters')
         self.assertContains(weak_response, 'The password must contain at least one uppercase letter')
+        self.assertContains(weak_response, 'The password must contain at least one number')
+        self.assertContains(weak_response, 'The password must contain at least one special character')
         user.refresh_from_db()
         self.assertTrue(user.check_password('Complex123!'))

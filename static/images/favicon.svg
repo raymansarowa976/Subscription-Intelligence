@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" role="img" aria-label="SM">
+  <defs>
+    <linearGradient id="sm-favicon-gradient" x1="44" y1="18" x2="450" y2="500" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2e6759"/>
+      <stop offset="0.55" stop-color="#686a4c"/>
+      <stop offset="1" stop-color="#b66b3b"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="154" fill="url(#sm-favicon-gradient)"/>
+  <text x="256" y="308" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="150" font-weight="700" letter-spacing="11" text-anchor="middle">SM</text>
+</svg>

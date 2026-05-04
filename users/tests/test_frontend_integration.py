@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
@@ -10,6 +11,7 @@ User = get_user_model()
 
 class FrontendIntegrationTest(TestCase):
     def setUp(self):
+        cache.clear()
         self.signup_url = reverse("accounts:signup")
         self.login_url = reverse("accounts:login")
         self.verify_url = reverse("accounts:verify_token")
@@ -33,6 +35,8 @@ class FrontendIntegrationTest(TestCase):
         response = self.client.get(self.signup_url)
 
         self.assertContains(response, "Subscription Intelligence")
+        self.assertContains(response, 'rel="icon"', html=False)
+        self.assertContains(response, "images/favicon.svg")
         self.assertContains(response, "Create your account")
         self.assertContains(response, 'name="first_name"', html=False)
         self.assertContains(response, 'name="last_name"', html=False)
@@ -40,10 +44,15 @@ class FrontendIntegrationTest(TestCase):
         self.assertContains(response, 'name="email"', html=False)
         self.assertContains(response, 'name="password"', html=False)
         self.assertContains(response, 'name="confirm_password"', html=False)
+        self.assertContains(response, 'data-password-toggle="id_password"', html=False)
+        self.assertContains(response, 'data-password-toggle="id_confirm_password"', html=False)
+        self.assertContains(response, 'aria-label="Show password"', html=False)
+        self.assertContains(response, 'aria-label="Show confirm password"', html=False)
         self.assertContains(response, "supported provider like gmail.com or outlook.com")
         self.assertContains(response, "Password strength")
         self.assertContains(response, 'id="confirm-password-status"', html=False)
         self.assertContains(response, "At least 1 uppercase letter")
+        self.assertContains(response, "signup.js?v=2")
 
     def test_signup_rejects_mismatched_passwords_with_visible_error(self):
         payload = self.valid_signup.copy()
@@ -166,6 +175,9 @@ class FrontendIntegrationTest(TestCase):
     def test_login_page_links_to_account_recovery(self):
         response = self.client.get(self.login_url)
 
+        self.assertContains(response, 'data-password-toggle="id_password"', html=False)
+        self.assertContains(response, 'aria-label="Show password"', html=False)
+        self.assertContains(response, "password_visibility.js")
         self.assertContains(response, "Forgot username?")
         self.assertContains(response, self.forgot_username_url)
         self.assertContains(response, "Forgot password?")
@@ -180,7 +192,26 @@ class FrontendIntegrationTest(TestCase):
         self.assertContains(username_response, "Email my username")
         self.assertContains(password_response, "Forgot password")
         self.assertContains(password_response, 'name="email"', html=False)
-        self.assertContains(password_response, "Send temporary password")
+        self.assertContains(password_response, "Send reset link")
+
+    def test_password_reset_confirm_page_renders(self):
+        user = User.objects.create_user(
+            username="resetrender",
+            email="resetrender@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+        self.client.post(self.forgot_password_url, {"email": user.email})
+        reset_path = re.search(r"http://testserver(/[^\s]+)", mail.outbox[0].body).group(1)
+
+        response = self.client.get(reset_path)
+
+        self.assertContains(response, "Set new password")
+        self.assertContains(response, 'name="new_password"', html=False)
+        self.assertContains(response, 'name="confirm_password"', html=False)
+        self.assertContains(response, 'data-password-toggle="id_new_password"', html=False)
+        self.assertContains(response, 'data-password-toggle="id_confirm_password"', html=False)
+        self.assertContains(response, "Reset password")
 
     def test_login_invalid_credentials_message_states_case_sensitivity(self):
         user = User.objects.create_user(
@@ -295,14 +326,21 @@ class FrontendIntegrationTest(TestCase):
 
         self.assertContains(username_response, 'name="new_username"', html=False)
         self.assertContains(username_response, 'name="confirm_username"', html=False)
+        self.assertContains(username_response, 'name="current_password"', html=False)
+        self.assertContains(username_response, 'data-password-toggle="id_current_password"', html=False)
+        self.assertContains(username_response, 'aria-label="Show current password"', html=False)
+        self.assertContains(username_response, "password_visibility.js")
         self.assertContains(password_response, 'name="old_password"', html=False)
         self.assertContains(password_response, 'name="new_password"', html=False)
         self.assertContains(password_response, 'name="confirm_password"', html=False)
         self.assertContains(password_response, 'data-password-toggle="id_old_password"', html=False)
         self.assertContains(password_response, 'data-password-toggle="id_new_password"', html=False)
         self.assertContains(password_response, 'data-password-toggle="id_confirm_password"', html=False)
+        self.assertContains(password_response, 'aria-label="Show current password"', html=False)
+        self.assertContains(password_response, 'aria-label="Show new password"', html=False)
+        self.assertContains(password_response, 'aria-label="Show confirm new password"', html=False)
         self.assertContains(password_response, 'id="change-password-match-status"', html=False)
-        self.assertContains(password_response, "password_change.js")
+        self.assertContains(password_response, "password_change.js?v=2")
 
     def test_username_confirmation_page_renders_after_token_request(self):
         user = User.objects.create_user(
@@ -321,6 +359,7 @@ class FrontendIntegrationTest(TestCase):
             {
                 "new_username": "confirmedrender",
                 "confirm_username": "confirmedrender",
+                "current_password": "Complex123!",
             },
             follow=True,
         )
