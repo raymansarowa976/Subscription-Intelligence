@@ -437,7 +437,7 @@ class RegistrationTest(TestCase):
         self.assertEqual(len(mail.outbox), 0)
         self.assertNotIn('pending_username_change', self.client.session)
 
-    def test_password_change_updates_password_without_email_token(self):
+    def test_password_change_updates_password_and_ends_current_session(self):
         user = User.objects.create_user(
             username='passworduser',
             email='password@gmail.com',
@@ -445,6 +445,7 @@ class RegistrationTest(TestCase):
             is_active=True,
         )
         self.login_verified(user)
+        session_key = self.client.session.session_key
 
         response = self.client.post(
             self.change_password_url,
@@ -456,15 +457,22 @@ class RegistrationTest(TestCase):
             follow=True,
         )
 
-        self.assertRedirects(response, reverse('dashboard'))
-        self.assertContains(response, 'Your password has been updated.')
+        self.assertRedirects(response, self.login_url)
+        self.assertContains(response, 'Your password has been updated. Sign in with your new password.')
         self.assertEqual(len(mail.outbox), 0)
         user.refresh_from_db()
         self.assertFalse(user.check_password('Complex123!'))
         self.assertTrue(user.check_password('Better456!'))
-        self.assertEqual(int(self.client.session['_auth_user_id']), user.pk)
+        self.assertFalse(Session.objects.filter(session_key=session_key).exists())
+        self.assertNotIn('_auth_user_id', self.client.session)
 
-    def test_password_change_invalidates_other_sessions_and_keeps_current_session(self):
+        login_response = self.client.post(
+            self.login_url,
+            {'username': user.username, 'password': 'Better456!'},
+        )
+        self.assertRedirects(login_response, self.verify_url)
+
+    def test_password_change_invalidates_all_user_sessions(self):
         user = User.objects.create_user(
             username='multisession',
             email='multisession@gmail.com',
@@ -472,6 +480,7 @@ class RegistrationTest(TestCase):
             is_active=True,
         )
         self.login_verified(user)
+        current_session_key = self.client.session.session_key
 
         other_client = Client()
         other_client.force_login(user)
@@ -490,8 +499,8 @@ class RegistrationTest(TestCase):
             follow=True,
         )
 
-        self.assertRedirects(response, reverse('dashboard'))
-        self.assertEqual(int(self.client.session['_auth_user_id']), user.pk)
+        self.assertRedirects(response, self.login_url)
+        self.assertFalse(Session.objects.filter(session_key=current_session_key).exists())
         self.assertFalse(Session.objects.filter(session_key=other_session_key).exists())
         other_response = other_client.get(reverse('dashboard'))
         self.assertRedirects(other_response, f"{self.login_url}?next={reverse('dashboard')}")
