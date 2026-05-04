@@ -1,5 +1,8 @@
 from django.contrib import messages
-from django.contrib.auth import get_user_model, logout
+import logging
+from smtplib import SMTPException
+
+from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.views import LoginView
@@ -12,6 +15,7 @@ from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.contrib.sessions.models import Session
+from django.views.decorators.csrf import requires_csrf_token
 
 from .authentication_forms import SubscriptionAuthenticationForm
 from .forms import (
@@ -35,6 +39,7 @@ from .token_service import clear_email_token, issue_email_token, verify_email_to
 
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 LOGIN_TOKEN_VERIFIED_SESSION_KEY = "login_token_verified"
 LEGACY_REACTIVATION_SESSION_KEY = "legacy_reactivation_user_id"
 USERNAME_CHANGE_TOKEN_PURPOSE = "username-change"
@@ -44,6 +49,12 @@ RECOVERY_RATE_LIMIT = 5
 TOKEN_VERIFY_RATE_LIMIT = 5
 TOKEN_RESEND_RATE_LIMIT = 3
 RATE_LIMIT_WINDOW_SECONDS = 900
+
+
+@requires_csrf_token
+def csrf_failure_view(request, reason=""):
+    messages.error(request, "Your sign-in session expired. Please try again.")
+    return render(request, "registration/login.html", {"form": SubscriptionAuthenticationForm(request)})
 
 
 def _require_verified_session(request):
@@ -148,11 +159,21 @@ class SubscriptionLoginView(LoginView):
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
-        response = super().form_valid(form)
+        user = form.get_user()
+        try:
+            send_verification_token_email(user)
+        except (OSError, SMTPException):
+            logger.exception("Failed to send login verification token.")
+            form.add_error(
+                None,
+                "We could not send your verification token. Check the email settings and try again.",
+            )
+            return self.render_to_response(self.get_context_data(form=form))
+
+        login(self.request, user)
         self.request.session.pop(LEGACY_REACTIVATION_SESSION_KEY, None)
         clear_attempts("login", form.cleaned_data.get("username", ""), get_client_ip(self.request))
         self.request.session[LOGIN_TOKEN_VERIFIED_SESSION_KEY] = False
-        send_verification_token_email(self.request.user)
         messages.success(self.request, "Enter the 6-digit token we sent to your email to finish signing in.")
         return redirect("accounts:verify_token")
 
@@ -457,9 +478,14 @@ def resend_token_view(request):
                 limit=TOKEN_RESEND_RATE_LIMIT,
                 window_seconds=RATE_LIMIT_WINDOW_SECONDS,
             )
-            send_verification_token_email(request.user)
-            request.session[LOGIN_TOKEN_VERIFIED_SESSION_KEY] = False
-            messages.success(request, "A new verification token has been sent.")
+            try:
+                send_verification_token_email(request.user)
+            except (OSError, SMTPException):
+                logger.exception("Failed to resend login verification token.")
+                messages.error(request, "We could not send a new verification token. Check the email settings and try again.")
+            else:
+                request.session[LOGIN_TOKEN_VERIFIED_SESSION_KEY] = False
+                messages.success(request, "A new verification token has been sent.")
         return redirect("accounts:verify_token")
 
     return render(
