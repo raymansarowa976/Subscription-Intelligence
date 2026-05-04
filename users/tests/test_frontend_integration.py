@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
@@ -10,6 +11,7 @@ User = get_user_model()
 
 class FrontendIntegrationTest(TestCase):
     def setUp(self):
+        cache.clear()
         self.signup_url = reverse("accounts:signup")
         self.login_url = reverse("accounts:login")
         self.verify_url = reverse("accounts:verify_token")

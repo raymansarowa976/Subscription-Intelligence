@@ -5,7 +5,6 @@ from django.contrib.auth.password_validation import validate_password
 
 from users.auth.forms import AccountRecoveryForm, PasswordChangeForm, UsernameChangeRequestForm
 from users.auth.token_service import issue_email_token, verify_email_token
-from users.auth.views import _generate_temporary_password
 
 User = get_user_model()
 
@@ -59,18 +58,6 @@ class UserSecurityTest(TestCase):
 
         self.assertFalse(form.is_valid())
         self.assertIn("email", form.errors)
-
-    def test_temporary_password_generator_meets_password_requirements(self):
-        user = User(username="temporaryuser", email="temporary@gmail.com")
-
-        temporary_password = _generate_temporary_password(user)
-
-        validate_password(temporary_password, user)
-        self.assertGreaterEqual(len(temporary_password), 8)
-        self.assertRegex(temporary_password, r"[a-z]")
-        self.assertRegex(temporary_password, r"[A-Z]")
-        self.assertRegex(temporary_password, r"[0-9]")
-        self.assertRegex(temporary_password, r'[!@#$%^&*(),.?":{}|<>]')
 
     def test_username_change_form_requires_available_matching_username(self):
         user = User.objects.create_user(

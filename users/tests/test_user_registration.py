@@ -3,12 +3,14 @@ from django.test.utils import override_settings
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.core import mail
+from django.core.cache import cache
 import re
 
 User = get_user_model()
 
 class RegistrationTest(TestCase):
     def setUp(self):
+        cache.clear()
         self.signup_url = reverse('accounts:signup')
         self.verify_url = reverse('accounts:verify_token')
         self.resend_url = reverse('accounts:resend_token')
@@ -77,6 +79,20 @@ class RegistrationTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'The verification token is invalid or has expired.')
 
+    def test_login_token_verification_is_rate_limited_after_repeated_failures(self):
+        self.client.post(self.signup_url, self.user_data)
+        user = User.objects.get(email='tester@gmail.com')
+        self.client.post(self.login_url, {'username': user.username, 'password': 'Complex123!'})
+
+        for _ in range(5):
+            response = self.client.post(self.verify_url, {'token': '999999'})
+            self.assertContains(response, 'The verification token is invalid or has expired.')
+
+        limited_response = self.client.post(self.verify_url, {'token': '999999'})
+
+        self.assertEqual(limited_response.status_code, 200)
+        self.assertContains(limited_response, 'Too many attempts. Please wait a few minutes and try again.')
+
     def test_resend_token_sends_new_email(self):
         self.client.post(self.signup_url, self.user_data)
         user = User.objects.get(email='tester@gmail.com')
@@ -87,6 +103,21 @@ class RegistrationTest(TestCase):
         self.assertEqual(len(mail.outbox), 2)
         self.assertIn('login token', mail.outbox[-1].subject.lower())
 
+    def test_resend_token_is_rate_limited(self):
+        self.client.post(self.signup_url, self.user_data)
+        user = User.objects.get(email='tester@gmail.com')
+        self.client.post(self.login_url, {'username': user.username, 'password': 'Complex123!'})
+
+        for _ in range(3):
+            response = self.client.post(self.resend_url, follow=True)
+            self.assertContains(response, 'A new verification token has been sent.')
+
+        limited_response = self.client.post(self.resend_url, follow=True)
+
+        self.assertRedirects(limited_response, self.verify_url)
+        self.assertContains(limited_response, 'Too many attempts. Please wait a few minutes and try again.')
+        self.assertEqual(len(mail.outbox), 4)
+
     @override_settings(SHOW_LOGIN_TOKEN_IN_UI=True)
     def test_login_still_sends_email_when_development_token_is_visible(self):
         self.client.post(self.signup_url, self.user_data)
@@ -96,6 +127,30 @@ class RegistrationTest(TestCase):
 
         self.assertRedirects(response, self.verify_url)
         self.assertEqual(len(mail.outbox), 1)
+
+    def test_login_is_rate_limited_after_repeated_invalid_attempts(self):
+        User.objects.create_user(
+            username='ratelimited',
+            email='ratelimited@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+
+        for _ in range(5):
+            response = self.client.post(
+                self.login_url,
+                {'username': 'ratelimited', 'password': 'Wrong123!'},
+            )
+            self.assertContains(response, 'Please enter a correct username and password.')
+
+        limited_response = self.client.post(
+            self.login_url,
+            {'username': 'ratelimited', 'password': 'Complex123!'},
+        )
+
+        self.assertEqual(limited_response.status_code, 200)
+        self.assertContains(limited_response, 'Too many attempts. Please wait a few minutes and try again.')
+        self.assertEqual(len(mail.outbox), 0)
 
     def test_forgot_username_emails_associated_username(self):
         User.objects.create_user(
@@ -127,6 +182,30 @@ class RegistrationTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'No account is associated with this email address.')
         self.assertEqual(len(mail.outbox), 0)
+
+    def test_forgot_username_is_rate_limited(self):
+        User.objects.create_user(
+            username='recoverlimit',
+            email='recoverlimit@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+
+        for _ in range(5):
+            response = self.client.post(
+                self.forgot_username_url,
+                {'email': 'recoverlimit@gmail.com'},
+                follow=True,
+            )
+            self.assertContains(response, 'Your username has been sent')
+
+        limited_response = self.client.post(
+            self.forgot_username_url,
+            {'email': 'recoverlimit@gmail.com'},
+        )
+
+        self.assertContains(limited_response, 'Too many attempts. Please wait a few minutes and try again.')
+        self.assertEqual(len(mail.outbox), 5)
 
     def test_forgot_password_sends_reset_link_and_changes_password_after_confirm(self):
         user = User.objects.create_user(
@@ -192,6 +271,30 @@ class RegistrationTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'No account is associated with this email address.')
         self.assertEqual(len(mail.outbox), 0)
+
+    def test_forgot_password_is_rate_limited(self):
+        User.objects.create_user(
+            username='resetlimit',
+            email='resetlimit@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+
+        for _ in range(5):
+            response = self.client.post(
+                self.forgot_password_url,
+                {'email': 'resetlimit@gmail.com'},
+                follow=True,
+            )
+            self.assertContains(response, 'A password reset link has been sent')
+
+        limited_response = self.client.post(
+            self.forgot_password_url,
+            {'email': 'resetlimit@gmail.com'},
+        )
+
+        self.assertContains(limited_response, 'Too many attempts. Please wait a few minutes and try again.')
+        self.assertEqual(len(mail.outbox), 5)
 
     def test_username_change_requires_matching_usernames(self):
         user = User.objects.create_user(
