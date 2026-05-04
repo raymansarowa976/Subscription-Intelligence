@@ -190,7 +190,26 @@ class FrontendIntegrationTest(TestCase):
         self.assertContains(username_response, "Email my username")
         self.assertContains(password_response, "Forgot password")
         self.assertContains(password_response, 'name="email"', html=False)
-        self.assertContains(password_response, "Send temporary password")
+        self.assertContains(password_response, "Send reset link")
+
+    def test_password_reset_confirm_page_renders(self):
+        user = User.objects.create_user(
+            username="resetrender",
+            email="resetrender@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+        self.client.post(self.forgot_password_url, {"email": user.email})
+        reset_path = re.search(r"http://testserver(/[^\s]+)", mail.outbox[0].body).group(1)
+
+        response = self.client.get(reset_path)
+
+        self.assertContains(response, "Set new password")
+        self.assertContains(response, 'name="new_password"', html=False)
+        self.assertContains(response, 'name="confirm_password"', html=False)
+        self.assertContains(response, 'data-password-toggle="id_new_password"', html=False)
+        self.assertContains(response, 'data-password-toggle="id_confirm_password"', html=False)
+        self.assertContains(response, "Reset password")
 
     def test_login_invalid_credentials_message_states_case_sensitivity(self):
         user = User.objects.create_user(

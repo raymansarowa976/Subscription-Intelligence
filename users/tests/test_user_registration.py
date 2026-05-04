@@ -1,7 +1,6 @@
 from django.test import TestCase
 from django.test.utils import override_settings
 from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import validate_password
 from django.urls import reverse
 from django.core import mail
 import re
@@ -129,7 +128,7 @@ class RegistrationTest(TestCase):
         self.assertContains(response, 'No account is associated with this email address.')
         self.assertEqual(len(mail.outbox), 0)
 
-    def test_forgot_password_sends_temporary_password_and_replaces_old_password(self):
+    def test_forgot_password_sends_reset_link_and_changes_password_after_confirm(self):
         user = User.objects.create_user(
             username='resetuser',
             email='reset@gmail.com',
@@ -144,22 +143,45 @@ class RegistrationTest(TestCase):
         )
 
         self.assertRedirects(response, self.login_url)
-        self.assertContains(response, 'A temporary password has been sent')
+        self.assertContains(response, 'A password reset link has been sent')
         self.assertEqual(len(mail.outbox), 1)
-        self.assertIn('temporary', mail.outbox[0].subject.lower())
+        self.assertIn('reset', mail.outbox[0].subject.lower())
         self.assertNotIn('Complex123!', mail.outbox[0].body)
+        self.assertIn('/accounts/reset-password/', mail.outbox[0].body)
 
-        temporary_password = re.search(r'Your temporary password is: ([^\n]+)', mail.outbox[0].body).group(1)
-        validate_password(temporary_password, user)
+        user.refresh_from_db()
+        self.assertTrue(user.check_password('Complex123!'))
+
+        reset_path = re.search(r'http://testserver(/[^\s]+)', mail.outbox[0].body).group(1)
+        confirm_response = self.client.post(
+            reset_path,
+            {
+                'new_password': 'Reset456!',
+                'confirm_password': 'Reset456!',
+            },
+            follow=True,
+        )
+
+        self.assertRedirects(confirm_response, self.login_url)
+        self.assertContains(confirm_response, 'Your password has been reset. Sign in with your new password.')
         user.refresh_from_db()
         self.assertFalse(user.check_password('Complex123!'))
-        self.assertTrue(user.check_password(temporary_password))
+        self.assertTrue(user.check_password('Reset456!'))
 
         login_response = self.client.post(
             self.login_url,
-            {'username': user.username, 'password': temporary_password},
+            {'username': user.username, 'password': 'Reset456!'},
         )
         self.assertRedirects(login_response, self.verify_url)
+
+    def test_password_reset_rejects_invalid_link(self):
+        response = self.client.get(
+            reverse('accounts:reset_password_confirm', kwargs={'uidb64': 'bad-uid', 'token': 'bad-token'}),
+            follow=True,
+        )
+
+        self.assertRedirects(response, self.forgot_password_url)
+        self.assertContains(response, 'The password reset link is invalid or has expired.')
 
     def test_forgot_password_tells_user_when_email_has_no_account(self):
         response = self.client.post(
