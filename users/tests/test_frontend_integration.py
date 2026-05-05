@@ -359,7 +359,7 @@ class FrontendIntegrationTest(TestCase):
 
         self.assertRedirects(response, self.verify_url)
 
-    def test_dashboard_links_to_account_settings_page(self):
+    def test_dashboard_renders_hideable_sidebar_navigation(self):
         user = User.objects.create_user(
             username="settingslink",
             email="settingslink@gmail.com",
@@ -373,10 +373,14 @@ class FrontendIntegrationTest(TestCase):
 
         response = self.client.get(self.dashboard_url)
 
-        self.assertContains(response, 'aria-label="Account settings"', html=False)
+        self.assertContains(response, 'id="right-sidebar-toggle"', html=False)
+        self.assertContains(response, 'aria-label="Open navigation sidebar"', html=False)
+        self.assertContains(response, "Overview and insights")
+        self.assertContains(response, "Analytics and reports")
+        self.assertContains(response, "Gmail integrations")
+        self.assertContains(response, "Data sources")
         self.assertContains(response, self.account_settings_url)
-        self.assertNotContains(response, "Change username")
-        self.assertNotContains(response, "Change password")
+        self.assertNotContains(response, "Profile and username management")
 
     def test_account_settings_page_links_to_account_change_pages(self):
         user = User.objects.create_user(
