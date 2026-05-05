@@ -324,6 +324,14 @@ def reset_password_confirm_view(request, uidb64, token):
 
 
 @login_required
+def account_settings_view(request):
+    gate = _require_verified_session(request)
+    if gate:
+        return gate
+    return render(request, "registration/account_settings.html")
+
+
+@login_required
 def change_username_view(request):
     gate = _require_verified_session(request)
     if gate:
