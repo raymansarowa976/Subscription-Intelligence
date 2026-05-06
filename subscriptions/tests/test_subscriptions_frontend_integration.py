@@ -179,10 +179,74 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Spotify")
         self.assertContains(response, "Confirm subscription")
         self.assertContains(response, "Reject")
+        self.assertContains(response, 'id="candidate-review-list"', html=False)
+        self.assertContains(response, 'hx-post="', html=False)
+        self.assertContains(response, 'hx-target="#candidate-review-list"', html=False)
         self.assertContains(response, "Likely subscriptions from email")
         self.assertContains(response, "Next five charges")
         self.assertContains(response, "Potential savings")
         self.assertContains(response, "Source health")
+
+    def test_htmx_confirm_candidate_refreshes_candidate_list_partial(self):
+        candidate = SubscriptionCandidate.objects.create(
+            user=self.user,
+            merchant_name="Spotify",
+            normalized_vendor="spotify",
+            amount="10.99",
+            currency="USD",
+            cadence=SubscriptionCandidate.CADENCE_MONTHLY,
+            source_transaction_ids=["txn_spotify_001", "txn_spotify_002"],
+        )
+        TransactionEvidence.objects.create(
+            user=self.user,
+            provider="plaid",
+            account_id="acct_review",
+            provider_transaction_id="txn_spotify_001",
+            merchant_name="Spotify",
+            normalized_merchant_name="spotify",
+            amount="10.99",
+            currency="USD",
+            posted_at=date.today(),
+        )
+
+        response = self.client.post(
+            reverse("transactions:confirm_candidate", kwargs={"candidate_id": candidate.id}),
+            HTTP_HX_REQUEST="true",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="candidate-review-list"', html=False)
+        self.assertContains(response, 'hx-swap-oob="true"', html=False)
+        self.assertContains(response, "Subscription saved")
+        self.assertContains(response, "No pending candidates yet.")
+        self.assertNotContains(response, "Subscription review workspace")
+        self.assertEqual(Subscription.objects.filter(user=self.user, merchant_name="Spotify").count(), 1)
+        candidate.refresh_from_db()
+        self.assertEqual(candidate.status, SubscriptionCandidate.STATUS_CONFIRMED)
+
+    def test_htmx_reject_candidate_refreshes_candidate_list_partial(self):
+        candidate = SubscriptionCandidate.objects.create(
+            user=self.user,
+            merchant_name="Spotify",
+            normalized_vendor="spotify",
+            amount="10.99",
+            currency="USD",
+            cadence=SubscriptionCandidate.CADENCE_MONTHLY,
+            source_transaction_ids=["txn_spotify_001", "txn_spotify_002"],
+        )
+
+        response = self.client.post(
+            reverse("transactions:reject_candidate", kwargs={"candidate_id": candidate.id}),
+            HTTP_HX_REQUEST="true",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="candidate-review-list"', html=False)
+        self.assertContains(response, "Candidate dismissed")
+        self.assertContains(response, "No pending candidates yet.")
+        self.assertNotContains(response, "Subscription review workspace")
+        candidate.refresh_from_db()
+        self.assertEqual(candidate.status, SubscriptionCandidate.STATUS_REJECTED)
 
     def test_candidates_page_shows_empty_state_when_no_candidates_exist(self):
         response = self.client.get(self.candidates_url)
