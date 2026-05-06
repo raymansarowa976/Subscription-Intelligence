@@ -23,13 +23,25 @@
         </div>
 
         <div class="mt-5 flex flex-wrap gap-3">
-            <form method="post" action="{% url 'transactions:confirm_candidate' candidate.id %}" hx-post="{% url 'transactions:confirm_candidate' candidate.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML">
+            <form method="post" action="{% url 'transactions:confirm_candidate' candidate.id %}" hx-post="{% url 'transactions:confirm_candidate' candidate.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML" hx-disabled-elt="find button">
                 {% csrf_token %}
-                <button class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" type="submit" name="action" value="confirm">Confirm subscription</button>
+                <button class="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70" type="submit" name="action" value="confirm" aria-live="polite">
+                    <span>Confirm subscription</span>
+                    <span class="htmx-indicator inline-flex items-center gap-2">
+                        <span class="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true"></span>
+                        Saving...
+                    </span>
+                </button>
             </form>
-            <form method="post" action="{% url 'transactions:reject_candidate' candidate.id %}" hx-post="{% url 'transactions:reject_candidate' candidate.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML">
+            <form method="post" action="{% url 'transactions:reject_candidate' candidate.id %}" hx-post="{% url 'transactions:reject_candidate' candidate.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML" hx-disabled-elt="find button">
                 {% csrf_token %}
-                <button class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-rose-200 hover:text-rose-600" type="submit">Reject</button>
+                <button class="inline-flex items-center justify-center gap-2 rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-rose-200 hover:text-rose-600 disabled:cursor-wait disabled:opacity-70" type="submit" aria-live="polite">
+                    <span>Reject</span>
+                    <span class="htmx-indicator inline-flex items-center gap-2 text-rose-600">
+                        <span class="h-3 w-3 animate-spin rounded-full border-2 border-rose-200 border-t-rose-600" aria-hidden="true"></span>
+                        Dismissing...
+                    </span>
+                </button>
             </form>
         </div>
     </article>
