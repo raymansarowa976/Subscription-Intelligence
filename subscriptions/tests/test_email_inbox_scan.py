@@ -112,6 +112,27 @@ class EmailInboxScanTest(TestCase):
         self.assertContains(response, "Your Netflix monthly receipt")
         self.assertContains(response, "Likely subscriptions from email")
 
+    @patch("subscriptions.services.imaplib.IMAP4_SSL", new=FakeIMAP4)
+    def test_htmx_scan_inbox_view_returns_dashboard_feedback_panel(self):
+        response = self.client.post(reverse("scan_inbox"), HTTP_HX_REQUEST="true")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="inbox-scan-panel"', html=False)
+        self.assertContains(response, "Inbox scan complete. Checked 2 messages and found 1 likely subscription emails.")
+        self.assertContains(response, "Last inbox scan:")
+        self.assertContains(response, "Review matches")
+        self.assertNotContains(response, "Subscription review workspace")
+
+    @override_settings(IMAP_USERNAME="", IMAP_PASSWORD="")
+    def test_htmx_scan_inbox_view_returns_error_feedback_panel(self):
+        response = self.client.post(reverse("scan_inbox"), HTTP_HX_REQUEST="true")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="inbox-scan-panel"', html=False)
+        self.assertContains(response, "Inbox credentials are not configured.")
+        self.assertContains(response, "Scan inbox now")
+        self.assertNotContains(response, "Subscription review workspace")
+
     @override_settings(IMAP_USERNAME="", IMAP_PASSWORD="")
     def test_scan_email_inbox_requires_configured_credentials(self):
         with self.assertRaises(InboxScanError):
