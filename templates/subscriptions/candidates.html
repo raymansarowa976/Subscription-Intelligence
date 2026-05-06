@@ -10,7 +10,7 @@
 <section class="mt-6 grid gap-5 xl:grid-cols-4">
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Pending candidates</p>
-        <p class="mt-4 text-4xl font-extrabold tracking-tight text-ink">{{ candidate_count }}</p>
+        <p id="candidate-count-value" class="mt-4 text-4xl font-extrabold tracking-tight text-ink">{{ candidate_count }}</p>
         <p class="mt-4 text-sm leading-7 text-stone-500">Recurring detections waiting for review.</p>
     </article>
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
@@ -50,37 +50,7 @@
                 <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'dashboard' %}">Back to dashboard</a>
             </div>
 
-            <div class="mt-8 grid gap-4">
-                {% for candidate in candidates %}
-                <article class="rounded-[24px] border border-black/10 bg-[linear-gradient(180deg,#fafaf9,white)] p-6">
-                    <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-                        <div>
-                            <h3 class="text-2xl font-extrabold text-ink">{{ candidate.merchant_name }}</h3>
-                            <p class="mt-2 text-sm text-stone-500">{{ candidate.cadence_label }} recurring charge • {{ candidate.currency }}</p>
-                            <p class="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">{{ candidate.source_transaction_ids|length }} supporting transaction{{ candidate.source_transaction_ids|length|pluralize }}</p>
-                        </div>
-                        <div class="text-left lg:text-right">
-                            <p class="text-3xl font-extrabold text-ink">{{ candidate.formatted_amount }}</p>
-                        </div>
-                    </div>
-
-                    <div class="mt-5 flex flex-wrap gap-3">
-                        <form method="post" action="{% url 'transactions:confirm_candidate' candidate.id %}">
-                            {% csrf_token %}
-                            <button class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" type="submit" name="action" value="confirm">Confirm subscription</button>
-                        </form>
-                        <form method="post" action="{% url 'transactions:reject_candidate' candidate.id %}">
-                            {% csrf_token %}
-                            <button class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-rose-200 hover:text-rose-600" type="submit">Reject</button>
-                        </form>
-                    </div>
-                </article>
-                {% empty %}
-                <div class="rounded-[24px] border border-dashed border-black/15 bg-stone-50 p-8 text-center text-stone-500">
-                    No pending candidates yet.
-                </div>
-                {% endfor %}
-            </div>
+            {% include "subscriptions/_candidate_list.html" %}
         </section>
 
         <section class="rounded-[30px] border border-black/10 bg-white/90 p-8 shadow-panel">
@@ -204,3 +174,4 @@
     </aside>
 </section>
 {% endblock %}
+

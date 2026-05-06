@@ -29,6 +29,26 @@ def _require_verified_session(request):
     return None
 
 
+def _is_htmx_request(request):
+    return request.headers.get("HX-Request") == "true"
+
+
+def _candidate_review_context(user, review_notice=""):
+    context = build_dashboard_context(user)
+    context["candidates"] = SubscriptionCandidate.objects.filter(
+        user=user,
+        status=SubscriptionCandidate.STATUS_PENDING,
+    )
+    context["review_notice"] = review_notice
+    return context
+
+
+def _candidate_review_partial(request, review_notice):
+    context = _candidate_review_context(request.user, review_notice)
+    context["htmx_response"] = True
+    return render(request, "subscriptions/_candidate_list.html", context)
+
+
 @login_required
 def dashboard_view(request):
     gate = _require_verified_session(request)
@@ -84,12 +104,7 @@ def candidate_list_view(request):
     gate = _require_verified_session(request)
     if gate:
         return gate
-    candidates = SubscriptionCandidate.objects.filter(
-        user=request.user,
-        status=SubscriptionCandidate.STATUS_PENDING,
-    )
-    context = build_dashboard_context(request.user)
-    context["candidates"] = candidates
+    context = _candidate_review_context(request.user)
     return render(request, "subscriptions/candidates.html", context)
 
 
@@ -128,6 +143,8 @@ def confirm_candidate_view(request, candidate_id):
     )
     candidate.status = SubscriptionCandidate.STATUS_CONFIRMED
     candidate.save(update_fields=["status"])
+    if _is_htmx_request(request):
+        return _candidate_review_partial(request, "Subscription saved")
     messages.success(request, "Subscription saved")
     return redirect("dashboard")
 
@@ -145,6 +162,8 @@ def reject_candidate_view(request, candidate_id):
     )
     candidate.status = SubscriptionCandidate.STATUS_REJECTED
     candidate.save(update_fields=["status"])
+    if _is_htmx_request(request):
+        return _candidate_review_partial(request, "Candidate dismissed")
     messages.info(request, "Candidate dismissed")
     return redirect("dashboard")
 
