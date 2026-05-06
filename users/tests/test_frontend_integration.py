@@ -20,6 +20,7 @@ class FrontendIntegrationTest(TestCase):
         self.resend_url = reverse("accounts:resend_token")
         self.forgot_username_url = reverse("accounts:forgot_username")
         self.forgot_password_url = reverse("accounts:forgot_password")
+        self.account_settings_url = reverse("accounts:account_settings")
         self.change_username_url = reverse("accounts:change_username")
         self.confirm_username_change_url = reverse("accounts:confirm_username_change")
         self.change_password_url = reverse("accounts:change_password")
@@ -358,7 +359,7 @@ class FrontendIntegrationTest(TestCase):
 
         self.assertRedirects(response, self.verify_url)
 
-    def test_dashboard_links_directly_to_account_change_pages(self):
+    def test_dashboard_renders_hideable_sidebar_navigation(self):
         user = User.objects.create_user(
             username="settingslink",
             email="settingslink@gmail.com",
@@ -372,6 +373,30 @@ class FrontendIntegrationTest(TestCase):
 
         response = self.client.get(self.dashboard_url)
 
+        self.assertContains(response, 'id="right-sidebar-toggle"', html=False)
+        self.assertContains(response, 'aria-label="Open navigation sidebar"', html=False)
+        self.assertContains(response, "Overview and insights")
+        self.assertContains(response, "Analytics and reports")
+        self.assertContains(response, "Gmail integrations")
+        self.assertContains(response, "Data sources")
+        self.assertContains(response, self.account_settings_url)
+        self.assertNotContains(response, "Profile and username management")
+
+    def test_account_settings_page_links_to_account_change_pages(self):
+        user = User.objects.create_user(
+            username="settingspage",
+            email="settingspage@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+        self.client.force_login(user)
+        session = self.client.session
+        session["login_token_verified"] = True
+        session.save()
+
+        response = self.client.get(self.account_settings_url)
+
+        self.assertContains(response, "Account settings")
         self.assertContains(response, "Change username")
         self.assertContains(response, self.change_username_url)
         self.assertContains(response, "Change password")
