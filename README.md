@@ -13,6 +13,26 @@ If you want PostgreSQL instead, keep `USE_SQLITE=False` and start the database c
 docker compose up -d db redis
 ```
 
+## Frontend tooling
+
+Install the Node dependencies before working on compiled Tailwind styles:
+
+```powershell
+npm install
+```
+
+Build Tailwind once:
+
+```powershell
+npm run tailwind:build
+```
+
+Watch template and static JavaScript files while developing:
+
+```powershell
+npm run tailwind:watch
+```
+
 ## Email verification
 
 New accounts use a 6-digit email verification token instead of a clickable activation link.

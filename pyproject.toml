@@ -1,0 +1,52 @@
+[tool.mypy]
+python_version = "3.13"
+plugins = ["mypy_django_plugin.main"]
+ignore_missing_imports = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unused_configs = true
+exclude = '''(?x)(
+    ^venv/
+    | ^staticfiles/
+    | ^pytest-cache-files-.*/
+    | /migrations/
+  )'''
+
+[tool.django-stubs]
+django_settings_module = "config.settings"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 119
+extend-exclude = [
+    "venv",
+    "staticfiles",
+    "pytest-cache-files-*",
+    "migrations",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "UP",
+    "B",
+    "DJ",
+]
+ignore = [
+    "B007",
+    "DJ001",
+    "DJ008",
+    "E501",
+    "UP038",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"manage.py" = ["DJ007"]
+"config/settings.py" = ["F401", "E402"]
+"**/tests/*.py" = ["B018"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
