@@ -6,37 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Subscription Intelligence{% endblock %}</title>
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-    <style>
-        [data-htmx-polish].htmx-swapping {
-            opacity: 0.45;
-            transform: scale(0.995);
-        }
-
-        [data-htmx-polish].htmx-settling {
-            animation: htmxSwapSettle 180ms ease-out;
-        }
-
-        .htmx-request .htmx-idle-label {
-            display: none;
-        }
-
-        [data-htmx-focus-target]:focus {
-            outline: 3px solid rgba(15, 118, 110, 0.45);
-            outline-offset: 3px;
-        }
-
-        @keyframes htmxSwapSettle {
-            from {
-                opacity: 0.65;
-                transform: translateY(4px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
     <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
