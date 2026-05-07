@@ -117,6 +117,9 @@ class EmailInboxScanTest(TestCase):
         response = self.client.post(reverse("scan_inbox"), HTTP_HX_REQUEST="true")
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="dashboard-inbox-lead-count-value"', html=False)
+        self.assertContains(response, 'id="dashboard-review-queue-count-value"', html=False)
+        self.assertContains(response, 'hx-swap-oob="true"', html=False)
         self.assertContains(response, 'id="inbox-scan-panel"', html=False)
         self.assertContains(response, "Inbox scan complete. Checked 2 messages and found 1 likely subscription emails.")
         self.assertContains(response, "Last inbox scan:")
@@ -128,6 +131,8 @@ class EmailInboxScanTest(TestCase):
         response = self.client.post(reverse("scan_inbox"), HTTP_HX_REQUEST="true")
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="dashboard-inbox-lead-count-value"', html=False)
+        self.assertContains(response, 'hx-swap-oob="true"', html=False)
         self.assertContains(response, 'id="inbox-scan-panel"', html=False)
         self.assertContains(response, "Inbox credentials are not configured.")
         self.assertContains(response, "Scan inbox now")
