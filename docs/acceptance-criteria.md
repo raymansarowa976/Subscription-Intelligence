@@ -64,7 +64,7 @@
 - [x] Candidate confirm/reject forms use HTMX partial swaps.
 - [x] Candidate count updates with HTMX out-of-band swap.
 - [x] Candidate confirm/reject still works without JavaScript through normal form POST fallback.
-- [ ] Add HTMX loading states for candidate confirm/reject actions.
+- [x] Add HTMX loading states for candidate confirm/reject actions.
 - [ ] Add visual QA pass across all major auth, dashboard, subscription, and candidate pages.
 
 ### Issue #6: TDD Notification System (Huey/Redis)
