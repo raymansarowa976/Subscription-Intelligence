@@ -15,6 +15,24 @@
 </head>
 <body class="min-h-screen bg-sand text-ink antialiased {% block body_class %}{% endblock %}">
     {% block content %}{% endblock %}
+    <script>
+        document.body.addEventListener("htmx:afterSwap", function (event) {
+            const target = event.detail && event.detail.target;
+            if (!target || !target.querySelector) {
+                return;
+            }
+
+            const focusTarget = target.matches("[data-htmx-focus-target]")
+                ? target
+                : target.querySelector("[data-htmx-focus-target]");
+
+            if (focusTarget) {
+                requestAnimationFrame(function () {
+                    focusTarget.focus({ preventScroll: true });
+                });
+            }
+        });
+    </script>
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

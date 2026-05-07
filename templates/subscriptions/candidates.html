@@ -15,17 +15,17 @@
     </article>
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Inbox matches</p>
-        <p class="mt-4 text-4xl font-extrabold tracking-tight text-ink">{{ inbox_lead_count }}</p>
+        <p id="review-inbox-lead-count-value" class="mt-4 text-4xl font-extrabold tracking-tight text-ink">{{ inbox_lead_count }}</p>
         <p class="mt-4 text-sm leading-7 text-stone-500">Likely subscription emails ready for inspection.</p>
     </article>
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Upcoming renewals</p>
-        <p class="mt-4 text-4xl font-extrabold tracking-tight text-ink">{{ upcoming_renewal_count }}</p>
+        <p id="upcoming-renewal-count-value" class="mt-4 text-4xl font-extrabold tracking-tight text-ink">{{ upcoming_renewal_count }}</p>
         <p class="mt-4 text-sm leading-7 text-stone-500">Subscriptions renewing in the next 7 days.</p>
     </article>
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Latest inbox scan</p>
-        <p class="mt-4 text-xl font-extrabold tracking-tight text-ink">
+        <p id="latest-inbox-scan-value" class="mt-4 text-xl font-extrabold tracking-tight text-ink">
             {% if latest_email_scan %}{{ latest_email_scan.get_status_display }}{% else %}Not run{% endif %}
         </p>
         <p class="mt-4 text-sm leading-7 text-stone-500">

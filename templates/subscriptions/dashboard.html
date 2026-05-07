@@ -46,12 +46,12 @@
                         </div>
                         <div class="rounded-[20px] bg-white/10 p-4">
                             <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">Inbox leads</p>
-                            <p class="mt-2 text-2xl font-extrabold">{{ inbox_lead_count }}</p>
+                            <p id="dashboard-inbox-lead-count-value" class="mt-2 text-2xl font-extrabold">{{ inbox_lead_count }}</p>
                         </div>
                     </div>
                     <div class="rounded-[22px] border border-white/10 bg-white/10 p-4">
                         <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">Review queue</p>
-                        <p class="mt-2 text-2xl font-extrabold">{{ candidate_count }}</p>
+                        <p id="dashboard-review-queue-count-value" class="mt-2 text-2xl font-extrabold">{{ candidate_count }}</p>
                         <p class="mt-2 text-sm text-white/70">Pending subscription detections waiting for a decision.</p>
                     </div>
                 </div>
@@ -63,23 +63,7 @@
                             <p class="mt-3 max-w-3xl text-sm leading-7 text-stone-500">Everything on this dashboard is filtered to your account so you can review recurring spend with confidence, spot overlap, and stay ahead of the next billing cycle.</p>
                         </div>
 
-                        <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center rounded-[28px] border border-black/10 bg-white/70 p-5">
-                            <div>
-                                <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Inbox discovery</p>
-                                <h3 class="mt-2 text-2xl font-extrabold text-ink">Scan email for subscriptions</h3>
-                                <p class="mt-3 text-sm leading-7 text-stone-500">
-                                    {% if latest_email_scan %}
-                                    Last inbox scan: {{ latest_email_scan.completed_at|date:"M j, Y g:i A" }} from {{ latest_email_scan.mailbox }}. Checked {{ latest_email_scan.scanned_message_count }} message{{ latest_email_scan.scanned_message_count|pluralize }} and matched {{ latest_email_scan.matched_message_count }}.
-                                    {% else %}
-                                    No inbox scan has been run yet for this account.
-                                    {% endif %}
-                                </p>
-                            </div>
-                            <form method="post" action="{% url 'scan_inbox' %}">
-                                {% csrf_token %}
-                                <button class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" type="submit">Scan inbox now</button>
-                            </form>
-                        </div>
+                        {% include "subscriptions/_inbox_scan_panel.html" %}
 
                         <div class="flex flex-wrap gap-3">
                             <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'transactions:candidates' %}">Review subscriptions</a>

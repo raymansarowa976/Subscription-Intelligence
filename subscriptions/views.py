@@ -49,6 +49,14 @@ def _candidate_review_partial(request, review_notice):
     return render(request, "subscriptions/_candidate_list.html", context)
 
 
+def _inbox_scan_partial(request, scan_notice, scan_notice_level="success"):
+    context = build_dashboard_context(request.user)
+    context["scan_notice"] = scan_notice
+    context["scan_notice_level"] = scan_notice_level
+    context["htmx_response"] = True
+    return render(request, "subscriptions/_inbox_scan_panel.html", context)
+
+
 @login_required
 def dashboard_view(request):
     gate = _require_verified_session(request)
@@ -88,14 +96,19 @@ def scan_inbox_view(request):
     try:
         result = scan_email_inbox_for_subscriptions(request.user)
     except InboxScanError as exc:
+        if _is_htmx_request(request):
+            return _inbox_scan_partial(request, str(exc), "error")
         messages.error(request, str(exc))
     else:
+        success_message = (
+            f"Inbox scan complete. Checked {result['scanned_message_count']} messages and found "
+            f"{result['matched_message_count']} likely subscription emails."
+        )
+        if _is_htmx_request(request):
+            return _inbox_scan_partial(request, success_message)
         messages.success(
             request,
-            (
-                f"Inbox scan complete. Checked {result['scanned_message_count']} messages and found "
-                f"{result['matched_message_count']} likely subscription emails."
-            ),
+            success_message,
         )
     return redirect("transactions:candidates")
 
