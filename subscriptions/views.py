@@ -53,6 +53,7 @@ def _inbox_scan_partial(request, scan_notice, scan_notice_level="success"):
     context = build_dashboard_context(request.user)
     context["scan_notice"] = scan_notice
     context["scan_notice_level"] = scan_notice_level
+    context["htmx_response"] = True
     return render(request, "subscriptions/_inbox_scan_panel.html", context)
 
 
