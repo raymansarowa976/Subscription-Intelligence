@@ -6,9 +6,9 @@
 </p>
 {% endif %}
 
-<div id="candidate-review-list" class="mt-8 grid gap-4">
+<div id="candidate-review-list" class="mt-8 grid gap-4 transition duration-200 ease-out" data-htmx-polish>
     {% if review_notice %}
-    <div class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+    <div id="candidate-review-notice" class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800" role="status" aria-live="polite" tabindex="-1" data-htmx-focus-target>
         {{ review_notice }}
     </div>
     {% endif %}
@@ -27,20 +27,20 @@
         </div>
 
         <div class="mt-5 flex flex-wrap gap-3">
-            <form method="post" action="{% url 'transactions:confirm_candidate' candidate.id %}" hx-post="{% url 'transactions:confirm_candidate' candidate.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML" hx-disabled-elt="find button">
+            <form method="post" action="{% url 'transactions:confirm_candidate' candidate.id %}" hx-post="{% url 'transactions:confirm_candidate' candidate.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML" hx-push-url="false" hx-disabled-elt="find button">
                 {% csrf_token %}
                 <button class="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70" type="submit" name="action" value="confirm" aria-live="polite">
-                    <span>Confirm subscription</span>
+                    <span class="htmx-idle-label">Confirm subscription</span>
                     <span class="htmx-indicator inline-flex items-center gap-2">
                         <span class="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true"></span>
                         Saving...
                     </span>
                 </button>
             </form>
-            <form method="post" action="{% url 'transactions:reject_candidate' candidate.id %}" hx-post="{% url 'transactions:reject_candidate' candidate.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML" hx-disabled-elt="find button">
+            <form method="post" action="{% url 'transactions:reject_candidate' candidate.id %}" hx-post="{% url 'transactions:reject_candidate' candidate.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML" hx-push-url="false" hx-disabled-elt="find button">
                 {% csrf_token %}
                 <button class="inline-flex items-center justify-center gap-2 rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-rose-200 hover:text-rose-600 disabled:cursor-wait disabled:opacity-70" type="submit" aria-live="polite">
-                    <span>Reject</span>
+                    <span class="htmx-idle-label">Reject</span>
                     <span class="htmx-indicator inline-flex items-center gap-2 text-rose-600">
                         <span class="h-3 w-3 animate-spin rounded-full border-2 border-rose-200 border-t-rose-600" aria-hidden="true"></span>
                         Dismissing...
@@ -50,7 +50,7 @@
         </div>
     </article>
     {% empty %}
-    <div class="rounded-[24px] border border-dashed border-black/15 bg-stone-50 p-8 text-center text-stone-500">
+    <div id="candidate-empty-state" class="rounded-[24px] border border-dashed border-black/15 bg-stone-50 p-8 text-center text-stone-500" role="status" aria-live="polite" tabindex="-1" {% if not review_notice %}data-htmx-focus-target{% endif %}>
         No pending candidates yet.
     </div>
     {% endfor %}

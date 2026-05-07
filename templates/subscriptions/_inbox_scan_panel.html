@@ -3,7 +3,7 @@
 <p id="dashboard-review-queue-count-value" class="mt-2 text-2xl font-extrabold" hx-swap-oob="true">{{ candidate_count }}</p>
 {% endif %}
 
-<div id="inbox-scan-panel" class="rounded-[28px] border border-black/10 bg-white/70 p-5">
+<div id="inbox-scan-panel" class="rounded-[28px] border border-black/10 bg-white/70 p-5 transition duration-200 ease-out" data-htmx-polish>
     <div>
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Inbox discovery</p>
         <h3 class="mt-2 text-2xl font-extrabold text-ink">Scan email for subscriptions</h3>
@@ -16,16 +16,16 @@
         </p>
 
         {% if scan_notice %}
-        <div class="mt-4 rounded-2xl px-4 py-3 text-sm font-semibold {% if scan_notice_level == 'error' %}border border-rose-100 bg-rose-50 text-rose-800{% else %}border border-emerald-100 bg-emerald-50 text-emerald-800{% endif %}">
+        <div id="inbox-scan-notice" class="mt-4 rounded-2xl px-4 py-3 text-sm font-semibold {% if scan_notice_level == 'error' %}border border-rose-100 bg-rose-50 text-rose-800{% else %}border border-emerald-100 bg-emerald-50 text-emerald-800{% endif %}" role="status" aria-live="polite" tabindex="-1" data-htmx-focus-target>
             {{ scan_notice }}
         </div>
         {% endif %}
 
         <div class="mt-5 flex flex-wrap gap-3">
-            <form method="post" action="{% url 'scan_inbox' %}" hx-post="{% url 'scan_inbox' %}" hx-target="#inbox-scan-panel" hx-swap="outerHTML" hx-disabled-elt="find button">
+            <form method="post" action="{% url 'scan_inbox' %}" hx-post="{% url 'scan_inbox' %}" hx-target="#inbox-scan-panel" hx-swap="outerHTML" hx-push-url="false" hx-disabled-elt="find button">
                 {% csrf_token %}
                 <button class="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70" type="submit" aria-live="polite">
-                    <span>Scan inbox now</span>
+                    <span class="htmx-idle-label">Scan inbox now</span>
                     <span class="htmx-indicator inline-flex items-center gap-2">
                         <span class="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true"></span>
                         Scanning...
