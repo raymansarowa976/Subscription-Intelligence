@@ -46,12 +46,12 @@
                         </div>
                         <div class="rounded-[20px] bg-white/10 p-4">
                             <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">Inbox leads</p>
-                            <p class="mt-2 text-2xl font-extrabold">{{ inbox_lead_count }}</p>
+                            <p id="dashboard-inbox-lead-count-value" class="mt-2 text-2xl font-extrabold">{{ inbox_lead_count }}</p>
                         </div>
                     </div>
                     <div class="rounded-[22px] border border-white/10 bg-white/10 p-4">
                         <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">Review queue</p>
-                        <p class="mt-2 text-2xl font-extrabold">{{ candidate_count }}</p>
+                        <p id="dashboard-review-queue-count-value" class="mt-2 text-2xl font-extrabold">{{ candidate_count }}</p>
                         <p class="mt-2 text-sm text-white/70">Pending subscription detections waiting for a decision.</p>
                     </div>
                 </div>

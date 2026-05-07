@@ -1,5 +1,9 @@
 {% if htmx_response %}
 <p id="candidate-count-value" class="mt-4 text-4xl font-extrabold tracking-tight text-ink" hx-swap-oob="true">{{ candidate_count }}</p>
+<p id="upcoming-renewal-count-value" class="mt-4 text-4xl font-extrabold tracking-tight text-ink" hx-swap-oob="true">{{ upcoming_renewal_count }}</p>
+<p id="latest-inbox-scan-value" class="mt-4 text-xl font-extrabold tracking-tight text-ink" hx-swap-oob="true">
+    {% if latest_email_scan %}{{ latest_email_scan.get_status_display }}{% else %}Not run{% endif %}
+</p>
 {% endif %}
 
 <div id="candidate-review-list" class="mt-8 grid gap-4">
