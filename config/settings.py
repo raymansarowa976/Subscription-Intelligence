@@ -46,6 +46,7 @@ HUEY = {
     'huey_class': 'huey.RedisHuey',
     'name': 'subtrack_tasks',
     'connection': {'host': 'localhost', 'port': 6379},
+    'immediate': RUNNING_TESTS,
 }
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
