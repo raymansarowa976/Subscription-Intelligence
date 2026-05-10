@@ -148,3 +148,26 @@
   - Add CI workflow for `mypy`.
   - Add CI workflow for `npm run tailwind:build`.
   - Add check that committed compiled Tailwind CSS is current.
+    
+- [ ] **Issue #17: Per-User Email OAuth Integration**
+  - Allow each user to connect their own email account instead of relying on global `.env` IMAP credentials.
+  - Keep the existing app authentication model; OAuth is used only to grant mailbox access.
+  - **Test:** User can start an email connection flow from account settings or integrations.
+  - **Test:** OAuth callback links the connected mailbox to the currently authenticated user.
+  - **Test:** One user cannot scan or access another user's connected mailbox.
+  - **Test:** Inbox scan uses the current user's connected email account instead of global IMAP settings.
+  - **Test:** Disconnected or expired email connections do not run scans and show clear feedback.
+  - **Test:** Existing receipt parser flow still creates review candidates from OAuth-fetched messages.
+  - **Code:** `EmailConnection` model added for per-user mailbox connections.
+  - **Code:** Email provider, email address, scopes, token expiry, and active/disconnected state stored.
+  - **Code:** OAuth access and refresh tokens stored securely.
+  - **Code:** Gmail OAuth connect and callback views added.
+  - **Code:** OAuth `state` parameter used to protect callback flow.
+  - **Code:** Token refresh service added for expired access tokens.
+  - **Code:** Inbox scan task accepts user/email-connection identifiers and validates ownership.
+  - **Code:** Gmail API message search/fetch service added.
+  - **Code:** Existing email lead and receipt parser pipeline works with Gmail API messages.
+  - **Code:** Account settings or integrations UI shows connected mailbox status.
+  - **Code:** User can disconnect/revoke a connected mailbox.
+  - **Code:** Global IMAP scan remains available only as local/dev fallback or is explicitly deprecated.
+
