@@ -25,6 +25,7 @@ from .models import (
     TransactionEvidence,
     TransactionImportRun,
 )
+from .receipt_parser import clean_email_html
 
 
 def _normalize_vendor(name):
@@ -207,9 +208,7 @@ def _decode_email_header(value):
 
 
 def _strip_html_tags(value):
-    without_blocks = re.sub(r"(?is)<(script|style).*?>.*?</\1>", " ", value)
-    without_tags = re.sub(r"(?s)<[^>]+>", " ", without_blocks)
-    return re.sub(r"\s+", " ", without_tags).strip()
+    return re.sub(r"\s+", " ", clean_email_html(value)).strip()
 
 
 def _extract_email_body(message):
@@ -375,7 +374,7 @@ def scan_email_inbox_for_subscriptions(user):
             message_id = _message_identifier(message, f"{mailbox}:{identifier.decode('utf-8', errors='ignore')}")
             received_at = _parse_email_received_at(message)
 
-            _, created = EmailSubscriptionLead.objects.update_or_create(
+            lead, created = EmailSubscriptionLead.objects.update_or_create(
                 user=user,
                 message_id=message_id,
                 defaults={
@@ -385,6 +384,7 @@ def scan_email_inbox_for_subscriptions(user):
                     "subject": subject or "(No subject)",
                     "merchant_name": merchant_name,
                     "snippet": snippet,
+                    "cleaned_body": body,
                     "received_at": received_at,
                     "confidence_score": confidence_score,
                     "raw_headers": {
@@ -394,6 +394,9 @@ def scan_email_inbox_for_subscriptions(user):
                     },
                 },
             )
+            from .tasks import parse_receipt_lead_task
+
+            parse_receipt_lead_task(lead.id)
             matched_count += 1
             if created:
                 created_count += 1

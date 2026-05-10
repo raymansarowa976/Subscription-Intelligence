@@ -149,6 +149,9 @@ def confirm_candidate_view(request, candidate_id):
         cadence=candidate.cadence,
         category=infer_subscription_category(candidate.merchant_name),
         next_renewal=(
+            candidate.likely_renewal_date
+            if candidate.likely_renewal_date
+            else
             calculate_next_renewal(latest_transaction.posted_at, candidate.cadence)
             if latest_transaction
             else None
