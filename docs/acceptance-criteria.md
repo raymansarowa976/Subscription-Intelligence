@@ -102,16 +102,16 @@
 
 ### Issue #9: AI-Assisted Receipt Entity Extraction
 **Acceptance Criteria:**
-- [ ] **Test:** Parser extracts merchant, amount, billing date, and likely renewal date from messy receipt text.
-- [ ] **Test:** Parser handles missing or ambiguous fields without creating false confirmed subscriptions.
-- [ ] **Test:** Low-confidence extraction remains review-only.
-- [ ] **Code:** Dedicated receipt parser service added.
-- [ ] **Code:** Email HTML is cleaned into plain text before NLP processing.
-- [ ] **Code:** Parser combines heuristics with lightweight NLP entity extraction.
-- [ ] **Code:** Extracted entities are stored with source email, confidence score, parser version, and raw entity metadata.
-- [ ] **Code:** AI/parser output creates review candidates, not confirmed subscriptions.
-- [ ] **Code:** Huey task runs receipt parsing in the background.
-- [ ] **Code:** Candidate review UI clearly labels parser output as suggested evidence.
+- [x] **Test:** Parser extracts merchant, amount, billing date, and likely renewal date from messy receipt text.
+- [x] **Test:** Parser handles missing or ambiguous fields without creating false confirmed subscriptions.
+- [x] **Test:** Low-confidence extraction remains review-only.
+- [x] **Code:** Dedicated receipt parser service added.
+- [x] **Code:** Email HTML is cleaned into plain text before NLP processing.
+- [x] **Code:** Parser combines heuristics with lightweight NLP entity extraction.
+- [x] **Code:** Extracted entities are stored with source email, confidence score, parser version, and raw entity metadata.
+- [x] **Code:** AI/parser output creates review candidates, not confirmed subscriptions.
+- [x] **Code:** Huey task runs receipt parsing in the background.
+- [x] **Code:** Candidate review UI clearly labels parser output as suggested evidence.
 
 ---
 
