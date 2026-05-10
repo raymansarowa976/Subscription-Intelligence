@@ -99,7 +99,7 @@
   - Normal form POST fallback remains intact for non-JavaScript behavior.
   - Tests cover HTMX candidate confirm/reject behavior.
 
-- [ ] **Issue #10: HTMX Interaction Polish**
+- [x] **Issue #10: HTMX Interaction Polish**
   - Add loading states for candidate confirm/reject actions.
   - Add disabled/in-flight button behavior for HTMX requests.
   - Consider HTMX feedback for inbox scan requests.
