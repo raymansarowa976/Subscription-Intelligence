@@ -3,16 +3,26 @@ from datetime import date, timedelta
 from huey import crontab
 from huey.contrib.djhuey import db_periodic_task, db_task
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.utils import timezone
 
 from .models import EmailSubscriptionLead, Subscription, SubscriptionCandidate
 from .receipt_parser import parse_receipt_text
-from .services import _normalize_vendor
+from .services import InboxScanError, _normalize_vendor, scan_email_inbox_for_subscriptions
 
 
 MIN_REVIEW_CANDIDATE_CONFIDENCE = 45
 RENEWAL_ALERT_LOOKAHEAD_DAYS = 2
+
+
+@db_task()
+def scan_email_inbox_task(user_id):
+    user = get_user_model().objects.get(pk=user_id)
+    try:
+        return scan_email_inbox_for_subscriptions(user)
+    except InboxScanError as exc:
+        return {"status": "failed", "error": str(exc)}
 
 
 @db_task()

@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -17,8 +18,8 @@ from .services import (
     ingest_transactions,
     parse_request_json,
     record_failed_import_run,
-    scan_email_inbox_for_subscriptions,
 )
+from .tasks import scan_email_inbox_task
 
 
 def _require_verified_session(request):
@@ -94,16 +95,26 @@ def scan_inbox_view(request):
         return gate
 
     try:
-        result = scan_email_inbox_for_subscriptions(request.user)
+        result = scan_email_inbox_task(request.user.id)
+        if getattr(settings, "HUEY", {}).get("immediate") and hasattr(result, "get"):
+            result = result.get(blocking=True)
     except InboxScanError as exc:
         if _is_htmx_request(request):
             return _inbox_scan_partial(request, str(exc), "error")
         messages.error(request, str(exc))
     else:
-        success_message = (
-            f"Inbox scan complete. Checked {result['scanned_message_count']} messages and found "
-            f"{result['matched_message_count']} likely subscription emails."
-        )
+        if isinstance(result, dict) and result.get("status") == "failed":
+            if _is_htmx_request(request):
+                return _inbox_scan_partial(request, result.get("error", "Inbox scan failed."), "error")
+            messages.error(request, result.get("error", "Inbox scan failed."))
+            return redirect("transactions:candidates")
+        if isinstance(result, dict):
+            success_message = (
+                f"Inbox scan complete. Checked {result['scanned_message_count']} messages and found "
+                f"{result['matched_message_count']} likely subscription emails."
+            )
+        else:
+            success_message = "Inbox scan queued. Refresh this page in a moment to review new matches."
         if _is_htmx_request(request):
             return _inbox_scan_partial(request, success_message)
         messages.success(
