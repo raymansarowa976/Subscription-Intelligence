@@ -65,17 +65,17 @@
 - [x] Candidate count updates with HTMX out-of-band swap.
 - [x] Candidate confirm/reject still works without JavaScript through normal form POST fallback.
 - [x] Add HTMX loading states for candidate confirm/reject actions.
-- [ ] Add visual QA pass across all major auth, dashboard, subscription, and candidate pages.
+- [x] Add visual QA pass across all major auth, dashboard, subscription, and candidate pages.
 
 ### Issue #6: TDD Notification System (Huey/Redis)
 **Acceptance Criteria:**
-- [ ] **Test:** Query identifies subscriptions renewing in exactly 48 hours.
-- [ ] **Test:** `mail.outbox` verifies email contains correct subscription name, amount, and renewal date.
+- [x] **Test:** Query identifies subscriptions renewing in exactly 48 hours.
+- [x] **Test:** `mail.outbox` verifies email contains correct subscription name, amount, and renewal date.
 - [x] **Code:** Redis service configured in Docker Compose.
 - [x] **Code:** Huey installed and configured with Redis.
-- [ ] **Code:** Huey `periodic_task` scheduled for daily renewal checks.
-- [ ] **Code:** SMTP backend configured to send renewal emails to the user's email address.
-- [ ] **Code:** Notification task runs outside the request-response cycle.
+- [x] **Code:** Huey `periodic_task` scheduled for daily renewal checks.
+- [x] **Code:** SMTP backend configured to send renewal emails to the user's email address.
+- [x] **Code:** Notification task runs outside the request-response cycle.
 
 ---
 
@@ -97,8 +97,8 @@
 - [x] **Code:** IMAP scan service extracts sender, subject, body snippet, received date, and confidence score.
 - [x] **Code:** Email subscription leads are stored for review.
 - [x] **Code:** Candidate review page displays likely subscription email leads.
-- [ ] Move inbox scanning to Huey so long-running scans do not block the request-response cycle.
-- [ ] Add HTMX loading feedback for inbox scan requests if scan remains synchronous before Huey migration.
+- [x] Move inbox scanning to Huey so long-running scans do not block the request-response cycle.
+- [x] Add HTMX loading feedback for inbox scan requests if scan remains synchronous before Huey migration.
 
 ### Issue #9: AI-Assisted Receipt Entity Extraction
 **Acceptance Criteria:**
