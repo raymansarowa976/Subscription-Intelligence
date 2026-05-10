@@ -7,6 +7,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from subscriptions.models import EmailScanRun, EmailSubscriptionLead
 from subscriptions.services import InboxScanError, scan_email_inbox_for_subscriptions
+from subscriptions.tasks import scan_email_inbox_task
 
 
 User = get_user_model()
@@ -111,6 +112,23 @@ class EmailInboxScanTest(TestCase):
         self.assertContains(response, "Review subscriptions")
         self.assertContains(response, "Your Netflix monthly receipt")
         self.assertContains(response, "Likely subscriptions from email")
+
+    @patch("subscriptions.services.imaplib.IMAP4_SSL", new=FakeIMAP4)
+    def test_huey_task_runs_inbox_scan_outside_request_response_cycle(self):
+        result = scan_email_inbox_task.call_local(self.user.id)
+
+        self.assertEqual(result["scanned_message_count"], 2)
+        self.assertEqual(result["matched_message_count"], 1)
+        self.assertEqual(EmailSubscriptionLead.objects.filter(user=self.user).count(), 1)
+
+    def test_scan_inbox_view_can_enqueue_background_scan(self):
+        with patch("subscriptions.views.scan_email_inbox_task", return_value=object()) as scan_task:
+            response = self.client.post(reverse("scan_inbox"), HTTP_HX_REQUEST="true")
+
+        self.assertEqual(response.status_code, 200)
+        scan_task.assert_called_once_with(self.user.id)
+        self.assertContains(response, "Inbox scan queued.")
+        self.assertContains(response, 'id="inbox-scan-notice"', html=False)
 
     @patch("subscriptions.services.imaplib.IMAP4_SSL", new=FakeIMAP4)
     def test_htmx_scan_inbox_view_returns_dashboard_feedback_panel(self):
