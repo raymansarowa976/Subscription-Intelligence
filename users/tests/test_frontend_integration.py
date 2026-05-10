@@ -266,6 +266,48 @@ class FrontendIntegrationTest(TestCase):
         self.assertContains(password_response, 'name="email"', html=False)
         self.assertContains(password_response, "Send reset link")
 
+    def test_visual_qa_pass_covers_major_auth_and_subscription_pages(self):
+        auth_pages = [
+            self.signup_url,
+            self.login_url,
+            self.forgot_username_url,
+            self.forgot_password_url,
+        ]
+        for url in auth_pages:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "css/tailwind.css")
+                self.assertContains(response, "min-h-screen")
+                self.assertContains(response, "max-w-7xl")
+                self.assertNotContains(response, "cdn.tailwindcss.com")
+
+        user = User.objects.create_user(
+            username="visualqa",
+            email="visualqa@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+        self.client.force_login(user)
+        session = self.client.session
+        session["login_token_verified"] = True
+        session.save()
+
+        subscription_pages = [
+            self.dashboard_url,
+            reverse("transactions:candidates"),
+            reverse("transactions:add_subscription"),
+        ]
+        for url in subscription_pages:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "css/tailwind.css")
+                self.assertContains(response, "right-sidebar-toggle")
+                self.assertContains(response, "max-w-7xl")
+                self.assertContains(response, "rounded-[")
+                self.assertNotContains(response, "cdn.tailwindcss.com")
+
     def test_password_reset_confirm_page_renders(self):
         user = User.objects.create_user(
             username="resetrender",
