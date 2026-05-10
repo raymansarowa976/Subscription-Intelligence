@@ -105,7 +105,7 @@
   - Consider HTMX feedback for inbox scan requests.
   - Avoid converting auth/session-sensitive flows unless there is a clear UX benefit.
 
-- [ ] **Issue #11: Scheduled Alerts (Huey/Redis)**
+- [x] **Issue #11: Scheduled Alerts (Huey/Redis)**
   - **Test:** Mock task identifies subscriptions renewing in 48 hours.
   - **Test:** `mail.outbox` verifies notification email includes subscription name, amount, and renewal date.
   - **Code:** Redis connection configured.
