@@ -74,6 +74,7 @@ class EmailSubscriptionLead(models.Model):
     subject = models.CharField(max_length=255)
     merchant_name = models.CharField(max_length=255)
     snippet = models.TextField(blank=True, default="")
+    cleaned_body = models.TextField(blank=True, default="")
     received_at = models.DateTimeField()
     confidence_score = models.PositiveSmallIntegerField(default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
@@ -130,7 +131,22 @@ class SubscriptionCandidate(models.Model):
         (CADENCE_YEARLY, "Yearly"),
     ]
 
+    SOURCE_TRANSACTIONS = "transactions"
+    SOURCE_EMAIL_RECEIPT = "email_receipt"
+    SOURCE_CHOICES = [
+        (SOURCE_TRANSACTIONS, "Transactions"),
+        (SOURCE_EMAIL_RECEIPT, "Email receipt"),
+    ]
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    source_type = models.CharField(max_length=30, choices=SOURCE_CHOICES, default=SOURCE_TRANSACTIONS)
+    source_email_lead = models.ForeignKey(
+        EmailSubscriptionLead,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="subscription_candidates",
+    )
     merchant_name = models.CharField(max_length=255)
     normalized_vendor = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -138,6 +154,11 @@ class SubscriptionCandidate(models.Model):
     cadence = models.CharField(max_length=20, choices=CADENCE_CHOICES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
     source_transaction_ids = models.JSONField(default=list)
+    billing_date = models.DateField(null=True, blank=True)
+    likely_renewal_date = models.DateField(null=True, blank=True)
+    confidence_score = models.PositiveSmallIntegerField(default=0)
+    parser_version = models.CharField(max_length=50, blank=True, default="")
+    raw_entity_metadata = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
