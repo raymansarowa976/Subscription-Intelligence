@@ -69,7 +69,7 @@
   - **Code:** Email subscription leads stored for review.
   - **Code:** Candidate review page displays likely email-based subscription leads.
 
-- [ ] **Issue #7: AI-Assisted Receipt Entity Extraction**
+- [x] **Issue #7: AI-Assisted Receipt Entity Extraction**
   - **Test:** Parser extracts merchant, amount, billing date, and likely renewal date from messy receipt text.
   - **Test:** Parser handles ambiguous or missing fields without creating confirmed subscriptions.
   - **Test:** Low-confidence parser results remain review-only.
