@@ -152,24 +152,24 @@
 
 ### Issue #14: Per-User Email OAuth Integration
 **Acceptance Criteria**
-- [ ] **Test:** User can start an email connection flow from account settings or integrations.
-- [ ] **Test:** OAuth callback links the connected mailbox to the currently authenticated user.
-- [ ] **Test:** One user cannot scan or access another user's connected mailbox.
-- [ ] **Test:** Inbox scan uses the current user's connected email account instead of global `.env` IMAP credentials.
-- [ ] **Test:** Disconnected or expired email connections do not run scans and show clear feedback.
-- [ ] **Test:** Existing receipt parser flow still creates review candidates from OAuth-fetched messages.
-- [ ] **Code:** `EmailConnection` model added for per-user mailbox connections.
-- [ ] **Code:** Email provider, email address, scopes, token expiry, and active/disconnected state are stored.
-- [ ] **Code:** OAuth access and refresh tokens are stored securely.
-- [ ] **Code:** Gmail OAuth connect and callback views added.
-- [ ] **Code:** OAuth `state` parameter is used to protect the callback flow.
-- [ ] **Code:** Token refresh service added for expired access tokens.
-- [ ] **Code:** Inbox scan task accepts a user/email-connection identifier and validates ownership.
-- [ ] **Code:** Gmail API message search/fetch service added.
-- [ ] **Code:** Existing email lead and receipt parser pipeline works with Gmail API messages.
-- [ ] **Code:** Account settings or integrations UI shows connected mailbox status.
-- [ ] **Code:** User can disconnect/revoke a connected mailbox.
-- [ ] **Code:** Global IMAP scan remains available only as local/dev fallback or is explicitly deprecated.
+- [x] **Test:** User can start an email connection flow from account settings or integrations.
+- [x] **Test:** OAuth callback links the connected mailbox to the currently authenticated user.
+- [x] **Test:** One user cannot scan or access another user's connected mailbox.
+- [x] **Test:** Inbox scan uses the current user's connected email account instead of global `.env` IMAP credentials.
+- [x] **Test:** Disconnected or expired email connections do not run scans and show clear feedback.
+- [x] **Test:** Existing receipt parser flow still creates review candidates from OAuth-fetched messages.
+- [x] **Code:** `EmailConnection` model added for per-user mailbox connections.
+- [x] **Code:** Email provider, email address, scopes, token expiry, and active/disconnected state are stored.
+- [x] **Code:** OAuth access and refresh tokens are stored securely.
+- [x] **Code:** Gmail OAuth connect and callback views added.
+- [x] **Code:** OAuth `state` parameter is used to protect the callback flow.
+- [x] **Code:** Token refresh service added for expired access tokens.
+- [x] **Code:** Inbox scan task accepts a user/email-connection identifier and validates ownership.
+- [x] **Code:** Gmail API message search/fetch service added.
+- [x] **Code:** Existing email lead and receipt parser pipeline works with Gmail API messages.
+- [x] **Code:** Account settings or integrations UI shows connected mailbox status.
+- [x] **Code:** User can disconnect/revoke a connected mailbox.
+- [x] **Code:** Global IMAP scan remains available only as local/dev fallback or is explicitly deprecated.
 
 ### Issue #15: Account Settings Security & Privacy Refinement
 **Acceptance Criteria:**
