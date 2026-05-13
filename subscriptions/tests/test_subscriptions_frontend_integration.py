@@ -39,7 +39,7 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         response = self.client.get(self.dashboard_url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Subscription workspace")
+        self.assertContains(response, "Dashboard")
         self.assertContains(response, "Total monthly spend")
         self.assertContains(response, "Upcoming renewals")
         self.assertContains(response, "Annual run-rate")
