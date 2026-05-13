@@ -58,6 +58,11 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, 'htmx-idle-label', html=False)
         self.assertContains(response, "Scanning...")
         self.assertContains(response, "No inbox scan has been run yet for this account.")
+        self.assertContains(response, "First workspace setup")
+        self.assertContains(response, "Turn this empty dashboard into a renewal map.")
+        self.assertContains(response, "Step 1")
+        self.assertContains(response, "Step 2")
+        self.assertContains(response, "Step 3")
         self.assertNotContains(response, "Quick add subscription")
         self.assertNotContains(response, "Import transactions")
         self.assertNotContains(response, "Run transaction import")
@@ -139,6 +144,7 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Portfolio overview")
         self.assertContains(response, "Review subscriptions")
         self.assertContains(response, "Last inbox scan:")
+        self.assertNotContains(response, "First workspace setup")
 
     def test_dashboard_orders_active_subscriptions_before_cancelled_ones(self):
         Subscription.objects.create(
