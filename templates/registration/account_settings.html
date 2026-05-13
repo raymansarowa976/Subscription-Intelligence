@@ -144,13 +144,32 @@
             <div>
                 <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Connected services</p>
                 <h2 class="mt-2 text-2xl font-extrabold text-ink">Gmail API</h2>
-                <p class="mt-3 text-sm leading-7 text-stone-500">Connected for receipt scans and subscription detection.</p>
+                {% if active_email_connection %}
+                <p class="mt-3 break-words text-sm leading-7 text-stone-500">{{ active_email_connection.email_address }} is connected for receipt scans and subscription detection.</p>
+                {% else %}
+                <p class="mt-3 text-sm leading-7 text-stone-500">Connect Gmail to scan receipts with your own mailbox instead of local IMAP credentials.</p>
+                {% endif %}
             </div>
+            {% if active_email_connection %}
             <span class="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-emerald-700">Connected</span>
+            {% else %}
+            <span class="inline-flex items-center rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-stone-600">Not connected</span>
+            {% endif %}
         </div>
         <div class="mt-5 flex flex-wrap gap-3">
-            <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'dashboard' %}">Re-sync</a>
-            <button class="inline-flex items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-sm font-extrabold text-rose-700 transition hover:bg-rose-100" type="button">Revoke access</button>
+            {% if active_email_connection %}
+            <form method="post" action="{% url 'scan_inbox' %}">
+                {% csrf_token %}
+                <input type="hidden" name="email_connection_id" value="{{ active_email_connection.id }}">
+                <button class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" type="submit">Re-sync</button>
+            </form>
+            <form method="post" action="{% url 'accounts:disconnect_email_connection' active_email_connection.id %}">
+                {% csrf_token %}
+                <button class="inline-flex items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-sm font-extrabold text-rose-700 transition hover:bg-rose-100" type="submit">Revoke access</button>
+            </form>
+            {% else %}
+            <a class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" href="{% url 'accounts:connect_gmail' %}">Connect Gmail</a>
+            {% endif %}
         </div>
     </section>
 

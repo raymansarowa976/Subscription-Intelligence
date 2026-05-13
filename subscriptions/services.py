@@ -1,4 +1,5 @@
 import json
+import base64
 import hashlib
 import imaplib
 import re
@@ -10,6 +11,9 @@ from email import message_from_bytes
 from email.header import decode_header, make_header
 from email.utils import parsedate_to_datetime, parseaddr
 from itertools import groupby
+from urllib.error import HTTPError
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 from django.conf import settings
 from django.db import transaction
@@ -18,6 +22,7 @@ from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
 from .models import (
+    EmailConnection,
     EmailScanRun,
     EmailSubscriptionLead,
     Subscription,
@@ -352,7 +357,187 @@ def record_failed_email_scan_run(user, mailbox, errors):
     )
 
 
-def scan_email_inbox_for_subscriptions(user):
+def _record_subscription_email(user, scan_run, message, fallback_id):
+    subject = _decode_email_header(message.get("Subject", "")).strip()[:255]
+    sender_name, sender_email = parseaddr(_decode_email_header(message.get("From", "")))
+    body = _extract_email_body(message)
+    confidence_score = _score_subscription_email(subject, sender_email, body)
+    if confidence_score < 30:
+        return False, False
+
+    merchant_name = _extract_merchant_name(sender_name, sender_email, subject, body)
+    snippet_source = body or subject or sender_email
+    snippet = re.sub(r"\s+", " ", snippet_source).strip()[:500]
+    message_id = _message_identifier(message, fallback_id)
+    received_at = _parse_email_received_at(message)
+
+    lead, created = EmailSubscriptionLead.objects.update_or_create(
+        user=user,
+        message_id=message_id,
+        defaults={
+            "scan_run": scan_run,
+            "sender": sender_email[:255],
+            "sender_name": sender_name[:255],
+            "subject": subject or "(No subject)",
+            "merchant_name": merchant_name,
+            "snippet": snippet,
+            "cleaned_body": body,
+            "received_at": received_at,
+            "confidence_score": confidence_score,
+            "raw_headers": {
+                "from": _decode_email_header(message.get("From", ""))[:255],
+                "to": _decode_email_header(message.get("To", ""))[:255],
+                "date": _decode_email_header(message.get("Date", ""))[:255],
+            },
+        },
+    )
+    from .tasks import parse_receipt_lead_task
+
+    parse_receipt_lead_task(lead.id)
+    return True, created
+
+
+def _gmail_message_to_email_message(gmail_message):
+    raw_message = gmail_message.get("raw", b"")
+    if isinstance(raw_message, str):
+        raw_message = base64.urlsafe_b64decode(raw_message.encode("utf-8") + b"===")
+    return message_from_bytes(bytes(raw_message))
+
+
+def refresh_gmail_access_token(connection):
+    refresh_token = connection.decrypted_refresh_token()
+    if not refresh_token:
+        connection.status = EmailConnection.STATUS_DISCONNECTED
+        connection.save(update_fields=["status", "updated_at"])
+        raise InboxScanError("Reconnect Gmail to scan this mailbox.")
+
+    data = urlencode(
+        {
+            "client_id": getattr(settings, "GMAIL_OAUTH_CLIENT_ID", ""),
+            "client_secret": getattr(settings, "GMAIL_OAUTH_CLIENT_SECRET", ""),
+            "refresh_token": refresh_token,
+            "grant_type": "refresh_token",
+        }
+    ).encode("utf-8")
+    request = Request(
+        "https://oauth2.googleapis.com/token",
+        data=data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=15) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except HTTPError:
+        connection.status = EmailConnection.STATUS_DISCONNECTED
+        connection.save(update_fields=["status", "updated_at"])
+        raise InboxScanError("Reconnect Gmail to scan this mailbox.")
+
+    connection.access_token = payload["access_token"]
+    if payload.get("refresh_token"):
+        connection.refresh_token = payload["refresh_token"]
+    connection.token_expires_at = timezone.now() + timedelta(seconds=int(payload.get("expires_in", 3600)))
+    connection.status = EmailConnection.STATUS_ACTIVE
+    connection.save(update_fields=["access_token", "refresh_token", "token_expires_at", "status", "updated_at"])
+    return connection
+
+
+def fetch_gmail_messages(connection, *, query):
+    headers = {"Authorization": f"Bearer {connection.decrypted_access_token()}"}
+    list_url = (
+        "https://gmail.googleapis.com/gmail/v1/users/me/messages?"
+        + urlencode({"q": query, "maxResults": max(1, getattr(settings, "EMAIL_SCAN_MAX_MESSAGES", 200))})
+    )
+    try:
+        with urlopen(Request(list_url, headers=headers), timeout=15) as response:
+            list_payload = json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        if exc.code == 401:
+            raise InboxScanError("Reconnect Gmail to scan this mailbox.") from exc
+        raise
+
+    messages = []
+    for item in list_payload.get("messages", []):
+        message_url = (
+            f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{item['id']}?"
+            + urlencode({"format": "raw"})
+        )
+        try:
+            with urlopen(Request(message_url, headers=headers), timeout=15) as response:
+                messages.append(json.loads(response.read().decode("utf-8")))
+        except HTTPError as exc:
+            if exc.code == 401:
+                raise InboxScanError("Reconnect Gmail to scan this mailbox.") from exc
+            raise
+    return messages
+
+
+def _scan_gmail_connection(user, email_connection_id):
+    lookback_days = max(1, getattr(settings, "EMAIL_SCAN_LOOKBACK_DAYS", 180))
+    max_messages = max(1, getattr(settings, "EMAIL_SCAN_MAX_MESSAGES", 200))
+    connection = EmailConnection.objects.filter(pk=email_connection_id, user=user).first()
+    if connection is None:
+        raise InboxScanError("Email connection was not found for this account.")
+    if connection.status != EmailConnection.STATUS_ACTIVE:
+        raise InboxScanError("Reconnect Gmail to scan this mailbox.")
+    if connection.token_expires_at and connection.token_expires_at <= timezone.now():
+        refresh_gmail_access_token(connection)
+        connection.refresh_from_db()
+
+    scan_run = EmailScanRun.objects.create(
+        user=user,
+        email_connection=connection,
+        provider=connection.provider,
+        mailbox=connection.email_address,
+        status=EmailScanRun.STATUS_SUCCEEDED,
+    )
+    query = f"newer_than:{lookback_days}d (receipt OR invoice OR subscription OR billing OR renewal OR charged)"
+    scanned_count = 0
+    matched_count = 0
+    created_count = 0
+
+    try:
+        gmail_messages = fetch_gmail_messages(connection, query=query)[:max_messages]
+        scanned_count = len(gmail_messages)
+        for gmail_message in gmail_messages:
+            message = _gmail_message_to_email_message(gmail_message)
+            fallback_id = f"{connection.email_address}:{gmail_message.get('id', scanned_count)}"
+            matched, created = _record_subscription_email(user, scan_run, message, fallback_id)
+            if matched:
+                matched_count += 1
+            if created:
+                created_count += 1
+
+        scan_run.scanned_message_count = scanned_count
+        scan_run.matched_message_count = matched_count
+        scan_run.completed_at = timezone.now()
+        scan_run.save(update_fields=["scanned_message_count", "matched_message_count", "completed_at"])
+        return {
+            "scan_run_id": scan_run.id,
+            "provider": connection.provider,
+            "mailbox": connection.email_address,
+            "scanned_message_count": scanned_count,
+            "matched_message_count": matched_count,
+            "new_lead_count": created_count,
+        }
+    except InboxScanError:
+        scan_run.status = EmailScanRun.STATUS_FAILED
+        scan_run.error_details = {"errors": ["Inbox scan failed."]}
+        scan_run.completed_at = timezone.now()
+        scan_run.save(update_fields=["status", "error_details", "completed_at"])
+        raise
+    except Exception as exc:
+        scan_run.status = EmailScanRun.STATUS_FAILED
+        scan_run.error_details = {"errors": [str(exc)]}
+        scan_run.completed_at = timezone.now()
+        scan_run.save(update_fields=["status", "error_details", "completed_at"])
+        raise InboxScanError("Inbox scan failed unexpectedly.") from exc
+
+
+def scan_email_inbox_for_subscriptions(user, email_connection_id=None):
+    if email_connection_id is not None:
+        return _scan_gmail_connection(user, email_connection_id)
+
     username = getattr(settings, "IMAP_USERNAME", "").strip()
     password = getattr(settings, "IMAP_PASSWORD", "").strip()
     host = getattr(settings, "IMAP_HOST", "imap.gmail.com").strip()
@@ -405,43 +590,14 @@ def scan_email_inbox_for_subscriptions(user):
                 continue
 
             message = message_from_bytes(raw_message)
-            subject = _decode_email_header(message.get("Subject", "")).strip()[:255]
-            sender_name, sender_email = parseaddr(_decode_email_header(message.get("From", "")))
-            body = _extract_email_body(message)
-            confidence_score = _score_subscription_email(subject, sender_email, body)
-            if confidence_score < 30:
-                continue
-
-            merchant_name = _extract_merchant_name(sender_name, sender_email, subject, body)
-            snippet_source = body or subject or sender_email
-            snippet = re.sub(r"\s+", " ", snippet_source).strip()[:500]
-            message_id = _message_identifier(message, f"{mailbox}:{identifier.decode('utf-8', errors='ignore')}")
-            received_at = _parse_email_received_at(message)
-
-            lead, created = EmailSubscriptionLead.objects.update_or_create(
-                user=user,
-                message_id=message_id,
-                defaults={
-                    "scan_run": scan_run,
-                    "sender": sender_email[:255],
-                    "sender_name": sender_name[:255],
-                    "subject": subject or "(No subject)",
-                    "merchant_name": merchant_name,
-                    "snippet": snippet,
-                    "cleaned_body": body,
-                    "received_at": received_at,
-                    "confidence_score": confidence_score,
-                    "raw_headers": {
-                        "from": _decode_email_header(message.get("From", ""))[:255],
-                        "to": _decode_email_header(message.get("To", ""))[:255],
-                        "date": _decode_email_header(message.get("Date", ""))[:255],
-                    },
-                },
+            matched, created = _record_subscription_email(
+                user,
+                scan_run,
+                message,
+                f"{mailbox}:{identifier.decode('utf-8', errors='ignore')}",
             )
-            from .tasks import parse_receipt_lead_task
-
-            parse_receipt_lead_task(lead.id)
-            matched_count += 1
+            if matched:
+                matched_count += 1
             if created:
                 created_count += 1
 
@@ -573,6 +729,10 @@ def _subscription_sort_key(subscription):
 def build_dashboard_context(user):
     today = date.today()
     subscriptions = list(Subscription.objects.filter(user=user))
+    active_email_connection = EmailConnection.objects.filter(
+        user=user,
+        status=EmailConnection.STATUS_ACTIVE,
+    ).first()
     candidates = list(
         SubscriptionCandidate.objects.filter(
             user=user,
@@ -735,6 +895,7 @@ def build_dashboard_context(user):
         "display_name": display_name,
         "latest_sync": latest_sync,
         "latest_email_scan": latest_email_scan,
+        "active_email_connection": active_email_connection,
         "inbox_leads": reviewable_inbox_leads[:5],
         "inbox_lead_count": inbox_lead_count,
         "suppressed_inbox_lead_count": suppressed_inbox_lead_count,

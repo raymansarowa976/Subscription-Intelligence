@@ -17,10 +17,10 @@ RENEWAL_ALERT_LOOKAHEAD_DAYS = 2
 
 
 @db_task()
-def scan_email_inbox_task(user_id):
+def scan_email_inbox_task(user_id, email_connection_id=None):
     user = get_user_model().objects.get(pk=user_id)
     try:
-        return scan_email_inbox_for_subscriptions(user)
+        return scan_email_inbox_for_subscriptions(user, email_connection_id=email_connection_id)
     except InboxScanError as exc:
         return {"status": "failed", "error": str(exc)}
 

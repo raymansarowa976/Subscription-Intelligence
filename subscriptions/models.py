@@ -1,7 +1,30 @@
 from decimal import Decimal
 
 from django.conf import settings
+from django.core import signing
 from django.db import models
+
+
+EMAIL_TOKEN_SALT = "subscriptions.email_connection_token"
+
+
+def _encrypt_email_token(value):
+    if not value:
+        return ""
+    if value.startswith("signed:"):
+        return value
+    return "signed:" + signing.dumps(value, salt=EMAIL_TOKEN_SALT)
+
+
+def _decrypt_email_token(value):
+    if not value:
+        return ""
+    try:
+        if value.startswith("signed:"):
+            return signing.loads(value.removeprefix("signed:"), salt=EMAIL_TOKEN_SALT)
+    except signing.BadSignature:
+        pass
+    return value
 
 
 class TransactionImportRun(models.Model):
@@ -37,6 +60,13 @@ class EmailScanRun(models.Model):
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    email_connection = models.ForeignKey(
+        "EmailConnection",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="scan_runs",
+    )
     provider = models.CharField(max_length=50, default="imap")
     mailbox = models.CharField(max_length=100, default="INBOX")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_SUCCEEDED)
@@ -48,6 +78,48 @@ class EmailScanRun(models.Model):
 
     class Meta:
         ordering = ["-created_at", "-id"]
+
+
+class EmailConnection(models.Model):
+    PROVIDER_GMAIL = "gmail"
+    PROVIDER_CHOICES = [
+        (PROVIDER_GMAIL, "Gmail"),
+    ]
+
+    STATUS_ACTIVE = "active"
+    STATUS_DISCONNECTED = "disconnected"
+    STATUS_CHOICES = [
+        (STATUS_ACTIVE, "Active"),
+        (STATUS_DISCONNECTED, "Disconnected"),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="email_connections")
+    provider = models.CharField(max_length=50, choices=PROVIDER_CHOICES)
+    email_address = models.EmailField()
+    scopes = models.JSONField(default=list, blank=True)
+    access_token = models.TextField(blank=True, default="")
+    refresh_token = models.TextField(blank=True, default="")
+    token_expires_at = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["provider", "email_address", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "provider", "email_address"], name="uniq_email_connection_per_user"),
+        ]
+
+    def save(self, *args, **kwargs):
+        self.access_token = _encrypt_email_token(self.access_token)
+        self.refresh_token = _encrypt_email_token(self.refresh_token)
+        super().save(*args, **kwargs)
+
+    def decrypted_access_token(self):
+        return _decrypt_email_token(self.access_token)
+
+    def decrypted_refresh_token(self):
+        return _decrypt_email_token(self.refresh_token)
 
 
 class EmailSubscriptionLead(models.Model):
