@@ -158,7 +158,6 @@
 - [ ] **Test:** Inbox scan uses the current user's connected email account instead of global `.env` IMAP credentials.
 - [ ] **Test:** Disconnected or expired email connections do not run scans and show clear feedback.
 - [ ] **Test:** Existing receipt parser flow still creates review candidates from OAuth-fetched messages.
-
 - [ ] **Code:** `EmailConnection` model added for per-user mailbox connections.
 - [ ] **Code:** Email provider, email address, scopes, token expiry, and active/disconnected state are stored.
 - [ ] **Code:** OAuth access and refresh tokens are stored securely.
@@ -172,3 +171,44 @@
 - [ ] **Code:** User can disconnect/revoke a connected mailbox.
 - [ ] **Code:** Global IMAP scan remains available only as local/dev fallback or is explicitly deprecated.
 
+### Issue #15: Account Settings Security & Privacy Refinement
+**Acceptance Criteria:**
+- [x] **Code:** Account overview shows active status and member-since date.
+- [x] **Code:** Username and password update flows are available through inline progressive disclosure.
+- [x] **Code:** Username-change microcopy explains the 6-digit email token and expected time.
+- [x] **Code:** Password change flow includes a live password strength meter.
+- [x] **Code:** Account settings shows Gmail API connection status.
+- [x] **Code:** Account settings includes a visually separated danger zone.
+- [ ] **Test:** Account settings renders account overview, connected services, recent activity, inline edit controls, and danger zone.
+- [ ] **Test:** Inline username form preserves validation errors in context without losing the settings page.
+- [ ] **Test:** Inline password form preserves validation errors in context without losing the settings page.
+- [ ] **Test:** User can log out other active sessions while preserving the current session.
+- [ ] **Test:** Account deletion/data deletion flows require password confirmation and explicit typed confirmation.
+- [ ] **Test:** One user cannot view, delete, or export another user's account/subscription data.
+- [ ] **Code:** Recent activity uses real login/session metadata instead of placeholder copy.
+- [ ] **Code:** Add a dedicated "Log out other sessions" action.
+- [ ] **Code:** Add account data export before destructive deletion.
+- [ ] **Code:** Add delete subscription/imported evidence action with confirmation flow.
+- [ ] **Code:** Add close-account/deactivate flow with confirmation flow.
+- [ ] **Code:** Gmail re-sync and revoke-access actions are wired to real endpoints.
+- [ ] **Code:** Gmail status shows connected email, last sync time, token health, granted scopes, and clear error states.
+- [ ] **Code:** Privacy controls allow users to manage scan scope, retention period, automatic scans, and deletion of email-derived evidence.
+- [ ] **Code:** Card-level success/error feedback appears after username, password, Gmail, session, and danger-zone actions.
+- [ ] **Code:** Account settings keyboard, focus, and screen-reader behavior are covered for disclosure panels and destructive actions.
+
+### Issue #16: Landing Page Refinement
+**Acceptance Criteria:**
+- [ ] **Test:** Landing page renders for anonymous users without requiring authentication.
+- [ ] **Test:** Authenticated users can navigate from landing page to dashboard.
+- [ ] **Test:** Landing page uses compiled Tailwind CSS and does not rely on CDN Tailwind.
+- [ ] **Test:** Primary CTA routes anonymous users to signup and secondary CTA routes to login.
+- [ ] **Test:** Landing page remains responsive across mobile and desktop viewport smoke checks.
+- [ ] **Code:** First viewport clearly presents Subscription Intelligence as the product and leaves a hint of the next section visible.
+- [ ] **Code:** Hero uses relevant product imagery, generated visual asset, or an immersive product UI scene rather than a generic gradient-only layout.
+- [ ] **Code:** Page explains the core promise: detect subscriptions, review candidates, track renewal timing, and surface spend insights.
+- [ ] **Code:** Landing page includes privacy/security trust signals for email scanning and account verification.
+- [ ] **Code:** Landing page includes a concise feature section for dashboard insights, candidate review, receipt parsing, and renewal alerts.
+- [ ] **Code:** Landing page includes clear empty-state/demo visuals that reflect real app workflows.
+- [ ] **Code:** Navigation includes signup/login actions and preserves the product brand in the first viewport.
+- [ ] **Code:** Landing page copy avoids unsupported claims and keeps Gmail/OAuth language aligned with implemented capabilities.
+- [ ] **Code:** Landing page visual QA confirms text does not overlap or overflow on common mobile and desktop viewports.
