@@ -4,53 +4,6 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
-def add_field_if_missing(schema_editor, model, field):
-    table_name = model._meta.db_table
-    existing_columns = {
-        column.name
-        for column in schema_editor.connection.introspection.get_table_description(
-            schema_editor.connection.cursor(),
-            table_name,
-        )
-    }
-    column_name = field.column
-    if column_name in existing_columns:
-        return
-    schema_editor.add_field(model, field)
-
-
-def add_missing_receipt_parser_columns(apps, schema_editor):
-    EmailSubscriptionLead = apps.get_model("subscriptions", "EmailSubscriptionLead")
-    SubscriptionCandidate = apps.get_model("subscriptions", "SubscriptionCandidate")
-
-    cleaned_body = models.TextField(blank=True, default="")
-    cleaned_body.set_attributes_from_name("cleaned_body")
-    add_field_if_missing(schema_editor, EmailSubscriptionLead, cleaned_body)
-
-    candidate_fields = [
-        ("source_type", models.CharField(default="transactions", max_length=30)),
-        (
-            "source_email_lead",
-            models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="subscription_candidates",
-                to=EmailSubscriptionLead,
-            ),
-        ),
-        ("billing_date", models.DateField(blank=True, null=True)),
-        ("likely_renewal_date", models.DateField(blank=True, null=True)),
-        ("confidence_score", models.PositiveSmallIntegerField(default=0)),
-        ("parser_version", models.CharField(blank=True, default="", max_length=50)),
-        ("raw_entity_metadata", models.JSONField(blank=True, default=dict)),
-    ]
-
-    for name, field in candidate_fields:
-        field.set_attributes_from_name(name)
-        add_field_if_missing(schema_editor, SubscriptionCandidate, field)
-
-
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -58,61 +11,54 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunPython(add_missing_receipt_parser_columns, migrations.RunPython.noop),
-            ],
-            state_operations=[
-                migrations.AddField(
-                    model_name="emailsubscriptionlead",
-                    name="cleaned_body",
-                    field=models.TextField(blank=True, default=""),
-                ),
-                migrations.AddField(
-                    model_name="subscriptioncandidate",
-                    name="source_type",
-                    field=models.CharField(
-                        choices=[("transactions", "Transactions"), ("email_receipt", "Email receipt")],
-                        default="transactions",
-                        max_length=30,
-                    ),
-                ),
-                migrations.AddField(
-                    model_name="subscriptioncandidate",
-                    name="source_email_lead",
-                    field=models.ForeignKey(
-                        blank=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        related_name="subscription_candidates",
-                        to="subscriptions.emailsubscriptionlead",
-                    ),
-                ),
-                migrations.AddField(
-                    model_name="subscriptioncandidate",
-                    name="billing_date",
-                    field=models.DateField(blank=True, null=True),
-                ),
-                migrations.AddField(
-                    model_name="subscriptioncandidate",
-                    name="likely_renewal_date",
-                    field=models.DateField(blank=True, null=True),
-                ),
-                migrations.AddField(
-                    model_name="subscriptioncandidate",
-                    name="confidence_score",
-                    field=models.PositiveSmallIntegerField(default=0),
-                ),
-                migrations.AddField(
-                    model_name="subscriptioncandidate",
-                    name="parser_version",
-                    field=models.CharField(blank=True, default="", max_length=50),
-                ),
-                migrations.AddField(
-                    model_name="subscriptioncandidate",
-                    name="raw_entity_metadata",
-                    field=models.JSONField(blank=True, default=dict),
-                ),
-            ],
+        migrations.AddField(
+            model_name="emailsubscriptionlead",
+            name="cleaned_body",
+            field=models.TextField(blank=True, default=""),
+        ),
+        migrations.AddField(
+            model_name="subscriptioncandidate",
+            name="source_type",
+            field=models.CharField(
+                choices=[("transactions", "Transactions"), ("email_receipt", "Email receipt")],
+                default="transactions",
+                max_length=30,
+            ),
+        ),
+        migrations.AddField(
+            model_name="subscriptioncandidate",
+            name="source_email_lead",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="subscription_candidates",
+                to="subscriptions.emailsubscriptionlead",
+            ),
+        ),
+        migrations.AddField(
+            model_name="subscriptioncandidate",
+            name="billing_date",
+            field=models.DateField(blank=True, null=True),
+        ),
+        migrations.AddField(
+            model_name="subscriptioncandidate",
+            name="likely_renewal_date",
+            field=models.DateField(blank=True, null=True),
+        ),
+        migrations.AddField(
+            model_name="subscriptioncandidate",
+            name="confidence_score",
+            field=models.PositiveSmallIntegerField(default=0),
+        ),
+        migrations.AddField(
+            model_name="subscriptioncandidate",
+            name="parser_version",
+            field=models.CharField(blank=True, default="", max_length=50),
+        ),
+        migrations.AddField(
+            model_name="subscriptioncandidate",
+            name="raw_entity_metadata",
+            field=models.JSONField(blank=True, default=dict),
         ),
     ]

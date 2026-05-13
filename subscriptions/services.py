@@ -74,6 +74,25 @@ SUBSCRIPTION_VENDOR_HINTS = [
     "xfinity",
 ]
 
+REVIEWABLE_INBOX_CONFIDENCE_THRESHOLD = 50
+
+NEWSLETTER_TERMS = [
+    "newsletter",
+    "digest",
+    "roundup",
+    "weekly update",
+    "daily update",
+    "community update",
+    "marketing",
+    "unsubscribe",
+]
+
+NEWSLETTER_SENDERS = [
+    "quincy larson",
+    "freecodecamp",
+    "mermaid",
+]
+
 
 class IngestionValidationError(Exception):
     def __init__(self, errors):
@@ -253,7 +272,32 @@ def _score_subscription_email(subject, sender_email, body):
     keyword_hits = sum(1 for keyword in SUBSCRIPTION_EMAIL_KEYWORDS if keyword in normalized)
     vendor_hits = sum(1 for vendor in SUBSCRIPTION_VENDOR_HINTS if vendor in normalized)
     score = min(100, keyword_hits * 12 + vendor_hits * 18)
+    if _looks_like_newsletter(subject=subject, sender=sender_email, snippet=body):
+        score = min(score, 35)
     return score
+
+
+def _looks_like_newsletter(*, subject="", sender="", sender_name="", snippet="", cleaned_body=""):
+    normalized = " ".join([subject, sender, sender_name, snippet, cleaned_body]).lower()
+    if any(sender_hint in normalized for sender_hint in NEWSLETTER_SENDERS):
+        return True
+    if any(term in normalized for term in NEWSLETTER_TERMS):
+        billing_terms = {"invoice", "receipt", "charged", "payment", "billing date", "renews", "renewal date"}
+        return not any(term in normalized for term in billing_terms)
+    return False
+
+
+def is_reviewable_inbox_lead(lead):
+    return (
+        lead.confidence_score >= REVIEWABLE_INBOX_CONFIDENCE_THRESHOLD
+        and not _looks_like_newsletter(
+            subject=lead.subject,
+            sender=lead.sender,
+            sender_name=lead.sender_name,
+            snippet=lead.snippet,
+            cleaned_body=lead.cleaned_body,
+        )
+    )
 
 
 def _extract_merchant_name(sender_name, sender_email, subject, body):
@@ -537,12 +581,27 @@ def build_dashboard_context(user):
     )
     latest_sync = TransactionImportRun.objects.filter(user=user).first()
     latest_email_scan = EmailScanRun.objects.filter(user=user).first()
-    inbox_leads = list(
+    pending_inbox_leads = list(
         EmailSubscriptionLead.objects.filter(
             user=user,
             status=EmailSubscriptionLead.STATUS_PENDING,
-        )[:5]
+        ).prefetch_related("subscription_candidates")
     )
+    reviewable_inbox_leads = []
+    suppressed_inbox_lead_count = 0
+    for lead in pending_inbox_leads:
+        if not is_reviewable_inbox_lead(lead):
+            suppressed_inbox_lead_count += 1
+            continue
+        lead.review_candidate = next(
+            (
+                candidate
+                for candidate in lead.subscription_candidates.all()
+                if candidate.status == SubscriptionCandidate.STATUS_PENDING
+            ),
+            None,
+        )
+        reviewable_inbox_leads.append(lead)
 
     renewal_entries = []
     for subscription in subscriptions:
@@ -642,14 +701,24 @@ def build_dashboard_context(user):
 
     display_name = user.first_name or user.username
     featured_subscription = subscriptions[0] if subscriptions else None
+    inbox_lead_count = len(reviewable_inbox_leads)
+    active_subscription_count = len(
+        [subscription for subscription in subscriptions if subscription.status == Subscription.STATUS_ACTIVE]
+    )
+    inactive_subscription_count = len(
+        [subscription for subscription in subscriptions if subscription.status != Subscription.STATUS_ACTIVE]
+    )
+    show_dashboard_zero_state = (
+        active_subscription_count == 0
+        and inactive_subscription_count == 0
+        and len(candidates) == 0
+        and inbox_lead_count == 0
+    )
+
     return {
         "subscriptions": subscriptions,
-        "active_subscription_count": len(
-            [subscription for subscription in subscriptions if subscription.status == Subscription.STATUS_ACTIVE]
-        ),
-        "inactive_subscription_count": len(
-            [subscription for subscription in subscriptions if subscription.status != Subscription.STATUS_ACTIVE]
-        ),
+        "active_subscription_count": active_subscription_count,
+        "inactive_subscription_count": inactive_subscription_count,
         "featured_subscription": featured_subscription,
         "candidate_count": len(candidates),
         "recent_candidates": candidates[:3],
@@ -666,11 +735,11 @@ def build_dashboard_context(user):
         "display_name": display_name,
         "latest_sync": latest_sync,
         "latest_email_scan": latest_email_scan,
-        "inbox_leads": inbox_leads,
-        "inbox_lead_count": EmailSubscriptionLead.objects.filter(
-            user=user,
-            status=EmailSubscriptionLead.STATUS_PENDING,
-        ).count(),
+        "inbox_leads": reviewable_inbox_leads[:5],
+        "inbox_lead_count": inbox_lead_count,
+        "suppressed_inbox_lead_count": suppressed_inbox_lead_count,
+        "reviewable_inbox_confidence_threshold": REVIEWABLE_INBOX_CONFIDENCE_THRESHOLD,
+        "show_dashboard_zero_state": show_dashboard_zero_state,
     }
 
 

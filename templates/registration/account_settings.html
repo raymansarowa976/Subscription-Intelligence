@@ -1,51 +1,190 @@
 {% extends "subscriptions/app_shell.html" %}
+{% load static %}
 
 {% block title %}Account Settings | Subscription Intelligence{% endblock %}
-{% block app_title %}Account settings{% endblock %}
-{% block page_heading %}Account settings{% endblock %}
-{% block app_copy %}Manage the sign-in details attached to your Subscription Intelligence account.{% endblock %}
+{% block app_title %}Account controls{% endblock %}
 {% block settings_nav_class %}border border-white/40 bg-white/20 shadow-[0_0_0_4px_rgba(255,255,255,0.12),0_12px_28px_rgba(0,0,0,0.16)]{% endblock %}
 
 {% block app_panel %}
-<section class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+<section class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
     <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
-        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Signed in as</p>
-        <h2 class="mt-3 text-3xl font-extrabold tracking-tight text-ink">{{ request.user.username }}</h2>
-        <p class="mt-3 text-sm leading-7 text-stone-500">{{ request.user.email }}</p>
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Account overview</p>
+                <h2 class="mt-3 break-words text-3xl font-extrabold tracking-tight text-ink">{{ request.user.username }}</h2>
+                <p class="mt-3 break-words text-sm leading-7 text-stone-500">{{ request.user.email }}</p>
+            </div>
+            <span class="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-emerald-700">Active</span>
+        </div>
+
+        <div class="mt-7 grid gap-3 rounded-[22px] border border-black/5 bg-stone-50 p-4">
+            <div class="flex items-center justify-between gap-4">
+                <span class="text-sm font-bold text-stone-500">Member since</span>
+                <span class="text-sm font-extrabold text-ink">{{ request.user.date_joined|date:"M j, Y" }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-4">
+                <span class="text-sm font-bold text-stone-500">Verification</span>
+                <span class="text-sm font-extrabold text-ink">Email token enabled</span>
+            </div>
+        </div>
     </section>
 
     <section class="grid gap-4">
-        <a class="group rounded-[24px] border border-black/10 bg-white/90 p-6 shadow-panel transition hover:-translate-y-0.5 hover:border-pine" href="{% url 'accounts:change_username' %}">
-            <div class="flex items-start justify-between gap-4">
-                <div>
-                    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Username</p>
-                    <h2 class="mt-2 text-2xl font-extrabold text-ink">Change username</h2>
-                    <p class="mt-3 text-sm leading-7 text-stone-500">Request a new username and confirm it with an email token.</p>
-                </div>
-                <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-stone-100 text-ink transition group-hover:bg-pine group-hover:text-white" aria-hidden="true">
+        <details class="group rounded-[24px] border border-black/10 bg-white/90 p-6 shadow-panel transition open:border-pine">
+            <summary class="flex cursor-pointer list-none items-start justify-between gap-4">
+                <span>
+                    <span class="block text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Username</span>
+                    <span class="mt-2 block text-2xl font-extrabold text-ink">Change username</span>
+                    <span class="mt-3 block text-sm leading-7 text-stone-500">Check your inbox for a 6-digit code. Estimated time: 1 minute.</span>
+                </span>
+                <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-stone-100 text-ink transition group-open:rotate-90 group-open:bg-pine group-open:text-white group-hover:bg-pine group-hover:text-white" aria-hidden="true">
                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
                         <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                         <path d="m13 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </span>
-            </div>
-        </a>
+            </summary>
 
-        <a class="group rounded-[24px] border border-black/10 bg-white/90 p-6 shadow-panel transition hover:-translate-y-0.5 hover:border-pine" href="{% url 'accounts:change_password' %}">
-            <div class="flex items-start justify-between gap-4">
+            <form method="post" action="{% url 'accounts:change_username' %}" class="mt-6 space-y-5 border-t border-black/5 pt-5" novalidate hx-boost="true">
+                {% csrf_token %}
+                {% for field in username_form %}
                 <div>
-                    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Password</p>
-                    <h2 class="mt-2 text-2xl font-extrabold text-ink">Change password</h2>
-                    <p class="mt-3 text-sm leading-7 text-stone-500">Update your password and clear existing signed-in sessions.</p>
+                    <label class="mb-2 block text-sm font-bold text-ink" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {% if field.name == "current_password" %}
+                    <div class="relative">
+                        {{ field }}
+                        <button class="absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-2xl text-stone-600 transition hover:text-pine" type="button" data-password-toggle="{{ field.id_for_label }}" aria-controls="{{ field.id_for_label }}" aria-label="Show {{ field.label|lower }}" aria-pressed="false">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true" data-eye-open>
+                                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <svg class="hidden h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true" data-eye-closed>
+                                <path d="M3 3l18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M10.6 10.7a3 3 0 0 0 3.8 3.7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M7.4 7.8C4.4 9.4 2.5 12 2.5 12s3.5 6 9.5 6c1.6 0 3-.4 4.3-1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M19.2 15.2c1.5-1.4 2.3-3.2 2.3-3.2s-3.5-6-9.5-6c-.9 0-1.8.1-2.6.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    {% else %}
+                    {{ field }}
+                    {% endif %}
+                    {% if field.help_text %}
+                    <div class="mt-2 text-xs leading-6 text-stone-500">{{ field.help_text }}</div>
+                    {% endif %}
                 </div>
-                <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-stone-100 text-ink transition group-hover:bg-pine group-hover:text-white" aria-hidden="true">
+                {% endfor %}
+                <button class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" type="submit">Send confirmation token</button>
+            </form>
+        </details>
+
+        <details class="group rounded-[24px] border border-black/10 bg-white/90 p-6 shadow-panel transition open:border-pine">
+            <summary class="flex cursor-pointer list-none items-start justify-between gap-4">
+                <span>
+                    <span class="block text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Password</span>
+                    <span class="mt-2 block text-2xl font-extrabold text-ink">Change password</span>
+                    <span class="mt-3 block text-sm leading-7 text-stone-500">Update your password and clear existing signed-in sessions.</span>
+                </span>
+                <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-stone-100 text-ink transition group-open:rotate-90 group-open:bg-pine group-open:text-white group-hover:bg-pine group-hover:text-white" aria-hidden="true">
                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
                         <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                         <path d="m13 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </span>
-            </div>
-        </a>
+            </summary>
+
+            <form method="post" action="{% url 'accounts:change_password' %}" class="mt-6 space-y-5 border-t border-black/5 pt-5" novalidate hx-boost="true">
+                {% csrf_token %}
+                {% for field in password_form %}
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-ink" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    <div class="relative">
+                        {{ field }}
+                        <button class="absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-2xl text-stone-600 transition hover:text-pine" type="button" data-password-toggle="{{ field.id_for_label }}" aria-controls="{{ field.id_for_label }}" aria-label="Show {{ field.label|lower }}" aria-pressed="false">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true" data-eye-open>
+                                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <svg class="hidden h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true" data-eye-closed>
+                                <path d="M3 3l18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M10.6 10.7a3 3 0 0 0 3.8 3.7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M7.4 7.8C4.4 9.4 2.5 12 2.5 12s3.5 6 9.5 6c1.6 0 3-.4 4.3-1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M19.2 15.2c1.5-1.4 2.3-3.2 2.3-3.2s-3.5-6-9.5-6c-.9 0-1.8.1-2.6.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    {% if field.name == "new_password" %}
+                    <div class="mt-3 rounded-2xl border border-black/5 bg-stone-50 p-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="text-xs font-extrabold uppercase tracking-[0.16em] text-stone-500">Password strength</span>
+                            <span id="password-strength-label" class="text-sm font-semibold text-stone-600"></span>
+                        </div>
+                        <div class="mt-3 h-2 overflow-hidden rounded-full bg-stone-200">
+                            <div id="password-strength-bar" class="h-2 rounded-full bg-stone-200 transition-all duration-300" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if field.help_text %}
+                    <div class="mt-2 text-xs leading-6 text-stone-500">{{ field.help_text }}</div>
+                    {% endif %}
+                    {% if field.name == "confirm_password" %}
+                    <p id="change-password-match-status" class="mt-3 hidden text-sm font-semibold" aria-live="polite"></p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                <button class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" type="submit">Update password</button>
+            </form>
+        </details>
     </section>
 </section>
+
+<section class="mt-6 grid gap-6 lg:grid-cols-2">
+    <section class="rounded-[24px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Connected services</p>
+                <h2 class="mt-2 text-2xl font-extrabold text-ink">Gmail API</h2>
+                <p class="mt-3 text-sm leading-7 text-stone-500">Connected for receipt scans and subscription detection.</p>
+            </div>
+            <span class="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-emerald-700">Connected</span>
+        </div>
+        <div class="mt-5 flex flex-wrap gap-3">
+            <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'dashboard' %}">Re-sync</a>
+            <button class="inline-flex items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-sm font-extrabold text-rose-700 transition hover:bg-rose-100" type="button">Revoke access</button>
+        </div>
+    </section>
+
+    <section class="rounded-[24px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Recent activity</p>
+        <div class="mt-5 grid gap-3">
+            <div class="rounded-2xl border border-black/5 bg-stone-50 px-4 py-3">
+                <p class="text-sm font-extrabold text-ink">Last login</p>
+                <p class="mt-1 text-sm leading-6 text-stone-500">Kelowna, BC - 2 mins ago</p>
+            </div>
+            <div class="rounded-2xl border border-black/5 bg-stone-50 px-4 py-3">
+                <p class="text-sm font-extrabold text-ink">Session protection</p>
+                <p class="mt-1 text-sm leading-6 text-stone-500">Email token verified for this browser.</p>
+            </div>
+        </div>
+    </section>
+</section>
+
+<section class="mt-6 rounded-[24px] border border-rose-200 bg-rose-50 p-6 shadow-sm">
+    <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+        <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-rose-700">Danger zone</p>
+            <h2 class="mt-2 text-2xl font-extrabold text-ink">Close account or delete data</h2>
+            <p class="mt-3 max-w-3xl text-sm leading-7 text-rose-800">These actions remove access to saved subscription intelligence and should be used only when you are ready to leave the workspace.</p>
+        </div>
+        <div class="flex shrink-0 flex-wrap gap-3">
+            <button class="inline-flex items-center justify-center rounded-2xl border border-rose-200 bg-white px-5 py-3 text-sm font-extrabold text-rose-700 transition hover:bg-rose-100" type="button">Delete data</button>
+            <button class="inline-flex items-center justify-center rounded-2xl bg-rose-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-rose-600/20 transition hover:-translate-y-0.5 hover:bg-rose-700" type="button">Close account</button>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ block.super }}
+<script src="{% static 'js/password_change.js' %}?v=3"></script>
 {% endblock %}

@@ -3,6 +3,8 @@ Full-stack subscription tracker with custom auth, relational billing logic, and 
 
 Stack: Django 5.1, Postgres, HTMX, Tailwind, Huey/Redis, Ruff, Mypy, Pytest, WhiteNoise.
 
+Project scope and delivery criteria live in [docs/acceptance_criteria.md](docs/acceptance_criteria.md).
+
 ## Local development
 
 If you want to run the app without PostgreSQL, set `USE_SQLITE=True` in `.env` and start Django normally. That will use a local `db.sqlite3` file for development.

@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST
 from users.auth.views import LOGIN_TOKEN_VERIFIED_SESSION_KEY
 
 from .forms import ManualSubscriptionForm
-from .models import Subscription, SubscriptionCandidate, TransactionEvidence
+from .models import EmailSubscriptionLead, Subscription, SubscriptionCandidate, TransactionEvidence
 from .services import (
     IngestionValidationError,
     InboxScanError,
@@ -16,6 +16,7 @@ from .services import (
     calculate_next_renewal,
     infer_subscription_category,
     ingest_transactions,
+    is_reviewable_inbox_lead,
     parse_request_json,
     record_failed_import_run,
 )
@@ -130,6 +131,40 @@ def candidate_list_view(request):
         return gate
     context = _candidate_review_context(request.user)
     return render(request, "subscriptions/candidates.html", context)
+
+
+@require_POST
+def bulk_dismiss_inbox_leads_view(request):
+    gate = _require_verified_session(request)
+    if gate:
+        return gate
+
+    action = request.POST.get("action", "noise")
+    pending_leads = list(
+        EmailSubscriptionLead.objects.filter(
+            user=request.user,
+            status=EmailSubscriptionLead.STATUS_PENDING,
+        )
+    )
+    if action == "all":
+        lead_ids = [lead.id for lead in pending_leads]
+        notice = "Inbox matches dismissed"
+    else:
+        lead_ids = [lead.id for lead in pending_leads if not is_reviewable_inbox_lead(lead)]
+        notice = "Low-confidence and newsletter matches dismissed"
+
+    dismissed_count = EmailSubscriptionLead.objects.filter(
+        user=request.user,
+        id__in=lead_ids,
+        status=EmailSubscriptionLead.STATUS_PENDING,
+    ).update(status=EmailSubscriptionLead.STATUS_DISMISSED)
+
+    if _is_htmx_request(request):
+        context = _candidate_review_context(request.user, f"{dismissed_count} inbox match dismissed")
+        return render(request, "subscriptions/_candidate_list.html", context)
+
+    messages.info(request, f"{dismissed_count} {notice.lower()}.")
+    return redirect("transactions:candidates")
 
 
 @require_POST

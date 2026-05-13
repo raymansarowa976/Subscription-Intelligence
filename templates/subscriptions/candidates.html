@@ -1,36 +1,36 @@
 {% extends "subscriptions/app_shell.html" %}
 
 {% block title %}Subscription Review | Subscription Intelligence{% endblock %}
-{% block app_title %}Subscription review workspace{% endblock %}
-{% block page_heading %}Review subscriptions{% endblock %}
-{% block app_copy %}Work through inbox matches, recurring detections, renewal timing, and sync health from one organized review workspace built for fast confirmation decisions.{% endblock %}
+{% block app_title %}Review queue{% endblock %}
 {% block candidates_nav_class %}bg-white text-ink px-4 py-2.5 shadow-sm{% endblock %}
 
 {% block app_panel %}
+<h1 class="sr-only">Review subscriptions</h1>
+
 <section class="mt-6 grid gap-5 xl:grid-cols-4">
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Pending candidates</p>
-        <p id="candidate-count-value" class="mt-4 text-4xl font-extrabold tracking-tight text-ink">{{ candidate_count }}</p>
-        <p class="mt-4 text-sm leading-7 text-stone-500">Recurring detections waiting for review.</p>
+        <p id="candidate-count-value" class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">{{ candidate_count }}</p>
+        <p class="mt-4 text-sm font-medium leading-7 text-stone-600">Recurring detections waiting for review.</p>
     </article>
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Inbox matches</p>
-        <p id="review-inbox-lead-count-value" class="mt-4 text-4xl font-extrabold tracking-tight text-ink">{{ inbox_lead_count }}</p>
-        <p class="mt-4 text-sm leading-7 text-stone-500">Likely subscription emails ready for inspection.</p>
+        <p id="review-inbox-lead-count-value" class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">{{ inbox_lead_count }}</p>
+        <p class="mt-4 text-sm font-medium leading-7 text-stone-600">Likely subscription emails ready for inspection.</p>
     </article>
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Upcoming renewals</p>
-        <p id="upcoming-renewal-count-value" class="mt-4 text-4xl font-extrabold tracking-tight text-ink">{{ upcoming_renewal_count }}</p>
-        <p class="mt-4 text-sm leading-7 text-stone-500">Subscriptions renewing in the next 7 days.</p>
+        <p id="upcoming-renewal-count-value" class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">{{ upcoming_renewal_count }}</p>
+        <p class="mt-4 text-sm font-medium leading-7 text-stone-600">Subscriptions renewing in the next 7 days.</p>
     </article>
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Latest inbox scan</p>
-        <p id="latest-inbox-scan-value" class="mt-4 text-xl font-extrabold tracking-tight text-ink">
+            <p id="latest-inbox-scan-value" class="mt-4 text-xl font-extrabold tabular-nums tracking-tight text-ink">
             {% if latest_email_scan %}{{ latest_email_scan.get_status_display }}{% else %}Not run{% endif %}
         </p>
-        <p class="mt-4 text-sm leading-7 text-stone-500">
+        <p class="mt-4 text-sm font-medium leading-7 text-stone-600">
             {% if latest_email_scan %}
-            {{ latest_email_scan.completed_at|date:"M j, Y g:i A" }}
+            {{ latest_email_scan.scanned_message_count }} processed - {{ latest_email_scan.matched_message_count }} matched
             {% else %}
             Run an inbox scan from the dashboard to populate review leads.
             {% endif %}
@@ -45,41 +45,73 @@
                 <div>
                     <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Pending detections</p>
                     <h2 class="mt-2 text-3xl font-extrabold text-ink">Recurring subscription candidates</h2>
-                    <p class="mt-3 max-w-2xl text-sm leading-7 text-stone-500">Confirm the recurring charges that belong in your portfolio and dismiss anything that looks like a one-off purchase.</p>
+                    <p class="mt-3 max-w-2xl text-sm font-medium leading-7 text-stone-600">Confirm the recurring charges that belong in your portfolio and dismiss anything that looks like a one-off purchase.</p>
                 </div>
-                <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'dashboard' %}">Back to dashboard</a>
+                <a class="inline-flex items-center justify-center rounded-2xl bg-pine px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 hover:bg-pineDeep" href="{% url 'dashboard' %}">Back to dashboard</a>
             </div>
 
             {% include "subscriptions/_candidate_list.html" %}
         </section>
 
         <section class="rounded-[30px] border border-black/10 bg-white/90 p-8 shadow-panel">
-            <div class="flex items-center justify-between gap-4">
+            <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
                     <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Inbox matches</p>
                     <h2 class="mt-2 text-3xl font-extrabold text-ink">Likely subscriptions from email</h2>
+                    <p class="mt-3 max-w-2xl text-sm font-medium leading-7 text-stone-600">Showing matches at {{ reviewable_inbox_confidence_threshold }}% confidence or higher. Newsletter-like and low-confidence items are held back so the queue stays focused.</p>
                 </div>
-                <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">{{ inbox_lead_count }}</span>
+                <div class="flex flex-wrap items-center gap-3">
+                    <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">{{ inbox_lead_count }} visible</span>
+                    {% if suppressed_inbox_lead_count %}
+                    <form method="post" action="{% url 'transactions:bulk_dismiss_inbox_leads' %}">
+                        {% csrf_token %}
+                        <button class="inline-flex items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-extrabold uppercase tracking-[0.14em] text-rose-700 transition hover:bg-rose-100" type="submit" name="action" value="noise">Dismiss {{ suppressed_inbox_lead_count }} low-signal</button>
+                    </form>
+                    {% endif %}
+                </div>
             </div>
 
             <div class="mt-8 grid gap-4 md:grid-cols-2">
                 {% for lead in inbox_leads %}
-                <article class="rounded-[24px] border border-black/10 bg-stone-50 p-5">
+                <article class="min-w-0 overflow-hidden rounded-[24px] border border-black/10 bg-stone-50 p-5">
                     <div class="flex items-start justify-between gap-4">
-                        <div>
-                            <p class="text-lg font-extrabold text-ink">{{ lead.merchant_name }}</p>
-                            <p class="mt-1 text-sm text-stone-500">{{ lead.subject }}</p>
+                        <div class="min-w-0">
+                            <p class="break-words text-lg font-extrabold text-ink [overflow-wrap:anywhere]">{{ lead.merchant_name }}</p>
+                            <p class="mt-1 break-words text-sm font-medium text-stone-600 [overflow-wrap:anywhere]">{{ lead.subject }}</p>
                         </div>
-                        <div class="rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">{{ lead.confidence_score }}%</div>
+                        <div class="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tabular-nums tracking-[0.18em] text-stone-500">{{ lead.confidence_score }}%</div>
                     </div>
-                    <p class="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">{{ lead.sender }} • {{ lead.received_at|date:"M j, Y" }}</p>
+                    <div class="mt-4 grid gap-2 rounded-2xl border border-black/5 bg-white p-4">
+                        <div class="flex items-center justify-between gap-4">
+                            <span class="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">Merchant</span>
+                            <span class="break-words text-sm font-extrabold text-ink [overflow-wrap:anywhere]">{{ lead.merchant_name }}</span>
+                        </div>
+                        <div class="flex items-center justify-between gap-4">
+                            <span class="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">Estimated price</span>
+                            <span class="text-sm font-extrabold tabular-nums text-ink">{% if lead.review_candidate %}{{ lead.review_candidate.formatted_amount }}{% else %}Needs receipt parse{% endif %}</span>
+                        </div>
+                        <div class="flex items-center justify-between gap-4">
+                            <span class="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">Renewal date</span>
+                            <span class="text-sm font-extrabold tabular-nums text-ink">{% if lead.review_candidate and lead.review_candidate.likely_renewal_date %}{{ lead.review_candidate.likely_renewal_date|date:"M j, Y" }}{% else %}Unknown{% endif %}</span>
+                        </div>
+                    </div>
+                    <p class="mt-3 break-words text-xs font-semibold uppercase tracking-[0.18em] text-stone-500 [overflow-wrap:anywhere]">{{ lead.sender }} - {{ lead.received_at|date:"M j, Y" }}</p>
                     {% if lead.snippet %}
-                    <p class="mt-3 text-sm leading-7 text-stone-600">{{ lead.snippet }}</p>
+                    <details class="mt-3 rounded-2xl border border-black/5 bg-white px-4 py-3">
+                        <summary class="cursor-pointer text-sm font-extrabold text-pine">Show email context</summary>
+                        <p class="mt-3 break-words text-sm font-medium leading-7 text-stone-600 [overflow-wrap:anywhere]">{{ lead.snippet }}</p>
+                    </details>
                     {% endif %}
                 </article>
                 {% empty %}
-                <div class="rounded-[24px] border border-dashed border-black/15 bg-stone-50 p-8 text-center text-stone-500 md:col-span-2">
-                    Run an inbox scan to surface likely subscription emails here.
+                <div class="rounded-[24px] border border-dashed border-black/15 bg-stone-50 p-8 text-center md:col-span-2">
+                    <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-white text-pine shadow-sm">
+                        <svg class="h-9 w-9" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4 7h16M4 12h10M4 17h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <p class="mt-5 text-base font-extrabold text-ink">No high-confidence inbox matches</p>
+                    <p class="mt-2 text-sm font-medium leading-7 text-stone-600">Run a scan or dismiss low-signal matches to keep this area focused on real billing evidence.</p>
                 </div>
                 {% endfor %}
             </div>
@@ -96,17 +128,23 @@
                     <div class="flex items-start justify-between gap-4">
                         <div>
                             <p class="text-base font-bold text-ink">{{ entry.subscription.merchant_name }}</p>
-                            <p class="mt-1 text-sm text-stone-500">{{ entry.subscription.dashboard_category_label }} • {{ entry.subscription.cadence|title }}</p>
+                            <p class="mt-1 text-sm font-medium text-stone-600">{{ entry.subscription.dashboard_category_label }} • {{ entry.subscription.cadence|title }}</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-lg font-extrabold text-ink">${{ entry.subscription.amount|floatformat:2 }}</p>
+                            <p class="text-lg font-extrabold tabular-nums text-ink">${{ entry.subscription.amount|floatformat:2 }}</p>
                             <p class="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">{{ entry.next_renewal|date:"M j" }}</p>
                         </div>
                     </div>
                 </article>
                 {% empty %}
-                <div class="rounded-[22px] border border-dashed border-black/15 bg-stone-50 p-6 text-sm text-stone-500">
-                    Add or confirm subscriptions to populate your renewal timeline.
+                <div class="rounded-[22px] border border-dashed border-black/15 bg-stone-50 p-6 text-center">
+                    <div class="mx-auto grid h-16 w-16 place-items-center rounded-full bg-white text-pine shadow-sm">
+                        <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M8 3v4M16 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <p class="mt-4 text-sm font-extrabold text-ink">Renewal calendar is waiting</p>
+                    <p class="mt-2 text-sm font-medium leading-6 text-stone-600">Confirm subscriptions to turn detected signals into dated renewal reminders.</p>
                 </div>
                 {% endfor %}
             </div>
@@ -119,11 +157,17 @@
                 {% for insight in savings_insights %}
                 <article class="rounded-[22px] border border-emerald-100 bg-emerald-50 p-4">
                     <p class="text-base font-bold text-emerald-900">{{ insight.title }}</p>
-                    <p class="mt-2 text-sm leading-7 text-emerald-800">{{ insight.detail }}</p>
+                    <p class="mt-2 text-sm font-medium leading-7 text-emerald-800">{{ insight.detail }}</p>
                 </article>
                 {% empty %}
-                <div class="rounded-[22px] border border-dashed border-black/15 bg-stone-50 p-6 text-sm text-stone-500">
-                    No redundant service signals detected yet.
+                <div class="rounded-[22px] border border-dashed border-black/15 bg-stone-50 p-6 text-center">
+                    <div class="mx-auto grid h-16 w-16 place-items-center rounded-full bg-white text-pine shadow-sm">
+                        <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M12 3v18M5 8h14M7 16h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <p class="mt-4 text-sm font-extrabold text-ink">No overlap detected</p>
+                    <p class="mt-2 text-sm font-medium leading-6 text-stone-600">Savings signals appear after similar active subscriptions are confirmed.</p>
                 </div>
                 {% endfor %}
             </div>
@@ -132,7 +176,7 @@
         <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl md:col-span-2 xl:col-span-1">
             <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Review guidance</p>
             <h2 class="mt-2 text-2xl font-extrabold text-ink">Confirm only true recurring services</h2>
-            <p class="mt-3 text-sm leading-7 text-stone-500">Inbox matches and transaction candidates are signals, not final truth. Approve services that clearly recur and dismiss newsletter receipts, one-time purchases, or unrelated billing emails.</p>
+            <p class="mt-3 text-sm font-medium leading-7 text-stone-600">Inbox matches and transaction candidates are signals, not final truth. Approve services that clearly recur and dismiss newsletter receipts, one-time purchases, or unrelated billing emails.</p>
         </section>
 
         <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl md:col-span-2 xl:col-span-1">
@@ -141,7 +185,7 @@
             <div class="mt-5 space-y-5">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Transactions</p>
-                    <p class="mt-2 text-sm leading-7 text-stone-500">
+                    <p class="mt-2 text-sm font-medium leading-7 text-stone-600">
                         {% if latest_sync %}
                         {{ latest_sync.completed_at|date:"M j, Y g:i A" }} from {{ latest_sync.provider|title }} for account {{ latest_sync.account_id }}.
                         {% else %}
@@ -156,7 +200,7 @@
                 </div>
                 <div class="border-t border-black/10 pt-5">
                     <p class="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Inbox scan</p>
-                    <p class="mt-2 text-sm leading-7 text-stone-500">
+                    <p class="mt-2 text-sm font-medium leading-7 text-stone-600">
                         {% if latest_email_scan %}
                         {{ latest_email_scan.completed_at|date:"M j, Y g:i A" }} from {{ latest_email_scan.mailbox }}.
                         {% else %}
@@ -165,7 +209,7 @@
                     </p>
                     {% if latest_email_scan %}
                     <p class="mt-2 text-xs font-semibold uppercase tracking-[0.18em] {% if latest_email_scan.status == 'succeeded' %}text-emerald-700{% else %}text-rose-700{% endif %}">
-                        Inbox scan status: {{ latest_email_scan.get_status_display }}
+                        Inbox scan status: {{ latest_email_scan.get_status_display }} - {{ latest_email_scan.scanned_message_count }} processed - {{ latest_email_scan.matched_message_count }} matched
                     </p>
                     {% endif %}
                 </div>

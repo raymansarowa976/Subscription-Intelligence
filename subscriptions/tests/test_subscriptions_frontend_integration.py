@@ -39,7 +39,7 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         response = self.client.get(self.dashboard_url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Subscription workspace")
+        self.assertContains(response, "Dashboard")
         self.assertContains(response, "Total monthly spend")
         self.assertContains(response, "Upcoming renewals")
         self.assertContains(response, "Annual run-rate")
@@ -50,6 +50,13 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, 'id="inbox-scan-panel"', html=False)
         self.assertContains(response, 'id="dashboard-inbox-lead-count-value"', html=False)
         self.assertContains(response, 'id="dashboard-review-queue-count-value"', html=False)
+        self.assertContains(response, "Discovery pipeline")
+        self.assertContains(response, "Found")
+        self.assertContains(response, "Review")
+        self.assertContains(response, "Tracked")
+        self.assertContains(response, "Email matches move from found signals into review")
+        self.assertNotContains(response, "Inbox leads")
+        self.assertNotContains(response, "Review queue")
         self.assertContains(response, 'hx-post="/dashboard/email/scan/"', html=False)
         self.assertContains(response, 'hx-target="#inbox-scan-panel"', html=False)
         self.assertContains(response, 'hx-push-url="false"', html=False)
@@ -58,10 +65,20 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, 'htmx-idle-label', html=False)
         self.assertContains(response, "Scanning...")
         self.assertContains(response, "No inbox scan has been run yet for this account.")
+        self.assertContains(response, "First workspace setup")
+        self.assertContains(response, "Turn this empty dashboard into a renewal map.")
+        self.assertContains(response, "Step 1")
+        self.assertContains(response, "Step 2")
+        self.assertContains(response, "Step 3")
         self.assertNotContains(response, "Quick add subscription")
         self.assertNotContains(response, "Import transactions")
         self.assertNotContains(response, "Run transaction import")
         self.assertContains(response, "Active subscriptions tracked right now.")
+        content = response.content.decode()
+        self.assertLess(content.index("Portfolio overview"), content.index("Personalized snapshot"))
+        self.assertLess(content.index("Personalized snapshot"), content.index("Total monthly spend"))
+        self.assertLess(content.index("Annual run-rate"), content.index("Spending by category"))
+        self.assertLess(content.index("Spending by category"), content.index("Monthly trend"))
         self.assertNotContains(response, "Likely subscriptions from email")
         self.assertNotContains(response, "Next five charges")
         self.assertNotContains(response, "Potential savings")
@@ -139,6 +156,26 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Portfolio overview")
         self.assertContains(response, "Review subscriptions")
         self.assertContains(response, "Last inbox scan:")
+        self.assertNotContains(response, "First workspace setup")
+
+    def test_dashboard_emphasizes_review_cta_when_candidates_are_pending(self):
+        SubscriptionCandidate.objects.create(
+            user=self.user,
+            merchant_name="Spotify",
+            normalized_vendor="spotify",
+            amount="10.99",
+            currency="USD",
+            cadence=SubscriptionCandidate.CADENCE_MONTHLY,
+            source_transaction_ids=["txn_spotify_001", "txn_spotify_002"],
+        )
+
+        response = self.client.get(self.dashboard_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="dashboard-review-cta"', html=False)
+        self.assertContains(response, "Review 1 pending item")
+        self.assertContains(response, "shadow-pine/20")
+        self.assertNotContains(response, "Review subscriptions")
 
     def test_dashboard_orders_active_subscriptions_before_cancelled_ones(self):
         Subscription.objects.create(
@@ -203,6 +240,7 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Saving...")
         self.assertContains(response, "Dismissing...")
         self.assertContains(response, "Likely subscriptions from email")
+        self.assertContains(response, "Showing matches at 50% confidence or higher.")
         self.assertContains(response, "Next five charges")
         self.assertContains(response, "Potential savings")
         self.assertContains(response, "Source health")
@@ -284,8 +322,116 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         response = self.client.get(self.candidates_url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "No pending candidates yet.")
-        self.assertContains(response, "Run an inbox scan to surface likely subscription emails here.")
+        self.assertContains(response, "No pending candidates yet")
+        self.assertContains(response, "No high-confidence inbox matches")
+        self.assertContains(response, "Renewal calendar is waiting")
+
+    def test_candidates_page_hides_low_confidence_and_newsletter_email_leads(self):
+        scan = EmailScanRun.objects.create(
+            user=self.user,
+            mailbox="INBOX",
+            status=EmailScanRun.STATUS_SUCCEEDED,
+            scanned_message_count=29,
+            matched_message_count=3,
+        )
+        visible_lead = EmailSubscriptionLead.objects.create(
+            user=self.user,
+            scan_run=scan,
+            message_id="<billing@example.com>",
+            sender="billing@streambox.example",
+            sender_name="StreamBox Billing",
+            subject="Your StreamBox monthly receipt",
+            merchant_name="StreamBox",
+            snippet="Total paid: $12.99. Next billing date: May 4, 2026.",
+            confidence_score=86,
+            received_at=timezone.make_aware(datetime.combine(date.today(), datetime.min.time())),
+        )
+        SubscriptionCandidate.objects.create(
+            user=self.user,
+            source_type=SubscriptionCandidate.SOURCE_EMAIL_RECEIPT,
+            source_email_lead=visible_lead,
+            merchant_name="StreamBox",
+            normalized_vendor="streambox",
+            amount="12.99",
+            currency="USD",
+            cadence=SubscriptionCandidate.CADENCE_MONTHLY,
+            confidence_score=86,
+            likely_renewal_date=date(2026, 5, 4),
+        )
+        EmailSubscriptionLead.objects.create(
+            user=self.user,
+            scan_run=scan,
+            message_id="<newsletter@example.com>",
+            sender="quincy@example.com",
+            sender_name="Quincy Larson",
+            subject="Weekly coding newsletter",
+            merchant_name="Quincy Larson",
+            snippet="This week's community update and unsubscribe link.",
+            confidence_score=72,
+            received_at=timezone.make_aware(datetime.combine(date.today(), datetime.min.time())),
+        )
+        EmailSubscriptionLead.objects.create(
+            user=self.user,
+            scan_run=scan,
+            message_id="<weak@example.com>",
+            sender="hello@beem.example",
+            sender_name="Beem Credit Union",
+            subject="Account update",
+            merchant_name="Beem Credit Union",
+            snippet="A general account notice.",
+            confidence_score=30,
+            received_at=timezone.make_aware(datetime.combine(date.today(), datetime.min.time())),
+        )
+
+        response = self.client.get(self.candidates_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "StreamBox")
+        self.assertContains(response, "$12.99")
+        self.assertContains(response, "May 4, 2026")
+        self.assertContains(response, "Dismiss 2 low-signal")
+        self.assertContains(response, "29 processed - 3 matched")
+        self.assertNotContains(response, "Quincy Larson")
+        self.assertNotContains(response, "Beem Credit Union")
+
+    def test_bulk_dismiss_inbox_leads_clears_newsletter_and_low_confidence_noise(self):
+        scan = EmailScanRun.objects.create(user=self.user, mailbox="INBOX")
+        strong_lead = EmailSubscriptionLead.objects.create(
+            user=self.user,
+            scan_run=scan,
+            message_id="<strong@example.com>",
+            sender="billing@streambox.example",
+            sender_name="StreamBox Billing",
+            subject="Your StreamBox receipt",
+            merchant_name="StreamBox",
+            snippet="Receipt for your monthly plan.",
+            confidence_score=80,
+            received_at=timezone.make_aware(datetime.combine(date.today(), datetime.min.time())),
+        )
+        newsletter = EmailSubscriptionLead.objects.create(
+            user=self.user,
+            scan_run=scan,
+            message_id="<noise@example.com>",
+            sender="news@example.com",
+            sender_name="Mermaid",
+            subject="Mermaid weekly newsletter",
+            merchant_name="Mermaid",
+            snippet="Product updates and unsubscribe.",
+            confidence_score=70,
+            received_at=timezone.make_aware(datetime.combine(date.today(), datetime.min.time())),
+        )
+
+        response = self.client.post(
+            reverse("transactions:bulk_dismiss_inbox_leads"),
+            {"action": "noise"},
+            follow=True,
+        )
+
+        self.assertRedirects(response, self.candidates_url)
+        strong_lead.refresh_from_db()
+        newsletter.refresh_from_db()
+        self.assertEqual(strong_lead.status, EmailSubscriptionLead.STATUS_PENDING)
+        self.assertEqual(newsletter.status, EmailSubscriptionLead.STATUS_DISMISSED)
 
     def test_dashboard_only_shows_current_users_data(self):
         other_user = User.objects.create_user(
