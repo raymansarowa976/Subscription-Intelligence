@@ -198,20 +198,20 @@
 
 ### Issue #16: Landing Page Refinement
 **Acceptance Criteria:**
-- [ ] **Test:** Landing page renders for anonymous users without requiring authentication.
-- [ ] **Test:** Authenticated users can navigate from landing page to dashboard.
-- [ ] **Test:** Landing page uses compiled Tailwind CSS and does not rely on CDN Tailwind.
-- [ ] **Test:** Primary CTA routes anonymous users to signup and secondary CTA routes to login.
-- [ ] **Test:** Landing page remains responsive across mobile and desktop viewport smoke checks.
-- [ ] **Code:** First viewport clearly presents Subscription Intelligence as the product and leaves a hint of the next section visible.
-- [ ] **Code:** Hero uses relevant product imagery, generated visual asset, or an immersive product UI scene rather than a generic gradient-only layout.
-- [ ] **Code:** Page explains the core promise: detect subscriptions, review candidates, track renewal timing, and surface spend insights.
-- [ ] **Code:** Landing page includes privacy/security trust signals for email scanning and account verification.
-- [ ] **Code:** Landing page includes a concise feature section for dashboard insights, candidate review, receipt parsing, and renewal alerts.
-- [ ] **Code:** Landing page includes clear empty-state/demo visuals that reflect real app workflows.
-- [ ] **Code:** Navigation includes signup/login actions and preserves the product brand in the first viewport.
-- [ ] **Code:** Landing page copy avoids unsupported claims and keeps Gmail/OAuth language aligned with implemented capabilities.
-- [ ] **Code:** Landing page visual QA confirms text does not overlap or overflow on common mobile and desktop viewports.
+- [x] **Test:** Landing page renders for anonymous users without requiring authentication.
+- [x] **Test:** Authenticated users can navigate from landing page to dashboard.
+- [x] **Test:** Landing page uses compiled Tailwind CSS and does not rely on CDN Tailwind.
+- [x] **Test:** Primary CTA routes anonymous users to signup and secondary CTA routes to login.
+- [x] **Test:** Landing page remains responsive across mobile and desktop viewport smoke checks.
+- [x] **Code:** First viewport clearly presents Subscription Intelligence as the product and leaves a hint of the next section visible.
+- [x] **Code:** Hero uses relevant product imagery, generated visual asset, or an immersive product UI scene rather than a generic gradient-only layout.
+- [x] **Code:** Page explains the core promise: detect subscriptions, review candidates, track renewal timing, and surface spend insights.
+- [x] **Code:** Landing page includes privacy/security trust signals for email scanning and account verification.
+- [x] **Code:** Landing page includes a concise feature section for dashboard insights, candidate review, receipt parsing, and renewal alerts.
+- [x] **Code:** Landing page includes clear empty-state/demo visuals that reflect real app workflows.
+- [x] **Code:** Navigation includes signup/login actions and preserves the product brand in the first viewport.
+- [x] **Code:** Landing page copy avoids unsupported claims and keeps Gmail/OAuth language aligned with implemented capabilities.
+- [x] **Code:** Landing page visual QA confirms text does not overlap or overflow on common mobile and desktop viewports.
 
 ### Issue #17: Subscription Review Page Full Functionality
 **Acceptance Criteria:**
