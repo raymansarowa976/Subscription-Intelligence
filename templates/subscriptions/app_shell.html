@@ -76,7 +76,7 @@
 
 <main class="mx-auto min-h-screen max-w-7xl px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8">
     <header class="app-scroll-header overflow-hidden rounded-[32px] border border-white/20 bg-[linear-gradient(120deg,rgba(8,43,39,0.82),rgba(14,90,82,0.72)_55%,rgba(201,111,59,0.42))] text-white shadow-panel backdrop-blur-sm" data-scroll-header>
-        <div class="border-b border-white/10 bg-white/5 px-5 py-4 shadow-[inset_0_-1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl md:px-7">
+        <div class="bg-white/5 px-5 py-4 backdrop-blur-xl md:px-7">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div class="flex min-h-11 items-center gap-4">
                     <a class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-white/35 bg-[linear-gradient(135deg,rgba(255,255,255,0.32),rgba(8,43,39,0.92)_48%,rgba(201,111,59,0.92))] text-sm font-extrabold tracking-[0.12em] text-white shadow-[0_12px_30px_rgba(0,0,0,0.18)] ring-1 ring-black/10 transition hover:-translate-y-0.5" href="{% url 'home' %}" aria-label="Subscription Intelligence home">SI</a>
@@ -99,25 +99,6 @@
             </div>
         </div>
 
-        <div class="grid gap-5 px-5 py-5 md:px-7 lg:grid-cols-[minmax(0,1.2fr)_auto] lg:items-center">
-            <div>
-                <h1 class="max-w-3xl text-3xl font-extrabold leading-tight tracking-normal md:text-[2.85rem]">{% block page_heading %}Command center{% endblock %}</h1>
-                <p class="mt-2.5 max-w-3xl text-sm leading-6 text-stone-100/80 md:text-[0.95rem]">{% block app_copy %}Operate every renewal, subscription, and spend decision from one focused workspace.{% endblock %}</p>
-            </div>
-
-            {% block app_header_aside %}
-            <div class="grid gap-3 text-sm text-stone-100/85 sm:grid-cols-2 lg:w-[300px]">
-                <div class="rounded-[24px] border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm">
-                    <p class="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-stone-100/65">Mode</p>
-                    <p class="mt-1.5 text-base font-extrabold leading-6">Portfolio view</p>
-                </div>
-                <div class="rounded-[24px] border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm">
-                    <p class="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-stone-100/65">Focus</p>
-                    <p class="mt-1.5 text-base font-extrabold leading-6">Renewals and savings</p>
-                </div>
-            </div>
-            {% endblock %}
-        </div>
     </header>
 
     {% if messages %}
