@@ -212,3 +212,56 @@
 - [ ] **Code:** Navigation includes signup/login actions and preserves the product brand in the first viewport.
 - [ ] **Code:** Landing page copy avoids unsupported claims and keeps Gmail/OAuth language aligned with implemented capabilities.
 - [ ] **Code:** Landing page visual QA confirms text does not overlap or overflow on common mobile and desktop viewports.
+
+### Issue #17: Subscription Review Page Full Functionality
+**Acceptance Criteria:**
+- [x] **Code:** Inbox matches below the review confidence threshold are hidden from the primary review queue.
+- [x] **Code:** Newsletter-like senders/content are demoted from the primary review queue.
+- [x] **Code:** Visible inbox count reflects reviewable inbox leads, not all raw email matches.
+- [x] **Code:** Bulk dismissal exists for low-confidence/newsletter-like inbox noise.
+- [x] **Code:** Back-to-dashboard CTA uses higher-contrast brand styling.
+- [x] **Code:** Email match cards show merchant, estimated price, and renewal date before full email text.
+- [x] **Code:** Full email context is hidden behind a progressive disclosure control.
+- [x] **Code:** Renewal calendar and pending candidate sections use intentional empty states.
+- [x] **Code:** Source health shows inbox scan status with processed and matched message counts.
+- [x] **Code:** Currency and count values use tabular numerals.
+- [ ] **Test:** Confidence threshold behavior is configurable and covered for boundary values below, at, and above the threshold.
+- [ ] **Test:** Bulk dismiss only affects the current authenticated user's leads.
+- [ ] **Test:** Bulk dismiss supports normal form fallback and HTMX-enhanced updates.
+- [ ] **Test:** Confirming an email-derived candidate updates the source email lead status to confirmed.
+- [ ] **Test:** Rejecting an email-derived candidate updates the source email lead status to dismissed or review-only.
+- [ ] **Test:** One user cannot view, dismiss, restore, confirm, reject, or bulk-update another user's candidates or leads.
+- [ ] **Test:** Candidate and lead actions require verified login-token sessions.
+- [ ] **Test:** Duplicate POSTs for confirm/reject/dismiss are idempotent.
+- [ ] **Test:** Dashboard review counts match the filtered review queue counts.
+- [ ] **Test:** Confirming, rejecting, or dismissing from the review page updates dashboard counts correctly.
+- [ ] **Test:** Source health displays succeeded, failed, queued, and in-progress states.
+- [ ] **Test:** Search and filters preserve user data isolation.
+- [ ] **Test:** Review page visual regression or smoke coverage verifies no text overflow in candidate cards.
+- [ ] **Test:** Disclosure controls are keyboard accessible and preserve readable focus states.
+- [ ] **Code:** Store an explicit lead classification such as `billing_signal`, `newsletter`, `marketing`, `low_confidence`, or `unknown`.
+- [ ] **Code:** Preserve suppressed leads in a secondary "Filtered out" view so users can recover false negatives.
+- [ ] **Code:** Add a user-facing explanation for why a lead was filtered out.
+- [ ] **Code:** Use parser/entity metadata to prioritize leads with merchant, price, cadence, and renewal date.
+- [ ] **Code:** Add per-lead actions for "Mark as newsletter," "Dismiss," and "Restore."
+- [ ] **Code:** Add selectable checkboxes and selected-count summary for batch actions.
+- [ ] **Code:** Add bulk actions for selected leads, not only all low-signal leads.
+- [ ] **Code:** Add CSRF-protected POST endpoints for per-lead dismiss, newsletter classification, restore, and selected bulk actions.
+- [ ] **Code:** Update inbox match counts and suppressed counts out-of-band after HTMX actions.
+- [ ] **Code:** Allow users to edit merchant name, amount, cadence, category, and renewal date before confirming.
+- [ ] **Code:** Validate edited candidate values before creating a subscription.
+- [ ] **Code:** Show parser confidence and extracted fields beside editable values.
+- [ ] **Code:** Prevent duplicate confirmed subscriptions from the same candidate or source lead.
+- [ ] **Code:** Add loading, success, and error states for every candidate and inbox action.
+- [ ] **Code:** Add scan run states for queued/in-progress if Huey has not completed yet.
+- [ ] **Code:** Show last scan start time, completion time, duration, messages processed, matches created, and parser candidates created.
+- [ ] **Code:** Link source health to latest scan-run details.
+- [ ] **Code:** Show retry action for failed scans with clear error feedback.
+- [ ] **Code:** Add filters for source type, confidence band, status, category, cadence, and date range.
+- [ ] **Code:** Add sorting by confidence, renewal date, amount, newest, and merchant name.
+- [ ] **Code:** Persist filter state in query parameters so review URLs are shareable/bookmarkable.
+- [ ] **Code:** Empty states explain when filters hide all results and offer a clear reset action.
+- [ ] **Code:** Ensure all mutation endpoints use POST-only, CSRF-protected forms.
+- [ ] **Code:** Record audit metadata for candidate/lead actions, including action type and timestamp.
+- [ ] **Code:** Keep dashboard "found/review/tracked" pipeline metrics aligned with raw leads, reviewable leads, suppressed leads, and confirmed subscriptions.
+- [ ] **Code:** Clearly distinguish raw inbox matches from reviewable billing candidates in dashboard copy.
