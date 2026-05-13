@@ -146,6 +146,25 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Last inbox scan:")
         self.assertNotContains(response, "First workspace setup")
 
+    def test_dashboard_emphasizes_review_cta_when_candidates_are_pending(self):
+        SubscriptionCandidate.objects.create(
+            user=self.user,
+            merchant_name="Spotify",
+            normalized_vendor="spotify",
+            amount="10.99",
+            currency="USD",
+            cadence=SubscriptionCandidate.CADENCE_MONTHLY,
+            source_transaction_ids=["txn_spotify_001", "txn_spotify_002"],
+        )
+
+        response = self.client.get(self.dashboard_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="dashboard-review-cta"', html=False)
+        self.assertContains(response, "Review 1 pending item")
+        self.assertContains(response, "shadow-pine/20")
+        self.assertNotContains(response, "Review subscriptions")
+
     def test_dashboard_orders_active_subscriptions_before_cancelled_ones(self):
         Subscription.objects.create(
             user=self.user,
