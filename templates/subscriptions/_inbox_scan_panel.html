@@ -31,6 +31,9 @@
         <div class="mt-5 flex flex-wrap gap-3">
             <form method="post" action="{% url 'scan_inbox' %}" hx-post="{% url 'scan_inbox' %}" hx-target="#inbox-scan-panel" hx-swap="outerHTML" hx-push-url="false" hx-disabled-elt="find button">
                 {% csrf_token %}
+                {% if active_email_connection %}
+                <input type="hidden" name="email_connection_id" value="{{ active_email_connection.id }}">
+                {% endif %}
                 <button class="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70" type="submit" aria-live="polite">
                     <span class="htmx-idle-label">Scan inbox now</span>
                     <span class="htmx-indicator inline-flex items-center gap-2">

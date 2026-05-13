@@ -729,6 +729,10 @@ def _subscription_sort_key(subscription):
 def build_dashboard_context(user):
     today = date.today()
     subscriptions = list(Subscription.objects.filter(user=user))
+    active_email_connection = EmailConnection.objects.filter(
+        user=user,
+        status=EmailConnection.STATUS_ACTIVE,
+    ).first()
     candidates = list(
         SubscriptionCandidate.objects.filter(
             user=user,
@@ -891,6 +895,7 @@ def build_dashboard_context(user):
         "display_name": display_name,
         "latest_sync": latest_sync,
         "latest_email_scan": latest_email_scan,
+        "active_email_connection": active_email_connection,
         "inbox_leads": reviewable_inbox_leads[:5],
         "inbox_lead_count": inbox_lead_count,
         "suppressed_inbox_lead_count": suppressed_inbox_lead_count,
