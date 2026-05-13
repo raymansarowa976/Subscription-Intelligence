@@ -104,7 +104,13 @@
                         {% include "subscriptions/_inbox_scan_panel.html" %}
 
                         <div class="flex flex-wrap gap-3">
-                            <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'transactions:candidates' %}">Review subscriptions</a>
+                            <a id="dashboard-review-cta" class="inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm transition {% if candidate_count %}bg-gradient-to-r from-pine to-pineDeep font-extrabold text-white shadow-lg shadow-pine/20 hover:-translate-y-0.5{% else %}border border-black/10 bg-white font-bold text-ink hover:border-pine hover:text-pine{% endif %}" href="{% url 'transactions:candidates' %}">
+                                {% if candidate_count %}
+                                Review {{ candidate_count }} pending item{{ candidate_count|pluralize }}
+                                {% else %}
+                                Review subscriptions
+                                {% endif %}
+                            </a>
                         </div>
                 </div>
             </div>

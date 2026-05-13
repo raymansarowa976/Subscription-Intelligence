@@ -1,6 +1,13 @@
 {% if htmx_response %}
 <p id="dashboard-inbox-lead-count-value" class="mt-2 text-2xl font-extrabold tabular-nums" hx-swap-oob="true">{{ inbox_lead_count }}</p>
 <p id="dashboard-review-queue-count-value" class="mt-2 text-2xl font-extrabold tabular-nums" hx-swap-oob="true">{{ candidate_count }}</p>
+<a id="dashboard-review-cta" class="inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm transition {% if candidate_count %}bg-gradient-to-r from-pine to-pineDeep font-extrabold text-white shadow-lg shadow-pine/20 hover:-translate-y-0.5{% else %}border border-black/10 bg-white font-bold text-ink hover:border-pine hover:text-pine{% endif %}" href="{% url 'transactions:candidates' %}" hx-swap-oob="true">
+    {% if candidate_count %}
+    Review {{ candidate_count }} pending item{{ candidate_count|pluralize }}
+    {% else %}
+    Review subscriptions
+    {% endif %}
+</a>
 {% endif %}
 
 <div id="inbox-scan-panel" class="rounded-[28px] border border-black/10 bg-white/70 p-5 transition duration-200 ease-out" data-htmx-polish>
@@ -33,7 +40,13 @@
                 </button>
             </form>
             {% if latest_email_scan and inbox_lead_count %}
-            <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'transactions:candidates' %}">Review matches</a>
+            <a class="inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm transition {% if candidate_count %}bg-gradient-to-r from-pine to-pineDeep font-extrabold text-white shadow-lg shadow-pine/20 hover:-translate-y-0.5{% else %}border border-black/10 bg-white font-bold text-ink hover:border-pine hover:text-pine{% endif %}" href="{% url 'transactions:candidates' %}">
+                {% if candidate_count %}
+                Review {{ candidate_count }} pending item{{ candidate_count|pluralize }}
+                {% else %}
+                Review matches
+                {% endif %}
+            </a>
             {% endif %}
         </div>
     </div>
