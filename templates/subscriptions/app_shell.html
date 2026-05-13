@@ -74,33 +74,32 @@
     </div>
 </aside>
 
-<main class="mx-auto min-h-screen max-w-7xl px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8">
-    <header class="app-scroll-header overflow-hidden rounded-[32px] border border-white/20 bg-[linear-gradient(120deg,rgba(8,43,39,0.82),rgba(14,90,82,0.72)_55%,rgba(201,111,59,0.42))] text-white shadow-panel backdrop-blur-sm" data-scroll-header>
-        <div class="bg-white/5 px-5 py-4 backdrop-blur-xl md:px-7">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div class="flex min-h-11 items-center gap-4">
-                    <a class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-white/35 bg-[linear-gradient(135deg,rgba(255,255,255,0.32),rgba(8,43,39,0.92)_48%,rgba(201,111,59,0.92))] text-sm font-extrabold tracking-[0.12em] text-white shadow-[0_12px_30px_rgba(0,0,0,0.18)] ring-1 ring-black/10 transition hover:-translate-y-0.5" href="{% url 'home' %}" aria-label="Subscription Intelligence home">SI</a>
-                    <div class="leading-none">
-                        <p class="text-lg font-extrabold leading-6 tracking-tight md:text-xl">Subscription Intelligence</p>
-                        <p class="mt-1 text-[0.68rem] font-bold uppercase leading-4 tracking-[0.18em] text-stone-100/65">{% block app_title %}Command center{% endblock %}</p>
-                    </div>
+<header class="app-scroll-header w-full border-b border-white/15 bg-[linear-gradient(120deg,rgba(8,43,39,0.94),rgba(14,90,82,0.9)_55%,rgba(201,111,59,0.64))] text-white shadow-panel backdrop-blur-sm" data-scroll-header>
+    <div class="mx-auto max-w-7xl px-4 py-4 md:px-6 lg:px-8">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div class="flex min-h-11 items-center gap-4">
+                <a class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-white/35 bg-[linear-gradient(135deg,rgba(255,255,255,0.32),rgba(8,43,39,0.92)_48%,rgba(201,111,59,0.92))] text-sm font-extrabold tracking-[0.12em] text-white shadow-[0_12px_30px_rgba(0,0,0,0.18)] ring-1 ring-black/10 transition hover:-translate-y-0.5" href="{% url 'home' %}" aria-label="Subscription Intelligence home">SI</a>
+                <div class="leading-none">
+                    <p class="text-lg font-extrabold leading-6 tracking-tight md:text-xl">Subscription Intelligence</p>
+                    <p class="mt-1 text-[0.68rem] font-bold uppercase leading-4 tracking-[0.18em] text-stone-100/65">{% block app_title %}Command center{% endblock %}</p>
                 </div>
-
-                <nav class="flex min-h-11 flex-wrap items-center gap-3 rounded-[22px] border border-white/10 bg-white/5 p-1.5 backdrop-blur-xl">
-                    <a class="inline-flex h-11 items-center justify-center rounded-2xl px-4 text-sm font-bold transition {% block candidates_nav_class %}border border-white/15 bg-white/10 text-white shadow-sm hover:bg-white/15{% endblock %}" href="{% url 'transactions:candidates' %}">Subscriptions</a>
-                    <label class="inline-grid h-11 w-11 cursor-pointer place-items-center rounded-2xl border border-white/15 bg-white/10 text-sm font-bold text-white shadow-sm transition hover:bg-white/15" for="right-sidebar-toggle" aria-label="Open navigation sidebar" title="Open navigation sidebar">
-                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path d="M4 7h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M4 12h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        </svg>
-                    </label>
-                </nav>
             </div>
+
+            <nav class="flex min-h-11 flex-wrap items-center gap-3 rounded-[22px] border border-white/10 bg-white/5 p-1.5 backdrop-blur-xl">
+                <a class="inline-flex h-11 items-center justify-center rounded-2xl px-4 text-sm font-bold transition {% block candidates_nav_class %}border border-white/15 bg-white/10 text-white shadow-sm hover:bg-white/15{% endblock %}" href="{% url 'transactions:candidates' %}">Subscriptions</a>
+                <label class="inline-grid h-11 w-11 cursor-pointer place-items-center rounded-2xl border border-white/15 bg-white/10 text-sm font-bold text-white shadow-sm transition hover:bg-white/15" for="right-sidebar-toggle" aria-label="Open navigation sidebar" title="Open navigation sidebar">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M4 7h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M4 12h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </label>
+            </nav>
         </div>
+    </div>
+</header>
 
-    </header>
-
+<main class="mx-auto min-h-screen max-w-7xl px-4 py-6 md:px-6 lg:px-8">
     {% if messages %}
     <section class="mt-6 space-y-3">
         {% for message in messages %}

@@ -46,7 +46,7 @@
 
     .app-scroll-header {
         position: sticky;
-        top: 1rem;
+        top: 0;
         z-index: 30;
         transition: transform 220ms ease, opacity 220ms ease;
         will-change: transform;
