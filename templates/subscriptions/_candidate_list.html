@@ -62,8 +62,14 @@
         </div>
     </article>
     {% empty %}
-    <div id="candidate-empty-state" class="rounded-[24px] border border-dashed border-black/15 bg-stone-50 p-8 text-center text-sm font-medium text-stone-600" role="status" aria-live="polite" tabindex="-1" {% if not review_notice %}data-htmx-focus-target{% endif %}>
-        No pending candidates yet.
+    <div id="candidate-empty-state" class="rounded-[24px] border border-dashed border-black/15 bg-stone-50 p-8 text-center" role="status" aria-live="polite" tabindex="-1" {% if not review_notice %}data-htmx-focus-target{% endif %}>
+        <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-white text-pine shadow-sm">
+            <svg class="h-9 w-9" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 3v18M5 8h14M7 16h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <p class="mt-5 text-base font-extrabold text-ink">No pending candidates yet.</p>
+        <p class="mt-2 text-sm font-medium leading-7 text-stone-600">New recurring charges and parsed receipt evidence will appear here when they are strong enough for review.</p>
     </div>
     {% endfor %}
 </div>
