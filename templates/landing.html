@@ -16,10 +16,12 @@
 
         <nav class="flex items-center gap-2">
             {% if request.user.is_authenticated %}
+            <a class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'accounts:login' %}">Login</a>
+            <a class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'accounts:signup' %}">Signup</a>
             <a class="inline-flex min-h-11 items-center justify-center rounded-2xl bg-pine px-4 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 hover:bg-pineDeep" href="{% url 'dashboard' %}">Open dashboard</a>
             {% else %}
-            <a class="hidden min-h-11 items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-bold text-ink transition hover:text-pine sm:inline-flex" href="{% url 'accounts:login' %}">Sign in</a>
-            <a class="inline-flex min-h-11 items-center justify-center rounded-2xl bg-pine px-4 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 hover:bg-pineDeep" href="{% url 'accounts:signup' %}">Create account</a>
+            <a class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'accounts:login' %}">Login</a>
+            <a class="inline-flex min-h-11 items-center justify-center rounded-2xl bg-pine px-4 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 hover:bg-pineDeep" href="{% url 'accounts:signup' %}">Signup</a>
             {% endif %}
         </nav>
     </div>
