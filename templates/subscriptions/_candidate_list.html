@@ -18,11 +18,11 @@
         <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
             <div>
                 <h3 class="text-2xl font-extrabold text-ink">{{ candidate.merchant_name }}</h3>
-                <p class="mt-2 text-sm text-stone-500">{{ candidate.cadence_label }} recurring charge &bull; {{ candidate.currency }}</p>
+                <p class="mt-2 text-sm font-medium text-stone-600">{{ candidate.cadence_label }} recurring charge &bull; {{ candidate.currency }}</p>
                 {% if candidate.source_type == "email_receipt" %}
                 <p class="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">Suggested evidence from receipt parser</p>
                 {% if candidate.source_email_lead %}
-                <p class="mt-3 text-sm leading-6 text-stone-600">{{ candidate.source_email_lead.subject }}</p>
+                <p class="mt-3 text-sm font-medium leading-6 text-stone-600">{{ candidate.source_email_lead.subject }}</p>
                 {% endif %}
                 <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
                     <span class="rounded-full bg-stone-100 px-3 py-1 tabular-nums">{{ candidate.confidence_score }}% confidence</span>
@@ -62,7 +62,7 @@
         </div>
     </article>
     {% empty %}
-    <div id="candidate-empty-state" class="rounded-[24px] border border-dashed border-black/15 bg-stone-50 p-8 text-center text-stone-500" role="status" aria-live="polite" tabindex="-1" {% if not review_notice %}data-htmx-focus-target{% endif %}>
+    <div id="candidate-empty-state" class="rounded-[24px] border border-dashed border-black/15 bg-stone-50 p-8 text-center text-sm font-medium text-stone-600" role="status" aria-live="polite" tabindex="-1" {% if not review_notice %}data-htmx-focus-target{% endif %}>
         No pending candidates yet.
     </div>
     {% endfor %}
