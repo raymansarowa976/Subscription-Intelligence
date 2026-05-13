@@ -188,6 +188,22 @@ class EmailOAuthIntegrationTest(TestCase):
         self.assertEqual(lead.scan_run.provider, "gmail")
         self.assertEqual(lead.scan_run.mailbox, "connected@gmail.com")
 
+    @override_settings(IMAP_USERNAME="global@example.com", IMAP_PASSWORD="global-password")
+    def test_scan_inbox_view_defaults_to_current_users_active_oauth_connection(self):
+        connection = self._connection()
+
+        with (
+            patch("subscriptions.services.imaplib.IMAP4_SSL", side_effect=AssertionError("IMAP fallback was used")),
+            patch("subscriptions.services.fetch_gmail_messages", return_value=[_gmail_message()]),
+        ):
+            response = self.client.post(reverse("scan_inbox"), follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Inbox scan complete. Checked 1 messages and found 1 likely subscription emails.")
+        scan_run = EmailScanRun.objects.get(user=self.user)
+        self.assertEqual(scan_run.provider, "gmail")
+        self.assertEqual(scan_run.email_connection, connection)
+
     def test_disconnected_email_connections_do_not_run_scans_and_show_feedback(self):
         EmailConnection = self._email_connection_model()
         connection = self._connection(status=EmailConnection.STATUS_DISCONNECTED)
