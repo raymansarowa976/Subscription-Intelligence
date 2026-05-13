@@ -43,6 +43,19 @@
         outline: 3px solid rgba(15, 118, 110, 0.45);
         outline-offset: 3px;
     }
+
+    .app-scroll-header {
+        position: sticky;
+        top: 1rem;
+        z-index: 30;
+        transition: transform 220ms ease, opacity 220ms ease;
+        will-change: transform;
+    }
+
+    .app-scroll-header--hidden {
+        pointer-events: none;
+        transform: translateY(calc(-100% - 1.25rem));
+    }
 }
 
 @keyframes htmxSwapSettle {
@@ -62,6 +75,10 @@
     [data-htmx-polish].htmx-settling {
         animation: none;
         transform: none;
+    }
+
+    .app-scroll-header {
+        transition: none;
     }
 }
 

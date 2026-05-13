@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block body_class %}bg-[radial-gradient(circle_at_top_left,rgba(201,111,59,0.24),transparent_24%),radial-gradient(circle_at_right,rgba(255,255,255,0.14),transparent_32%),linear-gradient(135deg,#0b3f3a_0%,#17655d_58%,#c88a5c_100%)]{% endblock %}
 
@@ -74,7 +75,7 @@
 </aside>
 
 <main class="mx-auto min-h-screen max-w-7xl px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8">
-    <header class="overflow-hidden rounded-[32px] border border-white/20 bg-[linear-gradient(120deg,rgba(8,43,39,0.82),rgba(14,90,82,0.72)_55%,rgba(201,111,59,0.42))] text-white shadow-panel backdrop-blur-sm">
+    <header class="app-scroll-header overflow-hidden rounded-[32px] border border-white/20 bg-[linear-gradient(120deg,rgba(8,43,39,0.82),rgba(14,90,82,0.72)_55%,rgba(201,111,59,0.42))] text-white shadow-panel backdrop-blur-sm" data-scroll-header>
         <div class="border-b border-white/10 bg-white/5 px-5 py-4 shadow-[inset_0_-1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl md:px-7">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div class="flex min-h-11 items-center gap-4">
@@ -131,4 +132,9 @@
 
     {% block app_panel %}{% endblock %}
 </main>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ block.super }}
+<script src="{% static 'js/scroll_header.js' %}?v=2" defer></script>
 {% endblock %}
