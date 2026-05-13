@@ -1,6 +1,6 @@
 {% if htmx_response %}
-<p id="dashboard-inbox-lead-count-value" class="mt-2 text-2xl font-extrabold" hx-swap-oob="true">{{ inbox_lead_count }}</p>
-<p id="dashboard-review-queue-count-value" class="mt-2 text-2xl font-extrabold" hx-swap-oob="true">{{ candidate_count }}</p>
+<p id="dashboard-inbox-lead-count-value" class="mt-2 text-2xl font-extrabold tabular-nums" hx-swap-oob="true">{{ inbox_lead_count }}</p>
+<p id="dashboard-review-queue-count-value" class="mt-2 text-2xl font-extrabold tabular-nums" hx-swap-oob="true">{{ candidate_count }}</p>
 {% endif %}
 
 <div id="inbox-scan-panel" class="rounded-[28px] border border-black/10 bg-white/70 p-5 transition duration-200 ease-out" data-htmx-polish>
