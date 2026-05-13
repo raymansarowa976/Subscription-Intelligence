@@ -1,6 +1,11 @@
 from django.contrib import messages
+import json
 import logging
+import secrets
+from datetime import timedelta
 from smtplib import SMTPException
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
@@ -11,11 +16,15 @@ from django.core.mail import send_mail
 from django.db import IntegrityError
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.contrib.sessions.models import Session
 from django.views.decorators.csrf import requires_csrf_token
+from django.views.decorators.http import require_POST
+
+from subscriptions.models import EmailConnection
 
 from .authentication_forms import SubscriptionAuthenticationForm
 from .forms import (
@@ -44,6 +53,8 @@ LOGIN_TOKEN_VERIFIED_SESSION_KEY = "login_token_verified"
 LEGACY_REACTIVATION_SESSION_KEY = "legacy_reactivation_user_id"
 USERNAME_CHANGE_TOKEN_PURPOSE = "username-change"
 PENDING_USERNAME_SESSION_KEY = "pending_username_change"
+GMAIL_OAUTH_STATE_SESSION_KEY = "gmail_oauth_state"
+GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 LOGIN_RATE_LIMIT = 5
 RECOVERY_RATE_LIMIT = 5
 TOKEN_VERIFY_RATE_LIMIT = 5
@@ -128,6 +139,35 @@ def send_username_change_token_email(user, new_username):
         fail_silently=False,
     )
     return token
+
+
+def exchange_gmail_oauth_code(code):
+    data = urlencode(
+        {
+            "code": code,
+            "client_id": getattr(settings, "GMAIL_OAUTH_CLIENT_ID", ""),
+            "client_secret": getattr(settings, "GMAIL_OAUTH_CLIENT_SECRET", ""),
+            "redirect_uri": getattr(settings, "GMAIL_OAUTH_REDIRECT_URI", ""),
+            "grant_type": "authorization_code",
+        }
+    ).encode("utf-8")
+    request = Request(
+        "https://oauth2.googleapis.com/token",
+        data=data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        method="POST",
+    )
+    with urlopen(request, timeout=15) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def fetch_gmail_profile(token_payload):
+    request = Request(
+        "https://gmail.googleapis.com/gmail/v1/users/me/profile",
+        headers={"Authorization": f"Bearer {token_payload['access_token']}"},
+    )
+    with urlopen(request, timeout=15) as response:
+        return json.loads(response.read().decode("utf-8"))
 
 
 class SubscriptionLoginView(LoginView):
@@ -328,14 +368,115 @@ def account_settings_view(request):
     gate = _require_verified_session(request)
     if gate:
         return gate
+    email_connections = EmailConnection.objects.filter(user=request.user)
     return render(
         request,
         "registration/account_settings.html",
         {
             "username_form": UsernameChangeRequestForm(user=request.user),
             "password_form": PasswordChangeForm(user=request.user),
+            "email_connections": email_connections,
+            "active_email_connection": email_connections.filter(status=EmailConnection.STATUS_ACTIVE).first(),
         },
     )
+
+
+@login_required
+def connect_gmail_view(request):
+    gate = _require_verified_session(request)
+    if gate:
+        return gate
+
+    state = secrets.token_urlsafe(32)
+    request.session[GMAIL_OAUTH_STATE_SESSION_KEY] = state
+    params = {
+        "client_id": getattr(settings, "GMAIL_OAUTH_CLIENT_ID", ""),
+        "redirect_uri": getattr(settings, "GMAIL_OAUTH_REDIRECT_URI", request.build_absolute_uri(reverse("accounts:gmail_oauth_callback"))),
+        "response_type": "code",
+        "scope": GMAIL_READONLY_SCOPE,
+        "access_type": "offline",
+        "prompt": "consent",
+        "state": state,
+    }
+    return redirect(f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}")
+
+
+@login_required
+def gmail_oauth_callback_view(request):
+    gate = _require_verified_session(request)
+    if gate:
+        return gate
+
+    expected_state = request.session.pop(GMAIL_OAUTH_STATE_SESSION_KEY, "")
+    if not expected_state or request.GET.get("state") != expected_state:
+        messages.error(request, "Email connection could not be verified.")
+        return redirect("accounts:account_settings")
+
+    if request.GET.get("error"):
+        messages.error(request, "Gmail connection was cancelled.")
+        return redirect("accounts:account_settings")
+
+    code = request.GET.get("code")
+    if not code:
+        messages.error(request, "Gmail did not return an authorization code.")
+        return redirect("accounts:account_settings")
+
+    try:
+        token_payload = exchange_gmail_oauth_code(code)
+        profile_payload = fetch_gmail_profile(token_payload)
+    except Exception:
+        logger.exception("Failed to complete Gmail OAuth callback.")
+        messages.error(request, "Gmail connection failed. Please try again.")
+        return redirect("accounts:account_settings")
+
+    scopes = token_payload.get("scope", GMAIL_READONLY_SCOPE).split()
+    expires_in = int(token_payload.get("expires_in", 3600))
+    email_address = profile_payload.get("emailAddress", "").strip()
+    if not email_address:
+        messages.error(request, "Gmail did not return a mailbox address.")
+        return redirect("accounts:account_settings")
+
+    existing_connection = EmailConnection.objects.filter(
+        user=request.user,
+        provider=EmailConnection.PROVIDER_GMAIL,
+        email_address=email_address,
+    ).first()
+    refresh_token = token_payload.get("refresh_token") or (
+        existing_connection.decrypted_refresh_token() if existing_connection else ""
+    )
+    EmailConnection.objects.update_or_create(
+        user=request.user,
+        provider=EmailConnection.PROVIDER_GMAIL,
+        email_address=email_address,
+        defaults={
+            "scopes": scopes,
+            "access_token": token_payload["access_token"],
+            "refresh_token": refresh_token,
+            "token_expires_at": timezone.now() + timedelta(seconds=expires_in),
+            "status": EmailConnection.STATUS_ACTIVE,
+        },
+    )
+    messages.success(request, "Gmail connected.")
+    return redirect("accounts:account_settings")
+
+
+@login_required
+@require_POST
+def disconnect_email_connection_view(request, connection_id):
+    gate = _require_verified_session(request)
+    if gate:
+        return gate
+
+    connection = EmailConnection.objects.filter(pk=connection_id, user=request.user).first()
+    if connection is None:
+        messages.error(request, "Email connection was not found for this account.")
+        return redirect("accounts:account_settings")
+
+    connection.status = EmailConnection.STATUS_DISCONNECTED
+    connection.access_token = ""
+    connection.save(update_fields=["status", "access_token", "updated_at"])
+    messages.success(request, "Gmail disconnected.")
+    return redirect("accounts:account_settings")
 
 
 @login_required

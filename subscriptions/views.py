@@ -95,8 +95,12 @@ def scan_inbox_view(request):
     if gate:
         return gate
 
+    email_connection_id = request.POST.get("email_connection_id") or None
     try:
-        result = scan_email_inbox_task(request.user.id)
+        if email_connection_id:
+            result = scan_email_inbox_task(request.user.id, int(email_connection_id))
+        else:
+            result = scan_email_inbox_task(request.user.id)
         if getattr(settings, "HUEY", {}).get("immediate") and hasattr(result, "get"):
             result = result.get(blocking=True)
     except InboxScanError as exc:
