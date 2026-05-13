@@ -328,7 +328,14 @@ def account_settings_view(request):
     gate = _require_verified_session(request)
     if gate:
         return gate
-    return render(request, "registration/account_settings.html")
+    return render(
+        request,
+        "registration/account_settings.html",
+        {
+            "username_form": UsernameChangeRequestForm(user=request.user),
+            "password_form": PasswordChangeForm(user=request.user),
+        },
+    )
 
 
 @login_required
