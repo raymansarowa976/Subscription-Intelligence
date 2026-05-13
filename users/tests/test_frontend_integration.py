@@ -298,6 +298,21 @@ class FrontendIntegrationTest(TestCase):
         self.assertContains(response, "Open dashboard")
         self.assertContains(response, self.dashboard_url)
 
+    def test_landing_page_mobile_desktop_visual_smoke_guards(self):
+        response = self.client.get(self.home_url)
+        content = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "md:grid-cols-3")
+        self.assertContains(response, "lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]")
+        self.assertContains(response, "overflow-hidden")
+        self.assertContains(response, "max-w-[18rem]")
+        self.assertContains(response, "w-full")
+        self.assertContains(response, "sm:w-auto")
+        self.assertContains(response, "min-h-[52vh]")
+        self.assertLess(content.index("Find the subscriptions hiding in your inbox"), content.index("Receipts become structured clues"))
+        self.assertLess(content.index("Turn subscription guesswork into a review queue"), content.index("Create account", content.index("Turn subscription guesswork into a review queue")))
+
     def test_visual_qa_pass_covers_major_auth_and_subscription_pages(self):
         auth_pages = [
             self.signup_url,
