@@ -419,6 +419,8 @@ class FrontendIntegrationTest(TestCase):
         response = self.client.get(self.dashboard_url)
 
         self.assertContains(response, 'id="right-sidebar-toggle"', html=False)
+        self.assertContains(response, 'data-scroll-header', html=False)
+        self.assertContains(response, "scroll_header.js?v=2")
         self.assertContains(response, 'aria-label="Open navigation sidebar"', html=False)
         self.assertContains(response, "Overview and insights")
         self.assertContains(response, "Analytics and reports")
