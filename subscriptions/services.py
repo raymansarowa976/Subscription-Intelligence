@@ -642,14 +642,27 @@ def build_dashboard_context(user):
 
     display_name = user.first_name or user.username
     featured_subscription = subscriptions[0] if subscriptions else None
+    inbox_lead_count = EmailSubscriptionLead.objects.filter(
+        user=user,
+        status=EmailSubscriptionLead.STATUS_PENDING,
+    ).count()
+    active_subscription_count = len(
+        [subscription for subscription in subscriptions if subscription.status == Subscription.STATUS_ACTIVE]
+    )
+    inactive_subscription_count = len(
+        [subscription for subscription in subscriptions if subscription.status != Subscription.STATUS_ACTIVE]
+    )
+    show_dashboard_zero_state = (
+        active_subscription_count == 0
+        and inactive_subscription_count == 0
+        and len(candidates) == 0
+        and inbox_lead_count == 0
+    )
+
     return {
         "subscriptions": subscriptions,
-        "active_subscription_count": len(
-            [subscription for subscription in subscriptions if subscription.status == Subscription.STATUS_ACTIVE]
-        ),
-        "inactive_subscription_count": len(
-            [subscription for subscription in subscriptions if subscription.status != Subscription.STATUS_ACTIVE]
-        ),
+        "active_subscription_count": active_subscription_count,
+        "inactive_subscription_count": inactive_subscription_count,
         "featured_subscription": featured_subscription,
         "candidate_count": len(candidates),
         "recent_candidates": candidates[:3],
@@ -667,10 +680,8 @@ def build_dashboard_context(user):
         "latest_sync": latest_sync,
         "latest_email_scan": latest_email_scan,
         "inbox_leads": inbox_leads,
-        "inbox_lead_count": EmailSubscriptionLead.objects.filter(
-            user=user,
-            status=EmailSubscriptionLead.STATUS_PENDING,
-        ).count(),
+        "inbox_lead_count": inbox_lead_count,
+        "show_dashboard_zero_state": show_dashboard_zero_state,
     }
 
 
