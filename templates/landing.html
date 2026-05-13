@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Subscription Intelligence | Find Hidden Subscriptions{% endblock %}
 {% block body_class %}bg-[linear-gradient(180deg,#f8f3ec_0%,#f4efe7_42%,#ffffff_100%)]{% endblock %}
 
 {% block content %}
-<header class="border-b border-black/10 bg-white/80 backdrop-blur-xl">
+<header class="app-scroll-header border-b border-black/10 bg-white/80 backdrop-blur-xl" data-scroll-header>
     <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-6 lg:px-8">
         <a class="flex min-w-0 items-center gap-3" href="{% url 'home' %}" aria-label="Subscription Intelligence home">
             <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-black/10 bg-[linear-gradient(135deg,#0e5a52,#0a403a)] text-sm font-extrabold tracking-[0.12em] text-white shadow-lg shadow-pine/15">SI</span>
@@ -183,4 +184,9 @@
         </div>
     </section>
 </main>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ block.super }}
+<script src="{% static 'js/scroll_header.js' %}?v=2" defer></script>
 {% endblock %}
