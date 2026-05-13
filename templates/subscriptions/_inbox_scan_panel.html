@@ -7,7 +7,7 @@
     <div>
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Inbox discovery</p>
         <h3 class="mt-2 text-2xl font-extrabold text-ink">Scan email for subscriptions</h3>
-        <p class="mt-3 text-sm leading-7 text-stone-500">
+        <p class="mt-3 text-sm font-medium leading-7 text-stone-600">
             {% if latest_email_scan %}
             Last inbox scan: {{ latest_email_scan.completed_at|date:"M j, Y g:i A" }} from {{ latest_email_scan.mailbox }}. Checked {{ latest_email_scan.scanned_message_count }} message{{ latest_email_scan.scanned_message_count|pluralize }} and matched {{ latest_email_scan.matched_message_count }}.
             {% else %}
