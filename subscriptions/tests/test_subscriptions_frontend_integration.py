@@ -240,6 +240,7 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Saving...")
         self.assertContains(response, "Dismissing...")
         self.assertContains(response, "Likely subscriptions from email")
+        self.assertContains(response, "Showing matches at 50% confidence or higher.")
         self.assertContains(response, "Next five charges")
         self.assertContains(response, "Potential savings")
         self.assertContains(response, "Source health")
@@ -321,8 +322,116 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         response = self.client.get(self.candidates_url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "No pending candidates yet.")
-        self.assertContains(response, "Run an inbox scan to surface likely subscription emails here.")
+        self.assertContains(response, "No pending candidates yet")
+        self.assertContains(response, "No high-confidence inbox matches")
+        self.assertContains(response, "Renewal calendar is waiting")
+
+    def test_candidates_page_hides_low_confidence_and_newsletter_email_leads(self):
+        scan = EmailScanRun.objects.create(
+            user=self.user,
+            mailbox="INBOX",
+            status=EmailScanRun.STATUS_SUCCEEDED,
+            scanned_message_count=29,
+            matched_message_count=3,
+        )
+        visible_lead = EmailSubscriptionLead.objects.create(
+            user=self.user,
+            scan_run=scan,
+            message_id="<billing@example.com>",
+            sender="billing@streambox.example",
+            sender_name="StreamBox Billing",
+            subject="Your StreamBox monthly receipt",
+            merchant_name="StreamBox",
+            snippet="Total paid: $12.99. Next billing date: May 4, 2026.",
+            confidence_score=86,
+            received_at=timezone.make_aware(datetime.combine(date.today(), datetime.min.time())),
+        )
+        SubscriptionCandidate.objects.create(
+            user=self.user,
+            source_type=SubscriptionCandidate.SOURCE_EMAIL_RECEIPT,
+            source_email_lead=visible_lead,
+            merchant_name="StreamBox",
+            normalized_vendor="streambox",
+            amount="12.99",
+            currency="USD",
+            cadence=SubscriptionCandidate.CADENCE_MONTHLY,
+            confidence_score=86,
+            likely_renewal_date=date(2026, 5, 4),
+        )
+        EmailSubscriptionLead.objects.create(
+            user=self.user,
+            scan_run=scan,
+            message_id="<newsletter@example.com>",
+            sender="quincy@example.com",
+            sender_name="Quincy Larson",
+            subject="Weekly coding newsletter",
+            merchant_name="Quincy Larson",
+            snippet="This week's community update and unsubscribe link.",
+            confidence_score=72,
+            received_at=timezone.make_aware(datetime.combine(date.today(), datetime.min.time())),
+        )
+        EmailSubscriptionLead.objects.create(
+            user=self.user,
+            scan_run=scan,
+            message_id="<weak@example.com>",
+            sender="hello@beem.example",
+            sender_name="Beem Credit Union",
+            subject="Account update",
+            merchant_name="Beem Credit Union",
+            snippet="A general account notice.",
+            confidence_score=30,
+            received_at=timezone.make_aware(datetime.combine(date.today(), datetime.min.time())),
+        )
+
+        response = self.client.get(self.candidates_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "StreamBox")
+        self.assertContains(response, "$12.99")
+        self.assertContains(response, "May 4, 2026")
+        self.assertContains(response, "Dismiss 2 low-signal")
+        self.assertContains(response, "29 processed - 3 matched")
+        self.assertNotContains(response, "Quincy Larson")
+        self.assertNotContains(response, "Beem Credit Union")
+
+    def test_bulk_dismiss_inbox_leads_clears_newsletter_and_low_confidence_noise(self):
+        scan = EmailScanRun.objects.create(user=self.user, mailbox="INBOX")
+        strong_lead = EmailSubscriptionLead.objects.create(
+            user=self.user,
+            scan_run=scan,
+            message_id="<strong@example.com>",
+            sender="billing@streambox.example",
+            sender_name="StreamBox Billing",
+            subject="Your StreamBox receipt",
+            merchant_name="StreamBox",
+            snippet="Receipt for your monthly plan.",
+            confidence_score=80,
+            received_at=timezone.make_aware(datetime.combine(date.today(), datetime.min.time())),
+        )
+        newsletter = EmailSubscriptionLead.objects.create(
+            user=self.user,
+            scan_run=scan,
+            message_id="<noise@example.com>",
+            sender="news@example.com",
+            sender_name="Mermaid",
+            subject="Mermaid weekly newsletter",
+            merchant_name="Mermaid",
+            snippet="Product updates and unsubscribe.",
+            confidence_score=70,
+            received_at=timezone.make_aware(datetime.combine(date.today(), datetime.min.time())),
+        )
+
+        response = self.client.post(
+            reverse("transactions:bulk_dismiss_inbox_leads"),
+            {"action": "noise"},
+            follow=True,
+        )
+
+        self.assertRedirects(response, self.candidates_url)
+        strong_lead.refresh_from_db()
+        newsletter.refresh_from_db()
+        self.assertEqual(strong_lead.status, EmailSubscriptionLead.STATUS_PENDING)
+        self.assertEqual(newsletter.status, EmailSubscriptionLead.STATUS_DISMISSED)
 
     def test_dashboard_only_shows_current_users_data(self):
         other_user = User.objects.create_user(
