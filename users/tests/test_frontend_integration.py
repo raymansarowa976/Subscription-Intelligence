@@ -24,6 +24,7 @@ class FrontendIntegrationTest(TestCase):
         self.change_username_url = reverse("accounts:change_username")
         self.confirm_username_change_url = reverse("accounts:confirm_username_change")
         self.change_password_url = reverse("accounts:change_password")
+        self.home_url = reverse("home")
         self.dashboard_url = reverse("dashboard")
         self.valid_signup = {
             "first_name": "Taylor",
@@ -265,6 +266,37 @@ class FrontendIntegrationTest(TestCase):
         self.assertContains(password_response, "Forgot password")
         self.assertContains(password_response, 'name="email"', html=False)
         self.assertContains(password_response, "Send reset link")
+
+    def test_landing_page_renders_for_anonymous_users(self):
+        response = self.client.get(self.home_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Find the subscriptions hiding in your inbox")
+        self.assertContains(response, "Create account")
+        self.assertContains(response, self.signup_url)
+        self.assertContains(response, "Sign in")
+        self.assertContains(response, self.login_url)
+        self.assertContains(response, "Review before tracking")
+        self.assertContains(response, "css/tailwind.css")
+        self.assertNotContains(response, "cdn.tailwindcss.com")
+
+    def test_landing_page_shows_dashboard_link_for_authenticated_users(self):
+        user = User.objects.create_user(
+            username="landinguser",
+            email="landinguser@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+        self.client.force_login(user)
+        session = self.client.session
+        session["login_token_verified"] = True
+        session.save()
+
+        response = self.client.get(self.home_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Open dashboard")
+        self.assertContains(response, self.dashboard_url)
 
     def test_visual_qa_pass_covers_major_auth_and_subscription_pages(self):
         auth_pages = [
