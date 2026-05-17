@@ -32,6 +32,7 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         session.save()
 
         self.dashboard_url = reverse("dashboard")
+        self.subscription_results_url = "/dashboard/subscriptions/"
         self.candidates_url = reverse("transactions:candidates")
         self.add_subscription_url = reverse("transactions:add_subscription")
 
@@ -206,6 +207,158 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Inactive")
         self.assertEqual(response.context["active_subscription_count"], 1)
         self.assertEqual(response.context["inactive_subscription_count"], 1)
+
+    def test_dashboard_renders_htmx_subscription_filters(self):
+        Subscription.objects.create(
+            user=self.user,
+            merchant_name="Netflix",
+            normalized_vendor="netflix",
+            amount="15.49",
+            currency="USD",
+            cadence="monthly",
+            category=Subscription.CATEGORY_STREAMING,
+        )
+
+        response = self.client.get(self.dashboard_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="subscription-filter-form"', html=False)
+        self.assertContains(response, 'id="subscription-results"', html=False)
+        self.assertContains(response, 'name="q"', html=False)
+        self.assertContains(response, 'type="search"', html=False)
+        self.assertContains(response, 'hx-get="/dashboard/subscriptions/"', html=False)
+        self.assertContains(response, 'hx-trigger="keyup changed delay:300ms"', html=False)
+        self.assertContains(response, 'hx-target="#subscription-results"', html=False)
+        self.assertContains(response, 'hx-push-url="false"', html=False)
+        self.assertContains(response, 'name="category"', html=False)
+        self.assertContains(response, "Streaming")
+        self.assertContains(response, "Software")
+        self.assertContains(response, "Netflix")
+
+    def test_htmx_subscription_search_filters_results_on_keyup_contract(self):
+        Subscription.objects.create(
+            user=self.user,
+            merchant_name="Netflix",
+            normalized_vendor="netflix",
+            amount="15.49",
+            currency="USD",
+            cadence="monthly",
+            category=Subscription.CATEGORY_STREAMING,
+        )
+        Subscription.objects.create(
+            user=self.user,
+            merchant_name="Adobe Creative Cloud",
+            normalized_vendor="adobe creative cloud",
+            amount="59.99",
+            currency="USD",
+            cadence="monthly",
+            category=Subscription.CATEGORY_SOFTWARE,
+        )
+
+        response = self.client.get(
+            self.subscription_results_url,
+            {"q": "net"},
+            HTTP_HX_REQUEST="true",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="subscription-results"', html=False)
+        self.assertContains(response, "Netflix")
+        self.assertNotContains(response, "Adobe Creative Cloud")
+        self.assertNotContains(response, "Portfolio overview")
+        self.assertNotContains(response, "<html", html=False)
+
+    def test_htmx_subscription_category_filter_updates_results_partial(self):
+        Subscription.objects.create(
+            user=self.user,
+            merchant_name="Netflix",
+            normalized_vendor="netflix",
+            amount="15.49",
+            currency="USD",
+            cadence="monthly",
+            category=Subscription.CATEGORY_STREAMING,
+        )
+        Subscription.objects.create(
+            user=self.user,
+            merchant_name="Notion",
+            normalized_vendor="notion",
+            amount="10.00",
+            currency="USD",
+            cadence="monthly",
+            category=Subscription.CATEGORY_SOFTWARE,
+        )
+
+        response = self.client.get(
+            self.subscription_results_url,
+            {"category": Subscription.CATEGORY_SOFTWARE},
+            HTTP_HX_REQUEST="true",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="subscription-results"', html=False)
+        self.assertContains(response, "Notion")
+        self.assertContains(response, "Software")
+        self.assertNotContains(response, "Netflix")
+        self.assertNotContains(response, "Portfolio overview")
+
+    def test_htmx_subscription_filters_show_clear_empty_state_when_no_results_match(self):
+        Subscription.objects.create(
+            user=self.user,
+            merchant_name="Netflix",
+            normalized_vendor="netflix",
+            amount="15.49",
+            currency="USD",
+            cadence="monthly",
+            category=Subscription.CATEGORY_STREAMING,
+        )
+
+        response = self.client.get(
+            self.subscription_results_url,
+            {"q": "does-not-exist", "category": Subscription.CATEGORY_SOFTWARE},
+            HTTP_HX_REQUEST="true",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="subscription-results"', html=False)
+        self.assertContains(response, "No subscriptions match those filters")
+        self.assertContains(response, "Try a different search or category.")
+        self.assertNotContains(response, "Netflix")
+
+    def test_htmx_subscription_filtering_preserves_user_data_isolation(self):
+        other_user = User.objects.create_user(
+            username="otherfilteruser",
+            email="otherfilter@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+        Subscription.objects.create(
+            user=self.user,
+            merchant_name="Netflix",
+            normalized_vendor="netflix",
+            amount="15.49",
+            currency="USD",
+            cadence="monthly",
+            category=Subscription.CATEGORY_STREAMING,
+        )
+        Subscription.objects.create(
+            user=other_user,
+            merchant_name="Netflix Team Account",
+            normalized_vendor="netflix team account",
+            amount="99.00",
+            currency="USD",
+            cadence="monthly",
+            category=Subscription.CATEGORY_STREAMING,
+        )
+
+        response = self.client.get(
+            self.subscription_results_url,
+            {"q": "netflix", "category": Subscription.CATEGORY_STREAMING},
+            HTTP_HX_REQUEST="true",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Netflix")
+        self.assertNotContains(response, "Netflix Team Account")
 
     def test_candidates_page_renders_review_ui_for_pending_candidates(self):
         SubscriptionCandidate.objects.create(
