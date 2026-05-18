@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -65,6 +66,47 @@ def dashboard_view(request):
     if gate:
         return gate
     return render(request, "subscriptions/dashboard.html", build_dashboard_context(request.user))
+
+
+def _filtered_subscriptions(request):
+    query = request.GET.get("q", "").strip()
+    category = request.GET.get("category", "").strip()
+    subscriptions = Subscription.objects.filter(user=request.user)
+    if query:
+        subscriptions = subscriptions.filter(
+            Q(merchant_name__icontains=query) | Q(normalized_vendor__icontains=query)
+        )
+    if category:
+        subscriptions = subscriptions.filter(category=category)
+
+    rows = list(subscriptions.order_by("merchant_name", "id"))
+    for subscription in rows:
+        subscription.dashboard_category = subscription.category or infer_subscription_category(
+            subscription.merchant_name
+        )
+        subscription.dashboard_category_label = dict(Subscription.CATEGORY_CHOICES).get(
+            subscription.dashboard_category,
+            subscription.dashboard_category.title(),
+        )
+        subscription.dashboard_status_label = dict(Subscription.STATUS_CHOICES).get(
+            subscription.status,
+            subscription.status.title(),
+        )
+    return rows
+
+
+@login_required
+def subscription_results_view(request):
+    gate = _require_verified_session(request)
+    if gate:
+        return gate
+    return render(
+        request,
+        "subscriptions/_subscription_results.html",
+        {
+            "subscriptions": _filtered_subscriptions(request),
+        },
+    )
 
 
 @require_POST

@@ -129,6 +129,33 @@
     </article>
 </section>
 
+<section class="mt-6 rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Subscriptions</p>
+            <h2 class="mt-2 text-2xl font-extrabold text-ink">Tracked services</h2>
+        </div>
+        <form id="subscription-filter-form" class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px]" method="get" action="{% url 'subscription_results' %}">
+            <label class="grid gap-2 text-sm font-bold text-ink">
+                <span class="sr-only">Search subscriptions</span>
+                <input class="rounded-2xl border-black/10 bg-stone-50 px-4 py-3 text-sm" type="search" name="q" placeholder="Search subscriptions" hx-get="{% url 'subscription_results' %}" hx-trigger="keyup changed delay:300ms" hx-target="#subscription-results" hx-push-url="false" hx-include="#subscription-filter-form">
+            </label>
+            <label class="grid gap-2 text-sm font-bold text-ink">
+                <span class="sr-only">Category</span>
+                <select class="rounded-2xl border-black/10 bg-stone-50 px-4 py-3 text-sm" name="category" hx-get="{% url 'subscription_results' %}" hx-trigger="change" hx-target="#subscription-results" hx-push-url="false" hx-include="#subscription-filter-form">
+                    <option value="">All categories</option>
+                    {% for value, label in subscription_category_choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </form>
+    </div>
+    <div class="mt-5">
+        {% include "subscriptions/_subscription_results.html" %}
+    </div>
+</section>
+
 <section class="mt-6 grid gap-5 lg:grid-cols-2">
         <article class="rounded-[28px] border border-white/15 bg-white/10 p-5 text-white shadow-panel backdrop-blur-sm">
             <div class="flex items-start justify-between gap-4">
