@@ -877,6 +877,7 @@ def build_dashboard_context(user):
 
     return {
         "subscriptions": subscriptions,
+        "subscription_category_choices": Subscription.CATEGORY_CHOICES,
         "active_subscription_count": active_subscription_count,
         "inactive_subscription_count": inactive_subscription_count,
         "featured_subscription": featured_subscription,
