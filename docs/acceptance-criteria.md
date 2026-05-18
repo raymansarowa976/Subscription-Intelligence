@@ -179,22 +179,22 @@
 - [x] **Code:** Password change flow includes a live password strength meter.
 - [x] **Code:** Account settings shows Gmail API connection status.
 - [x] **Code:** Account settings includes a visually separated danger zone.
-- [ ] **Test:** Account settings renders account overview, connected services, recent activity, inline edit controls, and danger zone.
-- [ ] **Test:** Inline username form preserves validation errors in context without losing the settings page.
-- [ ] **Test:** Inline password form preserves validation errors in context without losing the settings page.
-- [ ] **Test:** User can log out other active sessions while preserving the current session.
-- [ ] **Test:** Account deletion/data deletion flows require password confirmation and explicit typed confirmation.
-- [ ] **Test:** One user cannot view, delete, or export another user's account/subscription data.
-- [ ] **Code:** Recent activity uses real login/session metadata instead of placeholder copy.
-- [ ] **Code:** Add a dedicated "Log out other sessions" action.
-- [ ] **Code:** Add account data export before destructive deletion.
-- [ ] **Code:** Add delete subscription/imported evidence action with confirmation flow.
-- [ ] **Code:** Add close-account/deactivate flow with confirmation flow.
-- [ ] **Code:** Gmail re-sync and revoke-access actions are wired to real endpoints.
-- [ ] **Code:** Gmail status shows connected email, last sync time, token health, granted scopes, and clear error states.
-- [ ] **Code:** Privacy controls allow users to manage scan scope, retention period, automatic scans, and deletion of email-derived evidence.
-- [ ] **Code:** Card-level success/error feedback appears after username, password, Gmail, session, and danger-zone actions.
-- [ ] **Code:** Account settings keyboard, focus, and screen-reader behavior are covered for disclosure panels and destructive actions.
+- [x] **Test:** Account settings renders account overview, connected services, recent activity, inline edit controls, and danger zone.
+- [x] **Test:** Inline username form preserves validation errors in context without losing the settings page.
+- [x] **Test:** Inline password form preserves validation errors in context without losing the settings page.
+- [x] **Test:** User can log out other active sessions while preserving the current session.
+- [x] **Test:** Account deletion/data deletion flows require password confirmation and explicit typed confirmation.
+- [x] **Test:** One user cannot view, delete, or export another user's account/subscription data.
+- [x] **Code:** Recent activity uses real login/session metadata instead of placeholder copy.
+- [x] **Code:** Add a dedicated "Log out other sessions" action.
+- [x] **Code:** Add account data export before destructive deletion.
+- [x] **Code:** Add delete subscription/imported evidence action with confirmation flow.
+- [x] **Code:** Add close-account/deactivate flow with confirmation flow.
+- [x] **Code:** Gmail re-sync and revoke-access actions are wired to real endpoints.
+- [x] **Code:** Gmail status shows connected email, last sync time, token health, granted scopes, and clear error states.
+- [x] **Code:** Privacy controls allow users to manage scan scope, retention period, automatic scans, and deletion of email-derived evidence.
+- [x] **Code:** Card-level success/error feedback appears after username, password, Gmail, session, and danger-zone actions.
+- [x] **Code:** Account settings keyboard, focus, and screen-reader behavior are covered for disclosure panels and destructive actions.
 
 ### Issue #16: Landing Page Refinement
 **Acceptance Criteria:**
