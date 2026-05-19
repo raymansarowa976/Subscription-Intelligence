@@ -121,13 +121,18 @@ class EmailInboxScanTest(TestCase):
         self.assertEqual(result["matched_message_count"], 1)
         self.assertEqual(EmailSubscriptionLead.objects.filter(user=self.user).count(), 1)
 
-    def test_scan_inbox_view_can_enqueue_background_scan(self):
-        with patch("subscriptions.views.scan_email_inbox_task", return_value=object()) as scan_task:
+    def test_scan_inbox_view_shows_success_feedback_without_background_queue(self):
+        result = {
+            "scanned_message_count": 2,
+            "matched_message_count": 1,
+        }
+        with patch("subscriptions.views.scan_email_inbox_for_subscriptions", return_value=result) as scan_service:
             response = self.client.post(reverse("scan_inbox"), HTTP_HX_REQUEST="true")
 
         self.assertEqual(response.status_code, 200)
-        scan_task.assert_called_once_with(self.user.id)
-        self.assertContains(response, "Inbox scan queued.")
+        scan_service.assert_called_once_with(self.user)
+        self.assertContains(response, "Inbox scan complete. Checked 2 messages and found 1 likely subscription emails.")
+        self.assertContains(response, "bg-emerald-50")
         self.assertContains(response, 'id="inbox-scan-notice"', html=False)
 
     @patch("subscriptions.services.imaplib.IMAP4_SSL", new=FakeIMAP4)

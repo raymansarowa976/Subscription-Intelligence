@@ -232,6 +232,23 @@ class EmailOAuthIntegrationTest(TestCase):
 
         refresh_token.assert_called_once_with(connection)
 
+    def test_gmail_scan_refreshes_and_retries_when_stored_access_token_is_rejected(self):
+        connection = self._connection()
+
+        with (
+            patch("subscriptions.services.refresh_gmail_access_token") as refresh_token,
+            patch(
+                "subscriptions.services.fetch_gmail_messages",
+                side_effect=[InboxScanError("Reconnect Gmail to scan this mailbox."), []],
+            ) as fetch_messages,
+        ):
+            result = scan_email_inbox_for_subscriptions(self.user, email_connection_id=connection.id)
+
+        refresh_token.assert_called_once_with(connection)
+        self.assertEqual(fetch_messages.call_count, 2)
+        self.assertEqual(result["provider"], "gmail")
+        self.assertEqual(result["scanned_message_count"], 0)
+
     def test_existing_receipt_parser_creates_review_candidates_from_oauth_fetched_messages(self):
         connection = self._connection()
 
