@@ -6,62 +6,45 @@
 
 ---
 
-## 1. User Interface (UI) & Core Presentation
-
-### Architectural Guidelines
-* **Design Language Alignment:** Enforce consistent UI paradigms, design systems, and components across all application routing levels. 
-* **Aesthetic Baseline:** Maintain the "Neubrutalist-lite" visual framework of the landing page as the standard design language across all authenticated views. This design offers a more professional, modern, and uncluttered presentation compared to highly complex dashboards.
-* **Cognitive Accessibility:** Maximize user friendliness by optimizing spacing, preserving explicit container groupings, and reducing visual density.
-
-### Component Additions
-* **Contact Channels:** Design and build a functional `Contact Us` page or view to serve as a low-friction support channel for external users and potential recruiters.
+##  1. User Interface (UI) & Core Presentation
+- [ ] **Enforce UI Consistency:** Unify design systems, component borders, and container spacing across all pages.
+- [ ] **Standardize Design Language:** Apply the "Neubrutalist-lite" visual framework from the landing page to all authenticated views (simpler, cleaner, and more professional).
+- [ ] **Optimize Spacing & Visual Density:** Enhance padding and layout breathing room to maximize user-friendliness and reduce cognitive load.
+- [ ] **Build Contact Page:** Implement a functional `Contact Us` page or view to handle support channels and recruiter inquiries.
 
 ---
 
-## 2. Authentication, Authorization & Session Management (Auth)
-
-### Credentials Optimization
-* **Flexible Identifier Login:** Update the backend login architecture and backend processing strategy to accept **either** the User's `username` **OR** `email` address in a single submission field.
-
-### Session Security Policy
-* **Transient Browser Sessions:** Reconfigure the session framework (e.g., via Django session engine settings) to ensure that the user session terminates immediately when the browser tab or window is closed (`SESSION_COOKIE_AGE` modifications or standard storage alterations).
-* **Intelligent Routing:** If an authenticated user triggers a call to the `/login` or `/signin` route, catch the session state immediately and redirect them straight to the active dashboard.
+##  2. Authentication, Authorization & Session Management (Auth)
+- [ ] **Implement Dual-Identifier Login:** Update backend authentication logic to accept **either** `username` OR `email` in the login form.
+- [ ] **Configure Transient Session Security:** Set up session termination so the user is automatically logged out when the browser tab or window is closed.
+- [ ] **Add Intelligent Sign-In Routing:** Implement a middleware check: if an already authenticated user visits the sign-in page, automatically redirect them to the dashboard.
 
 ---
 
-## 3. Core Dashboard Ecosystem
-
-### System Onboarding
-* **Structured Onboarding:** Restructure the workflow so users connect their Gmail accounts *before* accessing scan controls. The interface must guide them through authentication clearly to eliminate any onboarding confusion.
-
-### Module Decoupling (Navigation & Sidebar)
-* **Gmail Integration Service:** Relocate all Gmail connection logic, data pipeline health, and configurations away from the main summary page into a dedicated, separate view mapped explicitly to the primary navigation sidebar.
-* **Analytics & Reporting:** Spin off the 6-month spend curves, metrics, and complex data models into a separate page accessible directly via the sidebar navigation.
-* **Data Sources Registry:** Implement the data sources interface as a distinct, functional view on the sidebar, showing connected mailboxes and service health indicators.
-
-### Action Demobilization & Layout Cleaning
-* **Consolidated Item Processing:** Condense redundant execution hooks down to a single, high-visibility `Review Pending Items` button to simplify the main interface layout.
+##  3. Core Dashboard Ecosystem
+- [ ] **Build Guided Onboarding Flow:** Force users to connect their Gmail account *before* accessing scan tools to eliminate initialization confusion.
+- [ ] **Decouple Gmail Integration:** Move all Gmail authentication logic, connection state details, and sync controls to a dedicated sidebar page.
+- [ ] **Decouple Analytics & Reports:** Extract the 6-month spend curve charts and complex data visualizations to a standalone analytics sidebar page.
+- [ ] **Decouple Data Sources Registry:** Move the mailbox health indicators and connection logs into a functional, standalone data sources page on the sidebar.
+- [ ] **Consolidate Dashboard Actions:** Remove redundant processing hooks and leave exactly one primary, high-visibility `Review Pending Items` button.
 
 ---
 
-## 4. Subscription Management Pipeline
-
-### Interactive Components
-* **Collapsible Data Lists:** Upgrade the `Pending Detections` interface with clean, expandable/collapsible accordion elements. This allows users to inspect granular transactional data details without cluttering the screen real estate.
+##  4. Subscription Management Pipeline
+- [ ] **Implement Collapsible UI Components:** Upgrade the `Pending Detections` elements to use collapsible accordion lists to clean up vertical screen real estate.
 
 ---
 
-## 5. Account Settings & System Preferences
-
-### View Restructuring (Navigation Layout)
-* **Hierarchical Settings Navigation:** Replace the traditional flat card layout with a double-column configuration featuring a specialized **Account Settings Sidebar**. This layout should mimic clean, high-end native operating system patterns (e.g., macOS/Windows settings) to enhance clarity on desktop views.
-* **Danger Zone Decoupling:** Extract the high-risk account functions from the main settings pane and move them into a dedicated, isolated sub-view linked cleanly from the primary account configuration area.
-
-### Feature Refinement & Code Deletion
-* **Session Pruning:** Remove the "Log out other sessions" utility to streamline token management.
-* **Button Deprecation:** Permanently delete the redundant or poorly scoped "Delete imported evidence" and "Close account" buttons to avoid platform friction.
-* **Credential Masking Overhaul:** Enhance all user confirmation modal fields (specifically security boxes involving secondary confirmation entry) with viewable/unviewable toggle buttons (the classic password mask eye icon) to match application standards.
-* **Actionable Labeling Updates:** Rewrite the text headings for user interaction areas (e.g., modify `Change Username` and `Change Password` micro-copy to reflect dynamic action flows).
+##  5. Account Settings & System Preferences
+- [ ] **Redesign Settings Layout:** Build a two-column layout featuring a dedicated **Account Settings Sidebar** that mimics native desktop/laptop settings menus.
+- [ ] **Isolate the Danger Zone:** Move high-risk actions away from general settings into an isolated, distinct view linked explicitly from the main settings pane.
+- [ ] **Prune Redundant Sessions:** Permanently remove the "Log out other sessions" button from the UI.
+- [ ] **Prune Deprecated Account Actions:** Remove the useless "Delete imported evidence" and "Close account" buttons that clutter the layout containers.
+- [ ] **Standardize Password Visibility:** Add an eye-icon toggle (mask/unmask) to the password fields inside confirmation boxes to align with the rest of the application's forms.
+- [ ] **Refactor Micro-Copy Labels:** Rewrite text strings for user interaction headings (e.g., update `Change Username` and `Change Password` titles for better clarity).
+- [ ] **Build Revocation Gatekeeping Logic:** Implement backend validation to ensure that if a user revokes Gmail permissions, the inbox scan engine completely blocks execution and surfaces a warning state.
+- [ ] **Build Login-Triggered Automation:** Program the background worker logic (**Huey**) to automatically trigger an inbox scan the moment a user signs into the platform if they have "Automatic Scans" enabled.
+- [ ] **Hook Up Scan Preferences:** Make the scanning interval checkboxes and email selection rules fully functional, persisting their configurations directly into PostgreSQL.
 
 ### Preferences & Automation Business Logic
 * **Revocation Gatekeeping:** Implement a hard validation wall on background actions. If a user revokes their Google Cloud permissions, the `Inbox Scan` engine must automatically disable, block manually forced tasks, and throw a clear alert state.
