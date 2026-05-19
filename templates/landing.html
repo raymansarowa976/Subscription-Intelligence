@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Subscription Intelligence | Find Hidden Subscriptions{% endblock %}
+{% block body_class %}bg-[linear-gradient(180deg,#f8f3ec_0%,#f4efe7_42%,#ffffff_100%)]{% endblock %}
+
+{% block content %}
+<header class="app-scroll-header border-b border-black/10 bg-white/80 backdrop-blur-xl" data-scroll-header>
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-6 lg:px-8">
+        <a class="flex min-w-0 items-center gap-3" href="{% url 'home' %}" aria-label="Subscription Intelligence home">
+            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-black/10 bg-[linear-gradient(135deg,#0e5a52,#0a403a)] text-sm font-extrabold tracking-[0.12em] text-white shadow-lg shadow-pine/15">SI</span>
+            <span class="min-w-0">
+                <span class="block text-base font-extrabold leading-5 text-ink">Subscription Intelligence</span>
+                <span class="mt-1 block text-xs font-bold uppercase tracking-[0.16em] text-stone-500">Renewal command center</span>
+            </span>
+        </a>
+
+        <nav class="flex items-center gap-2">
+            {% if request.user.is_authenticated %}
+            <a class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'accounts:login' %}">Login</a>
+            <a class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'accounts:signup' %}">Signup</a>
+            <a class="inline-flex min-h-11 items-center justify-center rounded-2xl bg-pine px-4 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 hover:bg-pineDeep" href="{% url 'dashboard' %}">Open dashboard</a>
+            {% else %}
+            <a class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'accounts:login' %}">Login</a>
+            <a class="inline-flex min-h-11 items-center justify-center rounded-2xl bg-pine px-4 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 hover:bg-pineDeep" href="{% url 'accounts:signup' %}">Signup</a>
+            {% endif %}
+        </nav>
+    </div>
+</header>
+
+<main>
+    <section class="mx-auto grid min-h-[calc(100vh-76px)] max-w-7xl items-center gap-8 px-4 pb-8 pt-8 md:px-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:px-8">
+        <div class="max-w-2xl">
+            <p class="inline-flex rounded-full border border-pine/15 bg-white px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-pine">Inbox receipts into renewal clarity</p>
+            <h1 class="mt-5 text-5xl font-extrabold leading-[1.02] tracking-tight text-ink md:text-6xl">Find the subscriptions hiding in your inbox.</h1>
+            <p class="mt-5 max-w-xl text-lg font-medium leading-8 text-stone-600">Subscription Intelligence scans billing signals, turns receipts into reviewable candidates, and helps you track renewals before they surprise you.</p>
+            <div class="mt-7 flex flex-col gap-3 sm:flex-row">
+                {% if request.user.is_authenticated %}
+                <a class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-pine px-6 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 hover:bg-pineDeep" href="{% url 'dashboard' %}">Open dashboard</a>
+                {% else %}
+                <a class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-pine px-6 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 hover:bg-pineDeep" href="{% url 'accounts:signup' %}">Create account</a>
+                <a class="inline-flex min-h-12 items-center justify-center rounded-2xl border border-black/10 bg-white px-6 py-3 text-sm font-extrabold text-ink transition hover:border-pine hover:text-pine" href="{% url 'accounts:login' %}">Sign in</a>
+                {% endif %}
+            </div>
+            <div class="mt-4 inline-flex max-w-full items-center gap-3 rounded-2xl border border-black/10 bg-white/80 px-4 py-3 text-sm font-bold text-stone-700 shadow-sm">
+                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700" aria-hidden="true">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 3 5 6v6c0 4.4 2.8 7.5 7 9 4.2-1.5 7-4.6 7-9V6l-7-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                        <path d="m9 12 2 2 4-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </span>
+                <span>Gmail-ready workflow with review-before-tracking controls.</span>
+            </div>
+            <div class="mt-7 grid gap-3 sm:grid-cols-3">
+                <div class="rounded-2xl border border-black/10 bg-white/80 p-4">
+                    <p class="text-sm font-extrabold text-ink">Review before tracking</p>
+                    <p class="mt-2 text-sm leading-6 text-stone-600">Email and parser matches stay suggestions until you confirm them.</p>
+                </div>
+                <div class="rounded-2xl border border-black/10 bg-white/80 p-4">
+                    <p class="text-sm font-extrabold text-ink">Email token access</p>
+                    <p class="mt-2 text-sm leading-6 text-stone-600">Sign-ins use a 6-digit verification step for account protection.</p>
+                </div>
+                <div class="rounded-2xl border border-black/10 bg-white/80 p-4">
+                    <p class="text-sm font-extrabold text-ink">No auto-approvals</p>
+                    <p class="mt-2 text-sm leading-6 text-stone-600">The app surfaces evidence. You decide what belongs in your tracker.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="relative">
+            <section class="overflow-hidden rounded-[30px] border border-black/10 bg-white shadow-panel" aria-label="Product preview">
+                <div class="border-b border-black/10 bg-[linear-gradient(120deg,#0e5a52,#0a403a_55%,#c96f3b)] p-5 text-white">
+                    <div class="flex items-center justify-between gap-4">
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-[0.18em] text-white/70">Live workspace preview</p>
+                            <h2 class="mt-2 text-2xl font-extrabold">Renewal command center</h2>
+                        </div>
+                        <span class="rounded-full bg-white/15 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.14em]">Private</span>
+                    </div>
+                    <div class="mt-5 grid gap-3 sm:grid-cols-3">
+                        <div class="rounded-2xl bg-white/10 p-4">
+                            <p class="text-xs font-bold uppercase tracking-[0.16em] text-white/60">Monthly</p>
+                            <p class="mt-2 text-2xl font-extrabold tabular-nums">$48.97</p>
+                        </div>
+                        <div class="rounded-2xl bg-white/10 p-4">
+                            <p class="text-xs font-bold uppercase tracking-[0.16em] text-white/60">Renewals</p>
+                            <p class="mt-2 text-2xl font-extrabold tabular-nums">3</p>
+                        </div>
+                        <div class="rounded-2xl bg-white/10 p-4">
+                            <p class="text-xs font-bold uppercase tracking-[0.16em] text-white/60">Signals</p>
+                            <p class="mt-2 text-2xl font-extrabold tabular-nums">12</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid gap-4 p-5">
+                    <article class="rounded-[24px] border border-black/10 bg-stone-50 p-5">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <p class="text-sm font-bold uppercase tracking-[0.16em] text-stone-500">Review candidate</p>
+                                <h3 class="mt-2 text-2xl font-extrabold text-ink">StreamBox</h3>
+                                <p class="mt-2 text-sm font-medium leading-6 text-stone-600">Monthly receipt found in inbox. Parser detected amount and renewal timing.</p>
+                            </div>
+                            <span class="rounded-full bg-white px-3 py-1 text-xs font-extrabold uppercase tracking-[0.14em] text-pine">86%</span>
+                        </div>
+                        <div class="mt-4 grid gap-2 rounded-2xl bg-white p-4 sm:grid-cols-3">
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">Price</p>
+                                <p class="mt-1 text-lg font-extrabold tabular-nums text-ink">$12.99</p>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">Renews</p>
+                                <p class="mt-1 text-lg font-extrabold tabular-nums text-ink">May 4</p>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">Action</p>
+                                <p class="mt-1 text-lg font-extrabold text-pine">Confirm</p>
+                            </div>
+                        </div>
+                    </article>
+
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <article class="rounded-[22px] border border-black/10 bg-white p-4">
+                            <p class="text-sm font-extrabold text-ink">Upcoming renewal</p>
+                            <p class="mt-2 text-sm leading-6 text-stone-600">DesignCloud renews in 2 days for <span class="font-extrabold tabular-nums text-ink">$19.00</span>.</p>
+                        </article>
+                        <article class="rounded-[22px] border border-emerald-100 bg-emerald-50 p-4">
+                            <p class="text-sm font-extrabold text-emerald-900">Source health</p>
+                            <p class="mt-2 text-sm leading-6 text-emerald-800">124 processed. 12 reviewable matches.</p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </section>
+
+    <section class="border-y border-black/10 bg-white">
+        <div class="mx-auto grid max-w-7xl gap-6 px-4 py-12 md:grid-cols-3 md:px-6 lg:px-8">
+            <article>
+                <p class="text-sm font-extrabold uppercase tracking-[0.16em] text-pine">Scan signals</p>
+                <h2 class="mt-3 text-2xl font-extrabold text-ink">Receipts become structured clues.</h2>
+                <p class="mt-3 text-sm font-medium leading-7 text-stone-600">Automated extraction identifies merchants and dates, leaving only the decision to you.</p>
+            </article>
+            <article>
+                <p class="text-sm font-extrabold uppercase tracking-[0.16em] text-pine">Review candidates</p>
+                <h2 class="mt-3 text-2xl font-extrabold text-ink">You approve what counts.</h2>
+                <p class="mt-3 text-sm font-medium leading-7 text-stone-600">Low-confidence and newsletter-like matches stay out of the main queue so real billing evidence is easier to see.</p>
+            </article>
+            <article>
+                <p class="text-sm font-extrabold uppercase tracking-[0.16em] text-pine">Track renewals</p>
+                <h2 class="mt-3 text-2xl font-extrabold text-ink">See upcoming charges early.</h2>
+                <p class="mt-3 text-sm font-medium leading-7 text-stone-600">Confirmed subscriptions power spend totals, renewal calendars, and reminder emails.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="mx-auto grid max-w-7xl gap-8 px-4 py-14 md:px-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:px-8">
+        <div>
+            <p class="text-sm font-extrabold uppercase tracking-[0.18em] text-pine">Built for sensitive data</p>
+            <h2 class="mt-3 text-4xl font-extrabold tracking-tight text-ink">Your inbox should not feel like a black box.</h2>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div class="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm">
+                <p class="text-base font-extrabold text-ink">Suggestions first</p>
+                <p class="mt-2 text-sm font-medium leading-7 text-stone-600">Parsed receipts create review candidates, not confirmed subscriptions.</p>
+            </div>
+            <div class="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm">
+                <p class="text-base font-extrabold text-ink">Noise reduction</p>
+                <p class="mt-2 text-sm font-medium leading-7 text-stone-600">Newsletter-like and low-confidence matches are held back from the primary queue.</p>
+            </div>
+            <div class="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm">
+                <p class="text-base font-extrabold text-ink">Verified sign-in</p>
+                <p class="mt-2 text-sm font-medium leading-7 text-stone-600">Email token verification protects access to the workspace.</p>
+            </div>
+            <div class="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm">
+                <p class="text-base font-extrabold text-ink">Clear source health</p>
+                <p class="mt-2 text-sm font-medium leading-7 text-stone-600">Scan status shows what was processed and what became reviewable.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="bg-ink text-white">
+        <div class="mx-auto flex min-h-[52vh] max-w-7xl flex-col justify-end gap-6 px-4 pb-8 pt-12 md:min-h-0 md:flex-row md:items-center md:justify-between md:px-6 md:py-12 lg:px-8">
+            <div class="max-w-xl">
+                <p class="text-sm font-extrabold uppercase tracking-[0.18em] text-white/55">Start with clarity</p>
+                <h2 class="mt-3 max-w-[18rem] text-3xl font-extrabold leading-tight tracking-tight sm:max-w-xl">Turn subscription guesswork into a review queue.</h2>
+                <p class="mt-3 text-sm font-semibold leading-7 text-white/65">Gmail-ready scanning. Email-token sign-in. Nothing tracked until you confirm it.</p>
+            </div>
+            {% if request.user.is_authenticated %}
+            <a class="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-white px-6 py-3 text-sm font-extrabold text-ink transition hover:-translate-y-0.5 sm:w-auto" href="{% url 'dashboard' %}">Open dashboard</a>
+            {% else %}
+            <a class="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-white px-6 py-3 text-sm font-extrabold text-ink transition hover:-translate-y-0.5 sm:w-auto" href="{% url 'accounts:signup' %}">Create account</a>
+            {% endif %}
+        </div>
+    </section>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ block.super }}
+<script src="{% static 'js/scroll_header.js' %}?v=2" defer></script>
+{% endblock %}

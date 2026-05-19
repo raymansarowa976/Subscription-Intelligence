@@ -1,0 +1,85 @@
+@tailwind base;
+
+@layer base {
+    * {
+        box-sizing: border-box;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        margin: 0;
+    }
+
+    a {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    canvas {
+        max-width: 100%;
+    }
+}
+
+@tailwind components;
+
+@layer components {
+    [data-htmx-polish].htmx-swapping {
+        opacity: 0.45;
+        transform: scale(0.995);
+    }
+
+    [data-htmx-polish].htmx-settling {
+        animation: htmxSwapSettle 180ms ease-out;
+    }
+
+    .htmx-request .htmx-idle-label {
+        display: none;
+    }
+
+    [data-htmx-focus-target]:focus {
+        outline: 3px solid rgba(15, 118, 110, 0.45);
+        outline-offset: 3px;
+    }
+
+    .app-scroll-header {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        transition: transform 220ms ease, opacity 220ms ease;
+        will-change: transform;
+    }
+
+    .app-scroll-header--hidden {
+        pointer-events: none;
+        transform: translateY(calc(-100% - 1.25rem));
+    }
+}
+
+@keyframes htmxSwapSettle {
+    from {
+        opacity: 0.65;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-htmx-polish].htmx-swapping,
+    [data-htmx-polish].htmx-settling {
+        animation: none;
+        transform: none;
+    }
+
+    .app-scroll-header {
+        transition: none;
+    }
+}
+
+@tailwind utilities;

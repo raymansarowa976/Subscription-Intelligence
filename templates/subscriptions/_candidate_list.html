@@ -1,0 +1,101 @@
+{% if htmx_response %}
+<p id="candidate-count-value" class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink" hx-swap-oob="true">{{ candidate_count }}</p>
+<p id="review-inbox-lead-count-value" class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink" hx-swap-oob="true">{{ inbox_lead_count }}</p>
+<p id="upcoming-renewal-count-value" class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink" hx-swap-oob="true">{{ upcoming_renewal_count }}</p>
+<p id="latest-inbox-scan-value" class="mt-4 text-xl font-extrabold tabular-nums tracking-tight text-ink" hx-swap-oob="true">
+    {% if latest_email_scan %}{{ latest_email_scan.get_status_display }}{% else %}Not run{% endif %}
+</p>
+<div id="filtered-inbox-lead-summary" hx-swap-oob="true">Filtered out {{ suppressed_inbox_lead_count }}</div>
+{% endif %}
+
+<div id="candidate-review-list" class="mt-8 grid gap-4 transition duration-200 ease-out" data-htmx-polish>
+    {% if review_notice %}
+    <div id="candidate-review-notice" class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800" role="status" aria-live="polite" tabindex="-1" data-htmx-focus-target>
+        {{ review_notice }}
+    </div>
+    {% endif %}
+    {% if review_form_errors %}
+    <div id="candidate-review-errors" class="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800" role="alert" aria-live="polite" tabindex="-1" data-htmx-focus-target>
+        {% for error in review_form_errors %}<p>{{ error }}</p>{% endfor %}
+    </div>
+    {% endif %}
+
+    {% for candidate in candidates %}
+    <article class="min-w-0 overflow-hidden rounded-[24px] border border-black/10 bg-[linear-gradient(180deg,#fafaf9,white)] p-6">
+        <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+            <div class="min-w-0">
+                <h3 class="break-words text-2xl font-extrabold text-ink [overflow-wrap:anywhere]">{{ candidate.merchant_name }}</h3>
+                <p class="mt-2 text-sm font-medium text-stone-600">{{ candidate.cadence_label }} recurring charge &bull; {{ candidate.currency }}</p>
+                {% if candidate.source_type == "email_receipt" %}
+                <p class="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">Suggested evidence from receipt parser</p>
+                {% if candidate.source_email_lead %}
+                <p class="mt-3 break-words text-sm font-medium leading-6 text-stone-600 [overflow-wrap:anywhere]">{{ candidate.source_email_lead.subject }}</p>
+                {% endif %}
+                <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
+                    <span class="rounded-full bg-stone-100 px-3 py-1 tabular-nums">Parser confidence {{ candidate.confidence_score }}%</span>
+                    {% if candidate.billing_date %}<span class="rounded-full bg-stone-100 px-3 py-1">Billed {{ candidate.billing_date|date:"M j, Y" }}</span>{% endif %}
+                    {% if candidate.likely_renewal_date %}<span class="rounded-full bg-stone-100 px-3 py-1">Likely renews {{ candidate.likely_renewal_date|date:"M j, Y" }}</span>{% endif %}
+                </div>
+                <p class="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">Extracted fields</p>
+                {% else %}
+                <p class="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">{{ candidate.source_transaction_ids|length }} supporting transaction{{ candidate.source_transaction_ids|length|pluralize }}</p>
+                {% endif %}
+            </div>
+            <div class="text-left lg:text-right">
+                <p class="text-3xl font-extrabold tabular-nums text-ink">{{ candidate.formatted_amount }}</p>
+            </div>
+        </div>
+        {% if candidate.source_email_lead %}
+        <details class="mt-4 rounded-2xl border border-black/5 bg-white px-4 py-3">
+            <summary class="cursor-pointer rounded-xl text-sm font-extrabold text-pine focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pine">Show full email context</summary>
+            <p class="mt-3 break-words text-sm font-medium leading-7 text-stone-600 [overflow-wrap:anywhere]">{{ candidate.source_email_lead.cleaned_body|default:candidate.source_email_lead.snippet }}</p>
+        </details>
+        {% endif %}
+
+        <div class="mt-5 flex flex-wrap gap-3">
+            <form method="post" action="{% url 'transactions:confirm_candidate' candidate.id %}" hx-post="{% url 'transactions:confirm_candidate' candidate.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML" hx-push-url="false" hx-disabled-elt="find button">
+                {% csrf_token %}
+                <input type="hidden" name="merchant_name" value="{{ candidate.merchant_name }}">
+                <input type="hidden" name="amount" value="{{ candidate.amount }}">
+                <input type="hidden" name="currency" value="{{ candidate.currency }}">
+                <input type="hidden" name="cadence" value="{{ candidate.cadence }}">
+                <input type="hidden" name="category" value="{{ candidate.suggested_category|default:'other' }}">
+                {% if candidate.likely_renewal_date %}<input type="hidden" name="next_renewal" value="{{ candidate.likely_renewal_date|date:'Y-m-d' }}">{% endif %}
+                <button class="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70" type="submit" name="action" value="confirm" aria-live="polite">
+                    <span class="htmx-idle-label">Confirm subscription</span>
+                    <span class="htmx-indicator inline-flex items-center gap-2">
+                        <span class="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true"></span>
+                        Saving...
+                    </span>
+                </button>
+            </form>
+            <form method="post" action="{% url 'transactions:reject_candidate' candidate.id %}" hx-post="{% url 'transactions:reject_candidate' candidate.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML" hx-push-url="false" hx-disabled-elt="find button">
+                {% csrf_token %}
+                <button class="inline-flex items-center justify-center gap-2 rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-rose-200 hover:text-rose-600 disabled:cursor-wait disabled:opacity-70" type="submit" aria-live="polite">
+                    <span class="htmx-idle-label">Reject</span>
+                    <span class="htmx-indicator inline-flex items-center gap-2 text-rose-600">
+                        <span class="h-3 w-3 animate-spin rounded-full border-2 border-rose-200 border-t-rose-600" aria-hidden="true"></span>
+                        Dismissing...
+                    </span>
+                </button>
+            </form>
+        </div>
+    </article>
+    {% empty %}
+    <div id="candidate-empty-state" class="rounded-[24px] border border-dashed border-black/15 bg-stone-50 p-8 text-center" role="status" aria-live="polite" tabindex="-1" {% if not review_notice %}data-htmx-focus-target{% endif %}>
+        <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-white text-pine shadow-sm">
+            <svg class="h-9 w-9" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 3v18M5 8h14M7 16h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+        </div>
+        {% if filtered_query_active %}
+        <p class="mt-5 text-base font-extrabold text-ink">No review items match those filters</p>
+        <p class="mt-2 text-sm font-medium leading-7 text-stone-600">Reset filters to see the full review queue.</p>
+        <a class="mt-4 inline-flex items-center justify-center rounded-2xl bg-pine px-4 py-2 text-sm font-extrabold text-white" href="{% url 'transactions:candidates' %}">Reset filters</a>
+        {% else %}
+        <p class="mt-5 text-base font-extrabold text-ink">No pending candidates yet.</p>
+        <p class="mt-2 text-sm font-medium leading-7 text-stone-600">New recurring charges and parsed receipt evidence will appear here when they are strong enough for review.</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>

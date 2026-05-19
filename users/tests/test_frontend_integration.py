@@ -20,9 +20,11 @@ class FrontendIntegrationTest(TestCase):
         self.resend_url = reverse("accounts:resend_token")
         self.forgot_username_url = reverse("accounts:forgot_username")
         self.forgot_password_url = reverse("accounts:forgot_password")
+        self.account_settings_url = reverse("accounts:account_settings")
         self.change_username_url = reverse("accounts:change_username")
         self.confirm_username_change_url = reverse("accounts:confirm_username_change")
         self.change_password_url = reverse("accounts:change_password")
+        self.home_url = reverse("home")
         self.dashboard_url = reverse("dashboard")
         self.valid_signup = {
             "first_name": "Taylor",
@@ -39,6 +41,9 @@ class FrontendIntegrationTest(TestCase):
         self.assertContains(response, "Subscription Intelligence")
         self.assertContains(response, 'rel="icon"', html=False)
         self.assertContains(response, "images/favicon.svg")
+        self.assertContains(response, "css/tailwind.css")
+        self.assertNotContains(response, "cdn.tailwindcss.com")
+        self.assertNotContains(response, "tailwind.config")
         self.assertContains(response, "Create your account")
         self.assertContains(response, 'name="first_name"', html=False)
         self.assertContains(response, 'name="last_name"', html=False)
@@ -133,7 +138,7 @@ class FrontendIntegrationTest(TestCase):
         )
 
         self.assertRedirects(response, self.dashboard_url)
-        self.assertContains(response, "Subscription workspace")
+        self.assertContains(response, "Dashboard")
 
     def test_resend_token_sends_fresh_code(self):
         user = User.objects.create_user(
@@ -262,6 +267,94 @@ class FrontendIntegrationTest(TestCase):
         self.assertContains(password_response, 'name="email"', html=False)
         self.assertContains(password_response, "Send reset link")
 
+    def test_landing_page_renders_for_anonymous_users(self):
+        response = self.client.get(self.home_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Find the subscriptions hiding in your inbox")
+        self.assertContains(response, "Create account")
+        self.assertContains(response, self.signup_url)
+        self.assertContains(response, "Sign in")
+        self.assertContains(response, self.login_url)
+        self.assertContains(response, "Review before tracking")
+        self.assertContains(response, "css/tailwind.css")
+        self.assertNotContains(response, "cdn.tailwindcss.com")
+
+    def test_landing_page_shows_dashboard_link_for_authenticated_users(self):
+        user = User.objects.create_user(
+            username="landinguser",
+            email="landinguser@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+        self.client.force_login(user)
+        session = self.client.session
+        session["login_token_verified"] = True
+        session.save()
+
+        response = self.client.get(self.home_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Open dashboard")
+        self.assertContains(response, self.dashboard_url)
+
+    def test_landing_page_mobile_desktop_visual_smoke_guards(self):
+        response = self.client.get(self.home_url)
+        content = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "md:grid-cols-3")
+        self.assertContains(response, "lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]")
+        self.assertContains(response, "overflow-hidden")
+        self.assertContains(response, "max-w-[18rem]")
+        self.assertContains(response, "w-full")
+        self.assertContains(response, "sm:w-auto")
+        self.assertContains(response, "min-h-[52vh]")
+        self.assertLess(content.index("Find the subscriptions hiding in your inbox"), content.index("Receipts become structured clues"))
+        self.assertLess(content.index("Turn subscription guesswork into a review queue"), content.index("Create account", content.index("Turn subscription guesswork into a review queue")))
+
+    def test_visual_qa_pass_covers_major_auth_and_subscription_pages(self):
+        auth_pages = [
+            self.signup_url,
+            self.login_url,
+            self.forgot_username_url,
+            self.forgot_password_url,
+        ]
+        for url in auth_pages:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "css/tailwind.css")
+                self.assertContains(response, "min-h-screen")
+                self.assertContains(response, "max-w-7xl")
+                self.assertNotContains(response, "cdn.tailwindcss.com")
+
+        user = User.objects.create_user(
+            username="visualqa",
+            email="visualqa@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+        self.client.force_login(user)
+        session = self.client.session
+        session["login_token_verified"] = True
+        session.save()
+
+        subscription_pages = [
+            self.dashboard_url,
+            reverse("transactions:candidates"),
+            reverse("transactions:add_subscription"),
+        ]
+        for url in subscription_pages:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "css/tailwind.css")
+                self.assertContains(response, "right-sidebar-toggle")
+                self.assertContains(response, "max-w-7xl")
+                self.assertContains(response, "rounded-[")
+                self.assertNotContains(response, "cdn.tailwindcss.com")
+
     def test_password_reset_confirm_page_renders(self):
         user = User.objects.create_user(
             username="resetrender",
@@ -358,7 +451,7 @@ class FrontendIntegrationTest(TestCase):
 
         self.assertRedirects(response, self.verify_url)
 
-    def test_dashboard_links_directly_to_account_change_pages(self):
+    def test_dashboard_renders_hideable_sidebar_navigation(self):
         user = User.objects.create_user(
             username="settingslink",
             email="settingslink@gmail.com",
@@ -372,6 +465,32 @@ class FrontendIntegrationTest(TestCase):
 
         response = self.client.get(self.dashboard_url)
 
+        self.assertContains(response, 'id="right-sidebar-toggle"', html=False)
+        self.assertContains(response, 'data-scroll-header', html=False)
+        self.assertContains(response, "scroll_header.js?v=2")
+        self.assertContains(response, 'aria-label="Open navigation sidebar"', html=False)
+        self.assertContains(response, "Overview and insights")
+        self.assertContains(response, "Analytics and reports")
+        self.assertContains(response, "Gmail integrations")
+        self.assertContains(response, "Data sources")
+        self.assertContains(response, self.account_settings_url)
+        self.assertNotContains(response, "Profile and username management")
+
+    def test_account_settings_page_links_to_account_change_pages(self):
+        user = User.objects.create_user(
+            username="settingspage",
+            email="settingspage@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+        self.client.force_login(user)
+        session = self.client.session
+        session["login_token_verified"] = True
+        session.save()
+
+        response = self.client.get(self.account_settings_url)
+
+        self.assertContains(response, "Account settings")
         self.assertContains(response, "Change username")
         self.assertContains(response, self.change_username_url)
         self.assertContains(response, "Change password")

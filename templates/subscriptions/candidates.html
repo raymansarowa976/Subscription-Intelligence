@@ -1,36 +1,36 @@
 {% extends "subscriptions/app_shell.html" %}
 
 {% block title %}Subscription Review | Subscription Intelligence{% endblock %}
-{% block app_title %}Subscription review workspace{% endblock %}
-{% block page_heading %}Review subscriptions{% endblock %}
-{% block app_copy %}Work through inbox matches, recurring detections, renewal timing, and sync health from one organized review workspace built for fast confirmation decisions.{% endblock %}
+{% block app_title %}Review queue{% endblock %}
 {% block candidates_nav_class %}bg-white text-ink px-4 py-2.5 shadow-sm{% endblock %}
 
 {% block app_panel %}
+<h1 class="sr-only">Review subscriptions</h1>
+
 <section class="mt-6 grid gap-5 xl:grid-cols-4">
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Pending candidates</p>
-        <p class="mt-4 text-4xl font-extrabold tracking-tight text-ink">{{ candidate_count }}</p>
-        <p class="mt-4 text-sm leading-7 text-stone-500">Recurring detections waiting for review.</p>
+        <p id="candidate-count-value" class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">{{ candidate_count }}</p>
+        <p class="mt-4 text-sm font-medium leading-7 text-stone-600">Recurring detections waiting for review.</p>
     </article>
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Inbox matches</p>
-        <p class="mt-4 text-4xl font-extrabold tracking-tight text-ink">{{ inbox_lead_count }}</p>
-        <p class="mt-4 text-sm leading-7 text-stone-500">Likely subscription emails ready for inspection.</p>
+        <p id="review-inbox-lead-count-value" class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">{{ inbox_lead_count }}</p>
+        <p class="mt-4 text-sm font-medium leading-7 text-stone-600">Likely subscription emails ready for inspection.</p>
     </article>
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Upcoming renewals</p>
-        <p class="mt-4 text-4xl font-extrabold tracking-tight text-ink">{{ upcoming_renewal_count }}</p>
-        <p class="mt-4 text-sm leading-7 text-stone-500">Subscriptions renewing in the next 7 days.</p>
+        <p id="upcoming-renewal-count-value" class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">{{ upcoming_renewal_count }}</p>
+        <p class="mt-4 text-sm font-medium leading-7 text-stone-600">Subscriptions renewing in the next 7 days.</p>
     </article>
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Latest inbox scan</p>
-        <p class="mt-4 text-xl font-extrabold tracking-tight text-ink">
+            <p id="latest-inbox-scan-value" class="mt-4 text-xl font-extrabold tabular-nums tracking-tight text-ink">
             {% if latest_email_scan %}{{ latest_email_scan.get_status_display }}{% else %}Not run{% endif %}
         </p>
-        <p class="mt-4 text-sm leading-7 text-stone-500">
+        <p class="mt-4 text-sm font-medium leading-7 text-stone-600">
             {% if latest_email_scan %}
-            {{ latest_email_scan.completed_at|date:"M j, Y g:i A" }}
+            {{ latest_email_scan.scanned_message_count }} processed - {{ latest_email_scan.matched_message_count }} matched
             {% else %}
             Run an inbox scan from the dashboard to populate review leads.
             {% endif %}
@@ -45,74 +45,147 @@
                 <div>
                     <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Pending detections</p>
                     <h2 class="mt-2 text-3xl font-extrabold text-ink">Recurring subscription candidates</h2>
-                    <p class="mt-3 max-w-2xl text-sm leading-7 text-stone-500">Confirm the recurring charges that belong in your portfolio and dismiss anything that looks like a one-off purchase.</p>
+                    <p class="mt-3 max-w-2xl text-sm font-medium leading-7 text-stone-600">Confirm the recurring charges that belong in your portfolio and dismiss anything that looks like a one-off purchase.</p>
                 </div>
-                <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'dashboard' %}">Back to dashboard</a>
+                <a class="inline-flex items-center justify-center rounded-2xl bg-pine px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 hover:bg-pineDeep" href="{% url 'dashboard' %}">Back to dashboard</a>
             </div>
+            <form class="mt-6 grid gap-3 rounded-[24px] border border-black/10 bg-stone-50 p-4 md:grid-cols-3" method="get" action="{% url 'transactions:candidates' %}">
+                <input class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" type="search" name="q" value="{{ request.GET.q }}" placeholder="Search review items">
+                <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="source">
+                    <option value="">All sources</option>
+                    {% for value, label in source_type_choices %}<option value="{{ value }}" {% if request.GET.source == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+                <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="confidence">
+                    <option value="">All confidence</option>
+                    <option value="high" {% if request.GET.confidence == "high" %}selected{% endif %}>High</option>
+                    <option value="medium" {% if request.GET.confidence == "medium" %}selected{% endif %}>Medium</option>
+                    <option value="low" {% if request.GET.confidence == "low" %}selected{% endif %}>Low</option>
+                </select>
+                <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="status">
+                    <option value="">Any status</option>
+                    {% for value, label in candidate_status_choices %}<option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+                <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="cadence">
+                    <option value="">Any cadence</option>
+                    {% for value, label in cadence_choices %}<option value="{{ value }}" {% if request.GET.cadence == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+                <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="sort">
+                    <option value="">Newest</option>
+                    <option value="confidence" {% if request.GET.sort == "confidence" %}selected{% endif %}>Confidence</option>
+                    <option value="renewal_date" {% if request.GET.sort == "renewal_date" %}selected{% endif %}>Renewal date</option>
+                    <option value="amount" {% if request.GET.sort == "amount" %}selected{% endif %}>Amount</option>
+                    <option value="merchant" {% if request.GET.sort == "merchant" %}selected{% endif %}>Merchant name</option>
+                </select>
+                <button class="rounded-2xl bg-pine px-4 py-3 text-sm font-extrabold text-white" type="submit">Apply filters</button>
+                <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-bold text-ink" href="{% url 'transactions:candidates' %}">Reset filters</a>
+            </form>
 
-            <div class="mt-8 grid gap-4">
-                {% for candidate in candidates %}
-                <article class="rounded-[24px] border border-black/10 bg-[linear-gradient(180deg,#fafaf9,white)] p-6">
-                    <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-                        <div>
-                            <h3 class="text-2xl font-extrabold text-ink">{{ candidate.merchant_name }}</h3>
-                            <p class="mt-2 text-sm text-stone-500">{{ candidate.cadence_label }} recurring charge • {{ candidate.currency }}</p>
-                            <p class="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">{{ candidate.source_transaction_ids|length }} supporting transaction{{ candidate.source_transaction_ids|length|pluralize }}</p>
-                        </div>
-                        <div class="text-left lg:text-right">
-                            <p class="text-3xl font-extrabold text-ink">{{ candidate.formatted_amount }}</p>
-                        </div>
-                    </div>
-
-                    <div class="mt-5 flex flex-wrap gap-3">
-                        <form method="post" action="{% url 'transactions:confirm_candidate' candidate.id %}">
-                            {% csrf_token %}
-                            <button class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" type="submit" name="action" value="confirm">Confirm subscription</button>
-                        </form>
-                        <form method="post" action="{% url 'transactions:reject_candidate' candidate.id %}">
-                            {% csrf_token %}
-                            <button class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-rose-200 hover:text-rose-600" type="submit">Reject</button>
-                        </form>
-                    </div>
-                </article>
-                {% empty %}
-                <div class="rounded-[24px] border border-dashed border-black/15 bg-stone-50 p-8 text-center text-stone-500">
-                    No pending candidates yet.
-                </div>
-                {% endfor %}
-            </div>
+            {% include "subscriptions/_candidate_list.html" %}
         </section>
 
         <section class="rounded-[30px] border border-black/10 bg-white/90 p-8 shadow-panel">
-            <div class="flex items-center justify-between gap-4">
+            <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
                     <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Inbox matches</p>
                     <h2 class="mt-2 text-3xl font-extrabold text-ink">Likely subscriptions from email</h2>
+                    <p class="mt-3 max-w-2xl text-sm font-medium leading-7 text-stone-600">Showing matches at {{ reviewable_inbox_confidence_threshold }}% confidence or higher. Newsletter-like and low-confidence items are held back so the queue stays focused.</p>
                 </div>
-                <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">{{ inbox_lead_count }}</span>
+                <div class="flex flex-wrap items-center gap-3">
+                    <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">{{ inbox_lead_count }} visible</span>
+                    <a class="rounded-full bg-stone-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500" href="{% url 'transactions:candidates' %}?view=filtered">Filtered out</a>
+                    {% if suppressed_inbox_lead_count %}
+                    <form method="post" action="{% url 'transactions:bulk_dismiss_inbox_leads' %}">
+                        {% csrf_token %}
+                        <button class="inline-flex items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-extrabold uppercase tracking-[0.14em] text-rose-700 transition hover:bg-rose-100" type="submit" name="action" value="noise">Dismiss {{ suppressed_inbox_lead_count }} low-signal</button>
+                    </form>
+                    {% endif %}
+                </div>
             </div>
 
             <div class="mt-8 grid gap-4 md:grid-cols-2">
                 {% for lead in inbox_leads %}
-                <article class="rounded-[24px] border border-black/10 bg-stone-50 p-5">
+                <article class="min-w-0 overflow-hidden rounded-[24px] border border-black/10 bg-stone-50 p-5">
+                    <label class="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">
+                        <input class="rounded border-black/20" type="checkbox" name="lead_ids" value="{{ lead.id }}">
+                        Select
+                    </label>
                     <div class="flex items-start justify-between gap-4">
-                        <div>
-                            <p class="text-lg font-extrabold text-ink">{{ lead.merchant_name }}</p>
-                            <p class="mt-1 text-sm text-stone-500">{{ lead.subject }}</p>
+                        <div class="min-w-0">
+                            <p class="break-words text-lg font-extrabold text-ink [overflow-wrap:anywhere]">{{ lead.merchant_name }}</p>
+                            <p class="mt-1 break-words text-sm font-medium text-stone-600 [overflow-wrap:anywhere]">{{ lead.subject }}</p>
                         </div>
-                        <div class="rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">{{ lead.confidence_score }}%</div>
+                        <div class="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tabular-nums tracking-[0.18em] text-stone-500">{{ lead.confidence_score }}%</div>
                     </div>
-                    <p class="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">{{ lead.sender }} • {{ lead.received_at|date:"M j, Y" }}</p>
+                    <div class="mt-4 grid gap-2 rounded-2xl border border-black/5 bg-white p-4">
+                        <div class="flex items-center justify-between gap-4">
+                            <span class="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">Merchant</span>
+                            <span class="break-words text-sm font-extrabold text-ink [overflow-wrap:anywhere]">{{ lead.merchant_name }}</span>
+                        </div>
+                        <div class="flex items-center justify-between gap-4">
+                            <span class="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">Estimated price</span>
+                            <span class="text-sm font-extrabold tabular-nums text-ink">{% if lead.review_candidate %}{{ lead.review_candidate.formatted_amount }}{% else %}Needs receipt parse{% endif %}</span>
+                        </div>
+                        <div class="flex items-center justify-between gap-4">
+                            <span class="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">Renewal date</span>
+                            <span class="text-sm font-extrabold tabular-nums text-ink">{% if lead.review_candidate and lead.review_candidate.likely_renewal_date %}{{ lead.review_candidate.likely_renewal_date|date:"M j, Y" }}{% else %}Unknown{% endif %}</span>
+                        </div>
+                    </div>
+                    <p class="mt-3 break-words text-xs font-semibold uppercase tracking-[0.18em] text-stone-500 [overflow-wrap:anywhere]">{{ lead.sender }} - {{ lead.received_at|date:"M j, Y" }}</p>
                     {% if lead.snippet %}
-                    <p class="mt-3 text-sm leading-7 text-stone-600">{{ lead.snippet }}</p>
+                    <details class="mt-3 rounded-2xl border border-black/5 bg-white px-4 py-3">
+                        <summary class="cursor-pointer rounded-xl text-sm font-extrabold text-pine focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pine">Show email context</summary>
+                        <p class="mt-3 break-words text-sm font-medium leading-7 text-stone-600 [overflow-wrap:anywhere]">{{ lead.snippet }}</p>
+                    </details>
                     {% endif %}
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <form method="post" action="{% url 'transactions:dismiss_inbox_lead' lead.id %}" hx-post="{% url 'transactions:dismiss_inbox_lead' lead.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML">
+                            {% csrf_token %}
+                            <button class="rounded-2xl border border-black/10 bg-white px-3 py-2 text-xs font-extrabold text-ink" type="submit">Dismiss</button>
+                        </form>
+                        <form method="post" action="{% url 'transactions:mark_inbox_lead_newsletter' lead.id %}" hx-post="{% url 'transactions:mark_inbox_lead_newsletter' lead.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML">
+                            {% csrf_token %}
+                            <button class="rounded-2xl border border-black/10 bg-white px-3 py-2 text-xs font-extrabold text-ink" type="submit">Mark as newsletter</button>
+                        </form>
+                    </div>
                 </article>
                 {% empty %}
-                <div class="rounded-[24px] border border-dashed border-black/15 bg-stone-50 p-8 text-center text-stone-500 md:col-span-2">
-                    Run an inbox scan to surface likely subscription emails here.
+                <div class="rounded-[24px] border border-dashed border-black/15 bg-stone-50 p-8 text-center md:col-span-2">
+                    <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-white text-pine shadow-sm">
+                        <svg class="h-9 w-9" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4 7h16M4 12h10M4 17h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <p class="mt-5 text-base font-extrabold text-ink">No high-confidence inbox matches</p>
+                    <p class="mt-2 text-sm font-medium leading-7 text-stone-600">Run a scan or dismiss low-signal matches to keep this area focused on real billing evidence.</p>
                 </div>
                 {% endfor %}
             </div>
+            <form class="mt-5 flex flex-wrap items-center gap-3 rounded-2xl border border-black/10 bg-stone-50 p-4" method="post" action="{% url 'transactions:bulk_update_inbox_leads' %}" hx-post="{% url 'transactions:bulk_update_inbox_leads' %}" hx-target="#candidate-review-list" hx-swap="outerHTML">
+                {% csrf_token %}
+                <span class="text-sm font-extrabold text-ink">0 selected</span>
+                <button class="rounded-2xl bg-pine px-4 py-2 text-xs font-extrabold uppercase tracking-[0.14em] text-white" type="submit" name="action" value="dismiss">Dismiss selected</button>
+                <button class="rounded-2xl border border-black/10 bg-white px-4 py-2 text-xs font-extrabold uppercase tracking-[0.14em] text-ink" type="submit" name="action" value="newsletter">Mark selected newsletter</button>
+            </form>
+
+            {% if filtered_view %}
+            <section class="mt-8 rounded-[24px] border border-black/10 bg-stone-50 p-5">
+                <h3 class="text-xl font-extrabold text-ink">Filtered out</h3>
+                <div class="mt-4 grid gap-3">
+                    {% for lead in filtered_inbox_leads %}
+                    <article class="rounded-2xl border border-black/10 bg-white p-4">
+                        <p class="font-extrabold text-ink">{{ lead.subject }}</p>
+                        <p class="mt-2 text-sm font-medium text-stone-600">Why this was filtered: {{ lead.classification_reason }}</p>
+                        <form class="mt-3" method="post" action="{% url 'transactions:restore_inbox_lead' lead.id %}">
+                            {% csrf_token %}
+                            <button class="rounded-2xl bg-pine px-4 py-2 text-xs font-extrabold uppercase tracking-[0.14em] text-white" type="submit">Restore</button>
+                        </form>
+                    </article>
+                    {% empty %}
+                    <p class="text-sm font-medium text-stone-600">No filtered inbox matches.</p>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
         </section>
     </section>
 
@@ -126,17 +199,23 @@
                     <div class="flex items-start justify-between gap-4">
                         <div>
                             <p class="text-base font-bold text-ink">{{ entry.subscription.merchant_name }}</p>
-                            <p class="mt-1 text-sm text-stone-500">{{ entry.subscription.dashboard_category_label }} • {{ entry.subscription.cadence|title }}</p>
+                            <p class="mt-1 text-sm font-medium text-stone-600">{{ entry.subscription.dashboard_category_label }} • {{ entry.subscription.cadence|title }}</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-lg font-extrabold text-ink">${{ entry.subscription.amount|floatformat:2 }}</p>
+                            <p class="text-lg font-extrabold tabular-nums text-ink">${{ entry.subscription.amount|floatformat:2 }}</p>
                             <p class="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">{{ entry.next_renewal|date:"M j" }}</p>
                         </div>
                     </div>
                 </article>
                 {% empty %}
-                <div class="rounded-[22px] border border-dashed border-black/15 bg-stone-50 p-6 text-sm text-stone-500">
-                    Add or confirm subscriptions to populate your renewal timeline.
+                <div class="rounded-[22px] border border-dashed border-black/15 bg-stone-50 p-6 text-center">
+                    <div class="mx-auto grid h-16 w-16 place-items-center rounded-full bg-white text-pine shadow-sm">
+                        <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M8 3v4M16 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <p class="mt-4 text-sm font-extrabold text-ink">Renewal calendar is waiting</p>
+                    <p class="mt-2 text-sm font-medium leading-6 text-stone-600">Confirm subscriptions to turn detected signals into dated renewal reminders.</p>
                 </div>
                 {% endfor %}
             </div>
@@ -149,11 +228,17 @@
                 {% for insight in savings_insights %}
                 <article class="rounded-[22px] border border-emerald-100 bg-emerald-50 p-4">
                     <p class="text-base font-bold text-emerald-900">{{ insight.title }}</p>
-                    <p class="mt-2 text-sm leading-7 text-emerald-800">{{ insight.detail }}</p>
+                    <p class="mt-2 text-sm font-medium leading-7 text-emerald-800">{{ insight.detail }}</p>
                 </article>
                 {% empty %}
-                <div class="rounded-[22px] border border-dashed border-black/15 bg-stone-50 p-6 text-sm text-stone-500">
-                    No redundant service signals detected yet.
+                <div class="rounded-[22px] border border-dashed border-black/15 bg-stone-50 p-6 text-center">
+                    <div class="mx-auto grid h-16 w-16 place-items-center rounded-full bg-white text-pine shadow-sm">
+                        <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M12 3v18M5 8h14M7 16h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <p class="mt-4 text-sm font-extrabold text-ink">No overlap detected</p>
+                    <p class="mt-2 text-sm font-medium leading-6 text-stone-600">Savings signals appear after similar active subscriptions are confirmed.</p>
                 </div>
                 {% endfor %}
             </div>
@@ -162,7 +247,7 @@
         <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl md:col-span-2 xl:col-span-1">
             <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Review guidance</p>
             <h2 class="mt-2 text-2xl font-extrabold text-ink">Confirm only true recurring services</h2>
-            <p class="mt-3 text-sm leading-7 text-stone-500">Inbox matches and transaction candidates are signals, not final truth. Approve services that clearly recur and dismiss newsletter receipts, one-time purchases, or unrelated billing emails.</p>
+            <p class="mt-3 text-sm font-medium leading-7 text-stone-600">Inbox matches and transaction candidates are signals, not final truth. Approve services that clearly recur and dismiss newsletter receipts, one-time purchases, or unrelated billing emails.</p>
         </section>
 
         <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl md:col-span-2 xl:col-span-1">
@@ -171,7 +256,7 @@
             <div class="mt-5 space-y-5">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Transactions</p>
-                    <p class="mt-2 text-sm leading-7 text-stone-500">
+                    <p class="mt-2 text-sm font-medium leading-7 text-stone-600">
                         {% if latest_sync %}
                         {{ latest_sync.completed_at|date:"M j, Y g:i A" }} from {{ latest_sync.provider|title }} for account {{ latest_sync.account_id }}.
                         {% else %}
@@ -186,7 +271,7 @@
                 </div>
                 <div class="border-t border-black/10 pt-5">
                     <p class="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Inbox scan</p>
-                    <p class="mt-2 text-sm leading-7 text-stone-500">
+                    <p class="mt-2 text-sm font-medium leading-7 text-stone-600">
                         {% if latest_email_scan %}
                         {{ latest_email_scan.completed_at|date:"M j, Y g:i A" }} from {{ latest_email_scan.mailbox }}.
                         {% else %}
@@ -195,12 +280,24 @@
                     </p>
                     {% if latest_email_scan %}
                     <p class="mt-2 text-xs font-semibold uppercase tracking-[0.18em] {% if latest_email_scan.status == 'succeeded' %}text-emerald-700{% else %}text-rose-700{% endif %}">
-                        Inbox scan status: {{ latest_email_scan.get_status_display }}
+                        Inbox scan status: {{ latest_email_scan.get_status_display }} - {{ latest_email_scan.scanned_message_count }} processed - {{ latest_email_scan.matched_message_count }} matched
                     </p>
                     {% endif %}
+                    <div class="mt-5 grid gap-3">
+                        {% for scan in recent_email_scans %}
+                        <article class="rounded-2xl border border-black/10 bg-stone-50 p-4">
+                            <p class="text-sm font-extrabold text-ink">{{ scan.status_label }}</p>
+                            <p class="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">{{ scan.scanned_message_count }} processed - {{ scan.matched_message_count }} matched</p>
+                            <p class="mt-2 text-xs font-medium text-stone-600">Started {{ scan.created_at|date:"M j, Y g:i A" }}. Completed {{ scan.completed_at|date:"M j, Y g:i A" }}. Duration {{ scan.duration_seconds }}s. Parser candidates {{ scan.parser_candidate_count }}.</p>
+                            <a class="mt-3 inline-flex text-xs font-extrabold uppercase tracking-[0.14em] text-pine" href="{% url 'transactions:candidates' %}?scan={{ scan.id }}">Scan details</a>
+                            {% if scan.status == "failed" %}<button class="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-extrabold uppercase tracking-[0.14em] text-rose-700" type="button">Retry scan</button>{% endif %}
+                        </article>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </section>
     </aside>
 </section>
 {% endblock %}
+

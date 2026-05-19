@@ -137,6 +137,7 @@ celerybeat.pid
 # Environments
 .env
 .envrc
+node_modules/
 .venv
 env/
 venv/
@@ -211,7 +212,7 @@ venv/
 *.pyc
 
 __pycache__/
-/node_modules
+node_modules/
 .env
 
 db.sqlite3

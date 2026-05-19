@@ -2,13 +2,11 @@
 {% load static %}
 
 {% block title %}Change Username | Subscription Intelligence{% endblock %}
-{% block app_title %}Account settings{% endblock %}
-{% block page_heading %}Change username{% endblock %}
-{% block app_copy %}Enter your new username twice. We will email a confirmation token before the change is saved.{% endblock %}
-{% block username_nav_class %}bg-white text-ink px-4 py-2.5 shadow-sm{% endblock %}
+{% block app_title %}Account controls{% endblock %}
+{% block settings_nav_class %}border border-white/40 bg-white/20 shadow-[0_0_0_4px_rgba(255,255,255,0.12),0_12px_28px_rgba(0,0,0,0.16)]{% endblock %}
 
 {% block app_panel %}
-<section class="mt-6 max-w-2xl rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
+<section class="mt-6 mx-auto w-full max-w-2xl rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
     <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Current username</p>
     <p class="mt-2 text-2xl font-extrabold text-ink">{{ request.user.username }}</p>
 
@@ -50,7 +48,7 @@
         {% endfor %}
         <div class="flex flex-wrap gap-3">
             <button class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" type="submit">Send confirmation token</button>
-            <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'dashboard' %}">Back</a>
+            <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'accounts:account_settings' %}">Back</a>
         </div>
     </form>
 </section>

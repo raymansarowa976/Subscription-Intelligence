@@ -7,6 +7,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from subscriptions.models import EmailScanRun, EmailSubscriptionLead
 from subscriptions.services import InboxScanError, scan_email_inbox_for_subscriptions
+from subscriptions.tasks import scan_email_inbox_task
 
 
 User = get_user_model()
@@ -111,6 +112,60 @@ class EmailInboxScanTest(TestCase):
         self.assertContains(response, "Review subscriptions")
         self.assertContains(response, "Your Netflix monthly receipt")
         self.assertContains(response, "Likely subscriptions from email")
+
+    @patch("subscriptions.services.imaplib.IMAP4_SSL", new=FakeIMAP4)
+    def test_huey_task_runs_inbox_scan_outside_request_response_cycle(self):
+        result = scan_email_inbox_task.call_local(self.user.id)
+
+        self.assertEqual(result["scanned_message_count"], 2)
+        self.assertEqual(result["matched_message_count"], 1)
+        self.assertEqual(EmailSubscriptionLead.objects.filter(user=self.user).count(), 1)
+
+    def test_scan_inbox_view_shows_success_feedback_without_background_queue(self):
+        result = {
+            "scanned_message_count": 2,
+            "matched_message_count": 1,
+        }
+        with patch("subscriptions.views.scan_email_inbox_for_subscriptions", return_value=result) as scan_service:
+            response = self.client.post(reverse("scan_inbox"), HTTP_HX_REQUEST="true")
+
+        self.assertEqual(response.status_code, 200)
+        scan_service.assert_called_once_with(self.user)
+        self.assertContains(response, "Inbox scan complete. Checked 2 messages and found 1 likely subscription emails.")
+        self.assertContains(response, "bg-emerald-50")
+        self.assertContains(response, 'id="inbox-scan-notice"', html=False)
+
+    @patch("subscriptions.services.imaplib.IMAP4_SSL", new=FakeIMAP4)
+    def test_htmx_scan_inbox_view_returns_dashboard_feedback_panel(self):
+        response = self.client.post(reverse("scan_inbox"), HTTP_HX_REQUEST="true")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="dashboard-inbox-lead-count-value"', html=False)
+        self.assertContains(response, 'id="dashboard-review-queue-count-value"', html=False)
+        self.assertContains(response, 'hx-swap-oob="true"', html=False)
+        self.assertContains(response, 'id="inbox-scan-panel"', html=False)
+        self.assertContains(response, 'id="inbox-scan-notice"', html=False)
+        self.assertContains(response, 'role="status"', html=False)
+        self.assertContains(response, 'aria-live="polite"', html=False)
+        self.assertContains(response, 'data-htmx-focus-target', html=False)
+        self.assertContains(response, "Inbox scan complete. Checked 2 messages and found 1 likely subscription emails.")
+        self.assertContains(response, "Last inbox scan:")
+        self.assertContains(response, "Review matches")
+        self.assertNotContains(response, "Subscription review workspace")
+
+    @override_settings(IMAP_USERNAME="", IMAP_PASSWORD="")
+    def test_htmx_scan_inbox_view_returns_error_feedback_panel(self):
+        response = self.client.post(reverse("scan_inbox"), HTTP_HX_REQUEST="true")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="dashboard-inbox-lead-count-value"', html=False)
+        self.assertContains(response, 'hx-swap-oob="true"', html=False)
+        self.assertContains(response, 'id="inbox-scan-panel"', html=False)
+        self.assertContains(response, 'id="inbox-scan-notice"', html=False)
+        self.assertContains(response, 'role="status"', html=False)
+        self.assertContains(response, "Inbox credentials are not configured.")
+        self.assertContains(response, "Scan inbox now")
+        self.assertNotContains(response, "Subscription review workspace")
 
     @override_settings(IMAP_USERNAME="", IMAP_PASSWORD="")
     def test_scan_email_inbox_requires_configured_credentials(self):

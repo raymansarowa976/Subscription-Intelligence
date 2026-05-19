@@ -3,6 +3,8 @@ Full-stack subscription tracker with custom auth, relational billing logic, and 
 
 Stack: Django 5.1, Postgres, HTMX, Tailwind, Huey/Redis, Ruff, Mypy, Pytest, WhiteNoise.
 
+Project scope and delivery criteria live in [docs/acceptance_criteria.md](docs/acceptance_criteria.md).
+
 ## Local development
 
 If you want to run the app without PostgreSQL, set `USE_SQLITE=True` in `.env` and start Django normally. That will use a local `db.sqlite3` file for development.
@@ -11,6 +13,32 @@ If you want PostgreSQL instead, keep `USE_SQLITE=False` and start the database c
 
 ```powershell
 docker compose up -d db redis
+```
+
+Scheduled alerts and account-settings Gmail re-syncs run through Huey. Keep a worker running in a second terminal while using those features locally. The dashboard "Scan inbox now" action runs immediately in the web request.
+
+```powershell
+python manage.py run_huey
+```
+
+## Frontend tooling
+
+Install the Node dependencies before working on compiled Tailwind styles:
+
+```powershell
+npm install
+```
+
+Build Tailwind once:
+
+```powershell
+npm run tailwind:build
+```
+
+Watch template and static JavaScript files while developing:
+
+```powershell
+npm run tailwind:watch
 ```
 
 ## Email verification
