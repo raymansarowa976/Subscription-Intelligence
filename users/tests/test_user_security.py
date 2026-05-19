@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -182,3 +183,6 @@ class UserSecurityTest(TestCase):
         self.assertFalse(
             verify_email_token("scoped@gmail.com", login_token, purpose="username-change")
         )
+
+    def test_sessions_expire_when_browser_closes(self):
+        self.assertTrue(settings.SESSION_EXPIRE_AT_BROWSER_CLOSE)

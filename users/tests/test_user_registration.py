@@ -129,6 +129,34 @@ class RegistrationTest(TestCase):
         self.assertRedirects(response, self.verify_url)
         self.assertEqual(len(mail.outbox), 1)
 
+    def test_login_accepts_email_address_as_identifier(self):
+        self.client.post(self.signup_url, self.user_data)
+        user = User.objects.get(email='tester@gmail.com')
+
+        response = self.client.post(
+            self.login_url,
+            {'username': '  TESTER@gmail.com  ', 'password': 'Complex123!'},
+        )
+
+        self.assertRedirects(response, self.verify_url)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(user.email, mail.outbox[0].to)
+
+    def test_authenticated_verified_user_is_redirected_from_signin_alias_to_dashboard(self):
+        user = User.objects.create_user(
+            username='signedin',
+            email='signedin@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+        self.login_verified(user)
+
+        login_response = self.client.get(self.login_url)
+        signin_response = self.client.get('/accounts/signin/')
+
+        self.assertRedirects(login_response, reverse('dashboard'))
+        self.assertRedirects(signin_response, reverse('dashboard'))
+
     def test_login_is_rate_limited_after_repeated_invalid_attempts(self):
         User.objects.create_user(
             username='ratelimited',
