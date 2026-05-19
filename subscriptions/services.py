@@ -284,7 +284,10 @@ def _score_subscription_email(subject, sender_email, body):
 
 def _looks_like_newsletter(*, subject="", sender="", sender_name="", snippet="", cleaned_body=""):
     normalized = " ".join([subject, sender, sender_name, snippet, cleaned_body]).lower()
+    subject_sender = " ".join([subject, sender_name]).lower()
     if any(sender_hint in normalized for sender_hint in NEWSLETTER_SENDERS):
+        return True
+    if "newsletter" in subject_sender or "weekly update" in subject_sender:
         return True
     if any(term in normalized for term in NEWSLETTER_TERMS):
         billing_terms = {"invoice", "receipt", "charged", "payment", "billing date", "renews", "renewal date"}
@@ -292,9 +295,33 @@ def _looks_like_newsletter(*, subject="", sender="", sender_name="", snippet="",
     return False
 
 
+def reviewable_inbox_confidence_threshold():
+    return int(
+        getattr(
+            settings,
+            "REVIEWABLE_INBOX_CONFIDENCE_THRESHOLD",
+            REVIEWABLE_INBOX_CONFIDENCE_THRESHOLD,
+        )
+    )
+
+
+def classify_inbox_lead(lead):
+    if _looks_like_newsletter(
+        subject=lead.subject,
+        sender=lead.sender,
+        sender_name=lead.sender_name,
+        snippet=lead.snippet,
+        cleaned_body=lead.cleaned_body,
+    ):
+        return EmailSubscriptionLead.CLASSIFICATION_NEWSLETTER, "Newsletter or marketing language was detected."
+    if lead.confidence_score < reviewable_inbox_confidence_threshold():
+        return EmailSubscriptionLead.CLASSIFICATION_LOW_CONFIDENCE, "Confidence is below the review threshold."
+    return EmailSubscriptionLead.CLASSIFICATION_BILLING_SIGNAL, "Billing receipt signals were detected."
+
+
 def is_reviewable_inbox_lead(lead):
     return (
-        lead.confidence_score >= REVIEWABLE_INBOX_CONFIDENCE_THRESHOLD
+        lead.confidence_score >= reviewable_inbox_confidence_threshold()
         and not _looks_like_newsletter(
             subject=lead.subject,
             sender=lead.sender,
@@ -391,6 +418,11 @@ def _record_subscription_email(user, scan_run, message, fallback_id):
             },
         },
     )
+    classification, reason = classify_inbox_lead(lead)
+    if lead.classification != classification or lead.classification_reason != reason:
+        lead.classification = classification
+        lead.classification_reason = reason
+        lead.save(update_fields=["classification", "classification_reason"])
     from .tasks import parse_receipt_lead_task
 
     parse_receipt_lead_task.call_local(lead.id)
@@ -755,6 +787,9 @@ def build_dashboard_context(user):
     reviewable_inbox_leads = []
     suppressed_inbox_lead_count = 0
     for lead in pending_inbox_leads:
+        classification, reason = classify_inbox_lead(lead)
+        lead.classification = lead.classification or classification
+        lead.classification_reason = lead.classification_reason or reason
         if not is_reviewable_inbox_lead(lead):
             suppressed_inbox_lead_count += 1
             continue
@@ -905,7 +940,7 @@ def build_dashboard_context(user):
         "inbox_leads": reviewable_inbox_leads[:5],
         "inbox_lead_count": inbox_lead_count,
         "suppressed_inbox_lead_count": suppressed_inbox_lead_count,
-        "reviewable_inbox_confidence_threshold": REVIEWABLE_INBOX_CONFIDENCE_THRESHOLD,
+        "reviewable_inbox_confidence_threshold": reviewable_inbox_confidence_threshold(),
         "show_dashboard_zero_state": show_dashboard_zero_state,
     }
 
