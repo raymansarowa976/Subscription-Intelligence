@@ -54,9 +54,13 @@ class TransactionImportRun(models.Model):
 class EmailScanRun(models.Model):
     STATUS_SUCCEEDED = "succeeded"
     STATUS_FAILED = "failed"
+    STATUS_QUEUED = "queued"
+    STATUS_IN_PROGRESS = "in_progress"
     STATUS_CHOICES = [
         (STATUS_SUCCEEDED, "Succeeded"),
         (STATUS_FAILED, "Failed"),
+        (STATUS_QUEUED, "Queued"),
+        (STATUS_IN_PROGRESS, "In progress"),
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -131,6 +135,18 @@ class EmailSubscriptionLead(models.Model):
         (STATUS_CONFIRMED, "Confirmed"),
         (STATUS_DISMISSED, "Dismissed"),
     ]
+    CLASSIFICATION_BILLING_SIGNAL = "billing_signal"
+    CLASSIFICATION_NEWSLETTER = "newsletter"
+    CLASSIFICATION_MARKETING = "marketing"
+    CLASSIFICATION_LOW_CONFIDENCE = "low_confidence"
+    CLASSIFICATION_UNKNOWN = "unknown"
+    CLASSIFICATION_CHOICES = [
+        (CLASSIFICATION_BILLING_SIGNAL, "Billing signal"),
+        (CLASSIFICATION_NEWSLETTER, "Newsletter"),
+        (CLASSIFICATION_MARKETING, "Marketing"),
+        (CLASSIFICATION_LOW_CONFIDENCE, "Low confidence"),
+        (CLASSIFICATION_UNKNOWN, "Unknown"),
+    ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     scan_run = models.ForeignKey(
@@ -150,6 +166,14 @@ class EmailSubscriptionLead(models.Model):
     received_at = models.DateTimeField()
     confidence_score = models.PositiveSmallIntegerField(default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    classification = models.CharField(
+        max_length=30,
+        choices=CLASSIFICATION_CHOICES,
+        default=CLASSIFICATION_UNKNOWN,
+    )
+    classification_reason = models.TextField(blank=True, default="")
+    last_action = models.CharField(max_length=50, blank=True, default="")
+    last_action_at = models.DateTimeField(null=True, blank=True)
     raw_headers = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
