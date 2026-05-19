@@ -393,7 +393,7 @@ def _record_subscription_email(user, scan_run, message, fallback_id):
     )
     from .tasks import parse_receipt_lead_task
 
-    parse_receipt_lead_task(lead.id)
+    parse_receipt_lead_task.call_local(lead.id)
     return True, created
 
 
@@ -428,10 +428,10 @@ def refresh_gmail_access_token(connection):
     try:
         with urlopen(request, timeout=15) as response:
             payload = json.loads(response.read().decode("utf-8"))
-    except HTTPError:
+    except HTTPError as exc:
         connection.status = EmailConnection.STATUS_DISCONNECTED
         connection.save(update_fields=["status", "updated_at"])
-        raise InboxScanError("Reconnect Gmail to scan this mailbox.")
+        raise InboxScanError("Reconnect Gmail to scan this mailbox.") from exc
 
     connection.access_token = payload["access_token"]
     if payload.get("refresh_token"):
@@ -497,7 +497,12 @@ def _scan_gmail_connection(user, email_connection_id):
     created_count = 0
 
     try:
-        gmail_messages = fetch_gmail_messages(connection, query=query)[:max_messages]
+        try:
+            gmail_messages = fetch_gmail_messages(connection, query=query)[:max_messages]
+        except InboxScanError:
+            refresh_gmail_access_token(connection)
+            connection.refresh_from_db()
+            gmail_messages = fetch_gmail_messages(connection, query=query)[:max_messages]
         scanned_count = len(gmail_messages)
         for gmail_message in gmail_messages:
             message = _gmail_message_to_email_message(gmail_message)
