@@ -15,6 +15,12 @@ If you want PostgreSQL instead, keep `USE_SQLITE=False` and start the database c
 docker compose up -d db redis
 ```
 
+Scheduled alerts and account-settings Gmail re-syncs run through Huey. Keep a worker running in a second terminal while using those features locally. The dashboard "Scan inbox now" action runs immediately in the web request.
+
+```powershell
+python manage.py run_huey
+```
+
 ## Frontend tooling
 
 Install the Node dependencies before working on compiled Tailwind styles:

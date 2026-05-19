@@ -1,6 +1,5 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.conf import settings
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -20,8 +19,8 @@ from .services import (
     is_reviewable_inbox_lead,
     parse_request_json,
     record_failed_import_run,
+    scan_email_inbox_for_subscriptions,
 )
-from .tasks import scan_email_inbox_task
 
 
 def _require_verified_session(request):
@@ -149,11 +148,9 @@ def scan_inbox_view(request):
             email_connection_id = str(active_connection.id)
     try:
         if email_connection_id:
-            result = scan_email_inbox_task(request.user.id, int(email_connection_id))
+            result = scan_email_inbox_for_subscriptions(request.user, email_connection_id=int(email_connection_id))
         else:
-            result = scan_email_inbox_task(request.user.id)
-        if getattr(settings, "HUEY", {}).get("immediate") and hasattr(result, "get"):
-            result = result.get(blocking=True)
+            result = scan_email_inbox_for_subscriptions(request.user)
     except InboxScanError as exc:
         if _is_htmx_request(request):
             return _inbox_scan_partial(request, str(exc), "error")
@@ -164,13 +161,10 @@ def scan_inbox_view(request):
                 return _inbox_scan_partial(request, result.get("error", "Inbox scan failed."), "error")
             messages.error(request, result.get("error", "Inbox scan failed."))
             return redirect("transactions:candidates")
-        if isinstance(result, dict):
-            success_message = (
-                f"Inbox scan complete. Checked {result['scanned_message_count']} messages and found "
-                f"{result['matched_message_count']} likely subscription emails."
-            )
-        else:
-            success_message = "Inbox scan queued. Refresh this page in a moment to review new matches."
+        success_message = (
+            f"Inbox scan complete. Checked {result['scanned_message_count']} messages and found "
+            f"{result['matched_message_count']} likely subscription emails."
+        )
         if _is_htmx_request(request):
             return _inbox_scan_partial(request, success_message)
         messages.success(
