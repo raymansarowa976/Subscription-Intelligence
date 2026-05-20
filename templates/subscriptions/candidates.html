@@ -2,28 +2,28 @@
 
 {% block title %}Subscription Review | Subscription Intelligence{% endblock %}
 {% block app_title %}Review queue{% endblock %}
-{% block candidates_nav_class %}bg-white text-ink px-4 py-2.5 shadow-sm{% endblock %}
+{% block candidates_nav_class %}border-pine bg-white px-4 py-2.5 text-pine shadow-[0_0_0_4px_rgba(14,90,82,0.08),0_12px_28px_rgba(15,23,42,0.08)]{% endblock %}
 
 {% block app_panel %}
 <h1 class="sr-only">Review subscriptions</h1>
 
-<section class="mt-6 grid gap-5 xl:grid-cols-4">
-    <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
+<section class="mt-8 grid gap-6 xl:grid-cols-4">
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Pending candidates</p>
         <p id="candidate-count-value" class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">{{ candidate_count }}</p>
         <p class="mt-4 text-sm font-medium leading-7 text-stone-600">Recurring detections waiting for review.</p>
     </article>
-    <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Inbox matches</p>
         <p id="review-inbox-lead-count-value" class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">{{ inbox_lead_count }}</p>
         <p class="mt-4 text-sm font-medium leading-7 text-stone-600">Likely subscription emails ready for inspection.</p>
     </article>
-    <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Upcoming renewals</p>
         <p id="upcoming-renewal-count-value" class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">{{ upcoming_renewal_count }}</p>
         <p class="mt-4 text-sm font-medium leading-7 text-stone-600">Subscriptions renewing in the next 7 days.</p>
     </article>
-    <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Latest inbox scan</p>
             <p id="latest-inbox-scan-value" class="mt-4 text-xl font-extrabold tabular-nums tracking-tight text-ink">
             {% if latest_email_scan %}{{ latest_email_scan.get_status_display }}{% else %}Not run{% endif %}
@@ -38,9 +38,9 @@
     </article>
 </section>
 
-<section class="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.95fr)]">
+<section class="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.95fr)]">
     <section class="space-y-6">
-        <section class="rounded-[30px] border border-black/10 bg-white/90 p-8 shadow-panel">
+        <section class="rounded-[30px] border border-black/10 bg-white/90 p-7 shadow-panel md:p-8">
             <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
                     <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Pending detections</p>
@@ -49,7 +49,7 @@
                 </div>
                 <a class="inline-flex items-center justify-center rounded-2xl bg-pine px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 hover:bg-pineDeep" href="{% url 'dashboard' %}">Back to dashboard</a>
             </div>
-            <form class="mt-6 grid gap-3 rounded-[24px] border border-black/10 bg-stone-50 p-4 md:grid-cols-3" method="get" action="{% url 'transactions:candidates' %}">
+            <form class="mt-7 grid gap-4 rounded-[24px] border border-black/10 bg-stone-50 p-5 md:grid-cols-3" method="get" action="{% url 'transactions:candidates' %}">
                 <input class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" type="search" name="q" value="{{ request.GET.q }}" placeholder="Search review items">
                 <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="source">
                     <option value="">All sources</option>
@@ -83,7 +83,7 @@
             {% include "subscriptions/_candidate_list.html" %}
         </section>
 
-        <section class="rounded-[30px] border border-black/10 bg-white/90 p-8 shadow-panel">
+        <section class="rounded-[30px] border border-black/10 bg-white/90 p-7 shadow-panel md:p-8">
             <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
                     <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Inbox matches</p>
@@ -102,9 +102,9 @@
                 </div>
             </div>
 
-            <div class="mt-8 grid gap-4 md:grid-cols-2">
+            <div class="mt-8 grid gap-5 md:grid-cols-2">
                 {% for lead in inbox_leads %}
-                <article class="min-w-0 overflow-hidden rounded-[24px] border border-black/10 bg-stone-50 p-5">
+                <article class="min-w-0 overflow-hidden rounded-[24px] border border-black/10 bg-stone-50 p-6">
                     <label class="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">
                         <input class="rounded border-black/20" type="checkbox" name="lead_ids" value="{{ lead.id }}">
                         Select
@@ -160,7 +160,7 @@
                 </div>
                 {% endfor %}
             </div>
-            <form class="mt-5 flex flex-wrap items-center gap-3 rounded-2xl border border-black/10 bg-stone-50 p-4" method="post" action="{% url 'transactions:bulk_update_inbox_leads' %}" hx-post="{% url 'transactions:bulk_update_inbox_leads' %}" hx-target="#candidate-review-list" hx-swap="outerHTML">
+            <form class="mt-6 flex flex-wrap items-center gap-3 rounded-2xl border border-black/10 bg-stone-50 p-5" method="post" action="{% url 'transactions:bulk_update_inbox_leads' %}" hx-post="{% url 'transactions:bulk_update_inbox_leads' %}" hx-target="#candidate-review-list" hx-swap="outerHTML">
                 {% csrf_token %}
                 <span class="text-sm font-extrabold text-ink">0 selected</span>
                 <button class="rounded-2xl bg-pine px-4 py-2 text-xs font-extrabold uppercase tracking-[0.14em] text-white" type="submit" name="action" value="dismiss">Dismiss selected</button>
@@ -168,7 +168,7 @@
             </form>
 
             {% if filtered_view %}
-            <section class="mt-8 rounded-[24px] border border-black/10 bg-stone-50 p-5">
+            <section class="mt-8 rounded-[24px] border border-black/10 bg-stone-50 p-6">
                 <h3 class="text-xl font-extrabold text-ink">Filtered out</h3>
                 <div class="mt-4 grid gap-3">
                     {% for lead in filtered_inbox_leads %}

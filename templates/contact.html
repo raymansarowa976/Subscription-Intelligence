@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Contact | Subscription Intelligence{% endblock %}
+{% block body_class %}future-page bg-[#050b2f] text-white{% endblock %}
+
+{% block content %}
+<header class="app-scroll-header border-b border-white/10 bg-[#050b2f]/82 backdrop-blur-xl" data-scroll-header>
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-6 lg:px-8">
+        <a class="flex min-w-0 items-center gap-3" href="{% url 'home' %}" aria-label="Subscription Intelligence home">
+            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-cyan-200/30 bg-[linear-gradient(135deg,#38bdf8,#8b5cf6_52%,#ec4899)] text-sm font-extrabold tracking-[0.12em] text-white shadow-[0_0_32px_rgba(139,92,246,0.34)]">SI</span>
+            <span class="min-w-0">
+                <span class="block text-base font-extrabold leading-5 text-white">Subscription Intelligence</span>
+                <span class="mt-1 block text-xs font-bold uppercase tracking-[0.16em] text-sky-100/55">Contact channel</span>
+            </span>
+        </a>
+        <nav class="flex items-center gap-2">
+            {% if request.user.is_authenticated %}
+            <a class="inline-flex min-h-11 items-center justify-center rounded-2xl bg-sky-200 px-4 py-2.5 text-sm font-extrabold text-[#071042] shadow-[0_0_28px_rgba(56,189,248,0.34)] transition hover:-translate-y-0.5 hover:bg-white" href="{% url 'dashboard' %}">Open dashboard</a>
+            {% else %}
+            <a class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-bold text-white transition hover:border-sky-300/50 hover:text-sky-100" href="{% url 'accounts:login' %}">Sign in</a>
+            <a class="inline-flex min-h-11 items-center justify-center rounded-2xl bg-sky-200 px-4 py-2.5 text-sm font-extrabold text-[#071042] shadow-[0_0_28px_rgba(56,189,248,0.34)] transition hover:-translate-y-0.5 hover:bg-white" href="{% url 'accounts:signup' %}">Create account</a>
+            {% endif %}
+        </nav>
+    </div>
+</header>
+
+<main class="relative overflow-hidden border-b border-white/10 bg-[radial-gradient(circle_at_72%_16%,rgba(236,72,153,0.28),transparent_26%),radial-gradient(circle_at_18%_6%,rgba(56,189,248,0.28),transparent_30%),linear-gradient(135deg,#1428a8_0%,#07145c_42%,#050b2f_100%)]">
+    <div class="mx-auto grid min-h-[calc(100vh-76px)] max-w-7xl content-center gap-8 px-4 py-12 md:px-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:px-8">
+        <section class="max-w-2xl">
+            <p class="inline-flex rounded-full border border-fuchsia-200/30 bg-white/10 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-fuchsia-100">Support and inquiries</p>
+            <h1 class="mt-5 text-5xl font-extrabold leading-[1.02] tracking-tight text-white md:text-6xl">Contact Subscription Intelligence.</h1>
+            <p class="mt-5 max-w-xl text-lg font-medium leading-8 text-sky-50/74">Use the right channel for account support, product feedback, security concerns, or recruiter inquiries.</p>
+        </section>
+
+        <section class="grid gap-4" aria-label="Contact information">
+            <article class="rounded-[26px] border border-white/15 bg-white/[0.07] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.24)] backdrop-blur-xl">
+                <p class="text-sm font-extrabold uppercase tracking-[0.16em] text-sky-200">Account support</p>
+                <h2 class="mt-2 text-2xl font-extrabold text-white">Help with sign-in, scans, or subscriptions</h2>
+                <a class="mt-4 inline-flex break-all text-base font-extrabold text-sky-200 transition hover:text-white" href="mailto:support@subscriptionintelligence.app">support@subscriptionintelligence.app</a>
+                <p class="mt-3 text-sm font-medium leading-7 text-sky-50/68">Include your username, the page you were using, and what you expected to happen.</p>
+            </article>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+                <article class="rounded-[24px] border border-white/10 bg-white/[0.06] p-5 backdrop-blur-xl">
+                    <p class="text-sm font-extrabold uppercase tracking-[0.16em] text-fuchsia-200">Security</p>
+                    <h2 class="mt-2 text-xl font-extrabold text-white">Report a privacy or access issue</h2>
+                    <a class="mt-3 inline-flex break-all text-sm font-extrabold text-sky-200 transition hover:text-white" href="mailto:security@subscriptionintelligence.app">security@subscriptionintelligence.app</a>
+                </article>
+                <article class="rounded-[24px] border border-white/10 bg-white/[0.06] p-5 backdrop-blur-xl">
+                    <p class="text-sm font-extrabold uppercase tracking-[0.16em] text-violet-200">Recruiting</p>
+                    <h2 class="mt-2 text-xl font-extrabold text-white">Portfolio and hiring inquiries</h2>
+                    <a class="mt-3 inline-flex break-all text-sm font-extrabold text-sky-200 transition hover:text-white" href="mailto:rayman@subscriptionintelligence.app">rayman@subscriptionintelligence.app</a>
+                </article>
+            </div>
+        </section>
+    </div>
+</main>
+{% endblock %}
