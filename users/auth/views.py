@@ -29,6 +29,7 @@ from django.views.decorators.http import require_POST
 from subscriptions.models import (
     EmailConnection,
     EmailScanRun,
+    EmailScanPreference,
     EmailSubscriptionLead,
     Subscription,
     SubscriptionCandidate,
@@ -360,14 +361,12 @@ def _account_settings_context(request, username_form=None, password_form=None):
             .order_by("-created_at", "-id")
             .first()
         )
-    privacy_controls = request.session.get(
-        "account_privacy_controls",
-        {
-            "scan_scope": "receipts_only",
-            "retention_period_days": "180",
-            "automatic_scans": False,
-        },
-    )
+    scan_preferences, _ = EmailScanPreference.objects.get_or_create(user=request.user)
+    privacy_controls = {
+        "scan_scope": scan_preferences.scan_scope,
+        "retention_period_days": str(scan_preferences.retention_period_days),
+        "automatic_scans": scan_preferences.automatic_scans,
+    }
     return {
         "username_form": username_form or UsernameChangeRequestForm(user=request.user),
         "password_form": password_form or PasswordChangeForm(user=request.user),
@@ -376,6 +375,22 @@ def _account_settings_context(request, username_form=None, password_form=None):
         "latest_gmail_scan": latest_scan,
         "privacy_controls": privacy_controls,
     }
+
+
+def _automatic_scans_enabled(user):
+    return EmailScanPreference.objects.filter(user=user, automatic_scans=True).exists()
+
+
+def _queue_automatic_gmail_scan(user, connection):
+    if _automatic_scans_enabled(user) and connection.status == EmailConnection.STATUS_ACTIVE:
+        scan_email_inbox_task(user.id, connection.id)
+
+
+def _disable_automatic_scans(user):
+    EmailScanPreference.objects.update_or_create(
+        user=user,
+        defaults={"automatic_scans": False},
+    )
 
 
 def _render_account_settings(request, username_form=None, password_form=None):
@@ -546,7 +561,7 @@ def gmail_oauth_callback_view(request):
     refresh_token = token_payload.get("refresh_token") or (
         existing_connection.decrypted_refresh_token() if existing_connection else ""
     )
-    EmailConnection.objects.update_or_create(
+    connection, _ = EmailConnection.objects.update_or_create(
         user=request.user,
         provider=EmailConnection.PROVIDER_GMAIL,
         email_address=email_address,
@@ -558,6 +573,7 @@ def gmail_oauth_callback_view(request):
             "status": EmailConnection.STATUS_ACTIVE,
         },
     )
+    _queue_automatic_gmail_scan(request.user, connection)
     messages.success(request, "Gmail connected.")
     return redirect("accounts:account_settings")
 
@@ -616,6 +632,7 @@ def revoke_gmail_view(request, connection_id):
     connection.access_token = ""
     connection.refresh_token = ""
     connection.save(update_fields=["status", "access_token", "refresh_token", "updated_at"])
+    _disable_automatic_scans(request.user)
     messages.success(request, "Gmail access revoked.")
     return redirect("accounts:account_settings")
 
@@ -718,12 +735,24 @@ def update_privacy_controls_view(request):
     if gate:
         return gate
 
-    request.session["account_privacy_controls"] = {
-        "scan_scope": request.POST.get("scan_scope", "receipts_only"),
-        "retention_period_days": request.POST.get("retention_period_days", "180"),
-        "automatic_scans": request.POST.get("automatic_scans") == "on",
-    }
-    request.session.modified = True
+    scan_scope = request.POST.get("scan_scope", EmailScanPreference.SCOPE_RECEIPTS_ONLY)
+    if scan_scope not in dict(EmailScanPreference.SCOPE_CHOICES):
+        scan_scope = EmailScanPreference.SCOPE_RECEIPTS_ONLY
+    try:
+        retention_period_days = int(request.POST.get("retention_period_days", "180"))
+    except ValueError:
+        retention_period_days = 180
+    if retention_period_days not in {30, 90, 180}:
+        retention_period_days = 180
+
+    EmailScanPreference.objects.update_or_create(
+        user=request.user,
+        defaults={
+            "scan_scope": scan_scope,
+            "retention_period_days": retention_period_days,
+            "automatic_scans": request.POST.get("automatic_scans") == "on",
+        },
+    )
     messages.success(request, "Privacy controls saved.")
     return redirect("accounts:account_settings")
 

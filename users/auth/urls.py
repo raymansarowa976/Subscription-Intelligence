@@ -67,4 +67,5 @@ urlpatterns = [
     path('reactivate-account/', reactivate_legacy_account_view, name='reactivate_account'),
     path('activate/<uidb64>/<token>/', activate_view, name='activate'),
     path('login/', SubscriptionLoginView.as_view(), name='login'),
+    path('signin/', SubscriptionLoginView.as_view(), name='signin'),
 ]

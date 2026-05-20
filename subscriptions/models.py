@@ -126,6 +126,29 @@ class EmailConnection(models.Model):
         return _decrypt_email_token(self.refresh_token)
 
 
+class EmailScanPreference(models.Model):
+    SCOPE_RECEIPTS_ONLY = "receipts_only"
+    SCOPE_BILLING_MAIL = "billing_mail"
+    SCOPE_CHOICES = [
+        (SCOPE_RECEIPTS_ONLY, "Receipts only"),
+        (SCOPE_BILLING_MAIL, "Billing mail"),
+    ]
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="email_scan_preference",
+    )
+    scan_scope = models.CharField(max_length=30, choices=SCOPE_CHOICES, default=SCOPE_RECEIPTS_ONLY)
+    retention_period_days = models.PositiveIntegerField(default=180)
+    automatic_scans = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["user_id"]
+
+
 class EmailSubscriptionLead(models.Model):
     STATUS_PENDING = "pending"
     STATUS_CONFIRMED = "confirmed"
