@@ -83,3 +83,134 @@
 }
 
 @tailwind utilities;
+
+.future-page {
+    background:
+        radial-gradient(circle at 78% 12%, rgba(236, 72, 153, 0.20), transparent 24%),
+        radial-gradient(circle at 12% 4%, rgba(56, 189, 248, 0.18), transparent 28%),
+        linear-gradient(135deg, #1428a8 0%, #07145c 42%, #050b2f 100%);
+    color: #fff;
+}
+
+.future-page .app-scroll-header {
+    background: rgba(5, 11, 47, 0.86) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color: #fff !important;
+    box-shadow: 0 20px 70px rgba(0, 0, 0, 0.20);
+}
+
+.future-page aside {
+    background: rgba(7, 16, 66, 0.94) !important;
+    border-color: rgba(255, 255, 255, 0.14) !important;
+    color: #fff !important;
+}
+
+.future-page .shadow-panel {
+    box-shadow: 0 30px 100px rgba(0, 0, 0, 0.28) !important;
+}
+
+.future-page .bg-white,
+.future-page .bg-white\/70,
+.future-page .bg-white\/80,
+.future-page .bg-white\/90,
+.future-page .bg-white\/95,
+.future-page .bg-stone-50,
+.future-page .bg-stone-100,
+.future-page .bg-stone-200 {
+    background-color: rgba(255, 255, 255, 0.075) !important;
+}
+
+.future-page .border-black\/5,
+.future-page .border-black\/10,
+.future-page .border-black\/15,
+.future-page .border-black\/20,
+.future-page .border-stone-200 {
+    border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+.future-page .text-ink,
+.future-page .text-stone-700 {
+    color: #fff !important;
+}
+
+.future-page .text-stone-500,
+.future-page .text-stone-600 {
+    color: rgba(224, 242, 254, 0.68) !important;
+}
+
+.future-page .text-pine,
+.future-page .hover\:text-pine:hover,
+.future-page .hover\:text-pineDeep:hover {
+    color: #bae6fd !important;
+}
+
+.future-page .bg-pine,
+.future-page .bg-gradient-to-r.from-pine,
+.future-page .bg-\[linear-gradient\(135deg\2c \#0e5a52\2c \#0a403a\)\] {
+    background: linear-gradient(135deg, #38bdf8, #8b5cf6 52%, #ec4899) !important;
+}
+
+.future-page .shadow-pine\/15,
+.future-page .shadow-pine\/20 {
+    --tw-shadow-color: rgba(56, 189, 248, 0.26) !important;
+}
+
+.future-page .bg-rose-50 {
+    background-color: rgba(244, 63, 94, 0.12) !important;
+}
+
+.future-page .border-rose-100,
+.future-page .border-rose-200 {
+    border-color: rgba(251, 113, 133, 0.28) !important;
+}
+
+.future-page .text-rose-700,
+.future-page .text-rose-800 {
+    color: #fecdd3 !important;
+}
+
+.future-page .bg-emerald-50 {
+    background-color: rgba(16, 185, 129, 0.14) !important;
+}
+
+.future-page .border-emerald-100 {
+    border-color: rgba(110, 231, 183, 0.24) !important;
+}
+
+.future-page .text-emerald-700,
+.future-page .text-emerald-800,
+.future-page .text-emerald-900 {
+    color: #a7f3d0 !important;
+}
+
+.future-page input,
+.future-page select,
+.future-page textarea {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.16) !important;
+    color: #fff !important;
+}
+
+.future-page input::placeholder,
+.future-page textarea::placeholder {
+    color: rgba(224, 242, 254, 0.52) !important;
+}
+
+.future-page option {
+    background: #071042;
+    color: #fff;
+}
+
+.future-page [type="checkbox"],
+.future-page [type="radio"] {
+    color: #38bdf8 !important;
+}
+
+.future-page details[open],
+.future-page .open\:border-pine[open] {
+    border-color: rgba(56, 189, 248, 0.42) !important;
+}
+
+.future-page .ring-black\/10 {
+    --tw-ring-color: rgba(255, 255, 255, 0.12) !important;
+}
