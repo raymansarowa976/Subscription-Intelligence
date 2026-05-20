@@ -240,14 +240,18 @@
                 <h2 class="mt-3 max-w-[18rem] text-3xl font-extrabold leading-tight tracking-tight sm:max-w-xl">Turn subscription guesswork into a review queue.</h2>
                 <p class="mt-3 text-sm font-semibold leading-7 text-sky-50/78">Gmail-ready scanning. Email-token sign-in. Nothing tracked until you confirm it.</p>
             </div>
-            {% if request.user.is_authenticated %}
-            <a class="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-white px-6 py-3 text-sm font-extrabold text-[#071311] transition hover:-translate-y-0.5 sm:w-auto" href="{% url 'dashboard' %}">Open dashboard</a>
-            {% else %}
-            <a class="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-white px-6 py-3 text-sm font-extrabold text-[#071311] transition hover:-translate-y-0.5 sm:w-auto" href="{% url 'accounts:signup' %}">Create account</a>
-            {% endif %}
+            <div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                {% if request.user.is_authenticated %}
+                <a class="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-white px-6 py-3 text-sm font-extrabold text-[#071311] transition hover:-translate-y-0.5 sm:w-auto" href="{% url 'dashboard' %}">Open dashboard</a>
+                {% else %}
+                <a class="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-white px-6 py-3 text-sm font-extrabold text-[#071311] transition hover:-translate-y-0.5 sm:w-auto" href="{% url 'accounts:signup' %}">Create account</a>
+                {% endif %}
+                <a class="inline-flex min-h-12 w-full items-center justify-center rounded-2xl border border-white/25 bg-white/[0.08] px-6 py-3 text-sm font-extrabold text-white transition hover:-translate-y-0.5 hover:border-white/50 sm:w-auto" href="{% url 'contact' %}">Contact us</a>
+            </div>
         </div>
     </section>
 </main>
+
 {% endblock %}
 
 {% block extra_scripts %}
