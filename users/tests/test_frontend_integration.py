@@ -479,6 +479,24 @@ class FrontendIntegrationTest(TestCase):
         self.assertContains(response, self.account_settings_url)
         self.assertNotContains(response, "Profile and username management")
 
+    def test_authenticated_pages_send_close_signal_for_transient_sessions(self):
+        user = User.objects.create_user(
+            username="closedsession",
+            email="closedsession@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+        self.client.force_login(user)
+        session = self.client.session
+        session["login_token_verified"] = True
+        session.save()
+
+        response = self.client.get(self.dashboard_url)
+
+        self.assertContains(response, reverse("accounts:browser_session_closed"))
+        self.assertContains(response, "beforeunload")
+        self.assertContains(response, "keepalive: true")
+
     def test_account_settings_page_links_to_account_change_pages(self):
         user = User.objects.create_user(
             username="settingspage",

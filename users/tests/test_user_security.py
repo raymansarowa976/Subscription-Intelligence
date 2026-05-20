@@ -3,6 +3,8 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
+from django.urls import reverse
+from django.conf import settings
 
 from users.auth.forms import AccountRecoveryForm, PasswordChangeForm, UsernameChangeRequestForm
 from users.auth.token_service import issue_email_token, verify_email_token
@@ -186,3 +188,20 @@ class UserSecurityTest(TestCase):
 
     def test_sessions_expire_when_browser_closes(self):
         self.assertTrue(settings.SESSION_EXPIRE_AT_BROWSER_CLOSE)
+
+    def test_browser_session_closed_endpoint_logs_out_current_user(self):
+        user = User.objects.create_user(
+            username="browserclose",
+            email="browserclose@gmail.com",
+            password="Complex123!",
+            is_active=True,
+        )
+        self.client.force_login(user)
+        session = self.client.session
+        session["login_token_verified"] = True
+        session.save()
+
+        response = self.client.post(reverse("accounts:browser_session_closed"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("_auth_user_id", self.client.session)
