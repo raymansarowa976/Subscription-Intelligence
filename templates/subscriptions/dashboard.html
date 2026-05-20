@@ -9,7 +9,7 @@
 {{ trend_labels|json_script:"trend-labels" }}
 {{ trend_values|json_script:"trend-values" }}
 
-<section class="mt-6 rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_78%_20%,rgba(236,72,153,0.20),transparent_28%),radial-gradient(circle_at_20%_0%,rgba(56,189,248,0.18),transparent_28%),linear-gradient(135deg,rgba(7,20,92,0.74),rgba(5,11,47,0.82))] p-7 shadow-panel backdrop-blur-xl">
+<section class="mt-8 rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_78%_20%,rgba(236,72,153,0.20),transparent_28%),radial-gradient(circle_at_20%_0%,rgba(56,189,248,0.18),transparent_28%),linear-gradient(135deg,rgba(7,20,92,0.74),rgba(5,11,47,0.82))] p-6 shadow-panel backdrop-blur-xl md:p-7">
     <div class="grid gap-6 xl:grid-cols-[minmax(250px,0.72fr)_minmax(0,1.8fr)] xl:items-start">
         <div class="grid gap-5 rounded-[30px] border border-white/15 bg-white/[0.07] p-6 text-white shadow-[0_20px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl">
             <div>
@@ -111,25 +111,25 @@
     </div>
 </section>
 
-<section class="mt-6 grid gap-5 xl:grid-cols-3">
-    <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
+<section class="mt-8 grid gap-6 xl:grid-cols-3">
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Total monthly spend</p>
         <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">${{ total_monthly_spend|floatformat:2 }}</p>
         <p class="mt-4 text-sm font-medium leading-7 text-stone-600">The current monthly cost of your active recurring services.</p>
     </article>
-    <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Upcoming renewals</p>
         <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">${{ upcoming_renewals_cost|floatformat:2 }}</p>
         <p class="mt-4 text-sm font-medium leading-7 text-stone-600">{{ upcoming_renewal_count }} renewal{{ upcoming_renewal_count|pluralize }} due in the next 7 days.</p>
     </article>
-    <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Annual run-rate</p>
         <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">${{ annual_run_rate|floatformat:2 }}</p>
         <p class="mt-4 text-sm font-medium leading-7 text-stone-600">What this portfolio costs over 12 months if nothing changes.</p>
     </article>
 </section>
 
-<section class="mt-6 rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
+<section class="mt-8 rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
             <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Subscriptions</p>
@@ -156,8 +156,8 @@
     </div>
 </section>
 
-<section class="mt-6 grid gap-5 lg:grid-cols-2">
-        <article class="rounded-[28px] border border-black/10 bg-white/90 p-5 shadow-panel backdrop-blur-xl">
+<section class="mt-8 grid gap-6 lg:grid-cols-2">
+        <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Spending by category</p>
@@ -169,7 +169,7 @@
             </div>
         </article>
 
-        <article class="rounded-[28px] border border-black/10 bg-white/90 p-5 shadow-panel backdrop-blur-xl">
+        <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
             <p class="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Monthly trend</p>
             <h2 class="mt-2 text-xl font-extrabold text-ink">6-month spend curve</h2>
             <div class="mt-4 h-56">

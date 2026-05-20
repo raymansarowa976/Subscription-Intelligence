@@ -8,7 +8,7 @@
 <div id="filtered-inbox-lead-summary" hx-swap-oob="true">Filtered out {{ suppressed_inbox_lead_count }}</div>
 {% endif %}
 
-<div id="candidate-review-list" class="mt-8 grid gap-4 transition duration-200 ease-out" data-htmx-polish>
+<div id="candidate-review-list" class="mt-8 grid gap-5 transition duration-200 ease-out" data-htmx-polish>
     {% if review_notice %}
     <div id="candidate-review-notice" class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800" role="status" aria-live="polite" tabindex="-1" data-htmx-focus-target>
         {{ review_notice }}
@@ -52,7 +52,7 @@
         </details>
         {% endif %}
 
-        <div class="mt-5 flex flex-wrap gap-3">
+        <div class="mt-6 flex flex-wrap gap-3">
             <form method="post" action="{% url 'transactions:confirm_candidate' candidate.id %}" hx-post="{% url 'transactions:confirm_candidate' candidate.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML" hx-push-url="false" hx-disabled-elt="find button">
                 {% csrf_token %}
                 <input type="hidden" name="merchant_name" value="{{ candidate.merchant_name }}">

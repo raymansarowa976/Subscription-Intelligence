@@ -6,8 +6,8 @@
 {% block app_panel %}
 <h1 class="sr-only">Add a subscription</h1>
 
-<section class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-    <section class="rounded-[28px] border border-black/10 bg-white/90 p-8 shadow-panel">
+<section class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+    <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel md:p-8">
         <form method="post" class="space-y-6">
             {% csrf_token %}
             {% for field in form %}
@@ -28,7 +28,7 @@
     </section>
 
     <aside class="space-y-6">
-        <section class="rounded-[28px] border border-black/10 bg-white/90 p-8 shadow-panel">
+        <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel md:p-8">
             <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Quick add</p>
             <h2 class="mt-2 text-2xl font-extrabold text-ink">Use manual entry when needed</h2>
             <p class="mt-3 text-sm font-medium leading-7 text-stone-600">Manual subscriptions appear in your dashboard metrics immediately, including monthly spend, annual run-rate, category mix, and the renewal calendar.</p>

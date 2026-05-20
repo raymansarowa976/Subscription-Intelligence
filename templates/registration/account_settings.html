@@ -6,8 +6,8 @@
 {% block settings_nav_class %}border-pine bg-white text-pine shadow-[0_0_0_4px_rgba(14,90,82,0.08),0_12px_28px_rgba(15,23,42,0.08)]{% endblock %}
 
 {% block app_panel %}
-<section class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-    <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
+<section class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+    <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl md:p-8">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Account overview</p>
@@ -17,7 +17,7 @@
             <span class="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-emerald-700">Active</span>
         </div>
 
-        <div class="mt-7 grid gap-3 rounded-[22px] border border-black/5 bg-stone-50 p-4">
+        <div class="mt-8 grid gap-4 rounded-[22px] border border-black/5 bg-stone-50 p-5">
             <div class="flex items-center justify-between gap-4">
                 <span class="text-sm font-bold text-stone-500">Member since</span>
                 <span class="text-sm font-extrabold text-ink">{{ request.user.date_joined|date:"M j, Y" }}</span>
@@ -29,8 +29,8 @@
         </div>
     </section>
 
-    <section class="grid gap-4">
-        <details class="group rounded-[24px] border border-black/10 bg-white/90 p-6 shadow-panel transition open:border-pine">
+    <section class="grid gap-5">
+        <details class="group rounded-[24px] border border-black/10 bg-white/90 p-7 shadow-panel transition open:border-pine">
             <summary class="flex cursor-pointer list-none items-start justify-between gap-4">
                 <span>
                     <span class="block text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Username</span>
@@ -45,7 +45,7 @@
                 </span>
             </summary>
 
-            <form method="post" action="{% url 'accounts:change_username' %}" class="mt-6 space-y-5 border-t border-black/5 pt-5" novalidate hx-boost="true">
+            <form method="post" action="{% url 'accounts:change_username' %}" class="mt-7 space-y-5 border-t border-black/5 pt-6" novalidate hx-boost="true">
                 {% csrf_token %}
                 {% if username_form.non_field_errors %}
                 <div class="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800" role="alert">
@@ -86,7 +86,7 @@
             </form>
         </details>
 
-        <details class="group rounded-[24px] border border-black/10 bg-white/90 p-6 shadow-panel transition open:border-pine">
+        <details class="group rounded-[24px] border border-black/10 bg-white/90 p-7 shadow-panel transition open:border-pine">
             <summary class="flex cursor-pointer list-none items-start justify-between gap-4">
                 <span>
                     <span class="block text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Password</span>
@@ -101,7 +101,7 @@
                 </span>
             </summary>
 
-            <form method="post" action="{% url 'accounts:change_password' %}" class="mt-6 space-y-5 border-t border-black/5 pt-5" novalidate hx-boost="true">
+            <form method="post" action="{% url 'accounts:change_password' %}" class="mt-7 space-y-5 border-t border-black/5 pt-6" novalidate hx-boost="true">
                 {% csrf_token %}
                 {% if password_form.non_field_errors %}
                 <div class="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800" role="alert">
@@ -127,7 +127,7 @@
                         </button>
                     </div>
                     {% if field.name == "new_password" %}
-                    <div class="mt-3 rounded-2xl border border-black/5 bg-stone-50 p-3">
+                    <div class="mt-4 rounded-2xl border border-black/5 bg-stone-50 p-4">
                         <div class="flex items-center justify-between gap-3">
                             <span class="text-xs font-extrabold uppercase tracking-[0.16em] text-stone-500">Password strength</span>
                             <span id="password-strength-label" class="text-sm font-semibold text-stone-600"></span>
@@ -154,15 +154,15 @@
     </section>
 </section>
 
-<section class="mt-6 grid gap-6 lg:grid-cols-2">
-    <section class="rounded-[24px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
+<section class="mt-8 grid gap-8 lg:grid-cols-2">
+    <section class="rounded-[24px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Connected services</p>
                 <h2 class="mt-2 text-2xl font-extrabold text-ink">Gmail API</h2>
                 {% if active_email_connection %}
                 <p class="mt-3 break-words text-sm leading-7 text-stone-500">{{ active_email_connection.email_address }} is connected for receipt scans and subscription detection.</p>
-                <dl class="mt-4 grid gap-2 text-sm text-stone-600">
+                <dl class="mt-5 grid gap-3 text-sm text-stone-600">
                     <div class="flex flex-wrap justify-between gap-3 rounded-2xl border border-black/5 bg-stone-50 px-4 py-3">
                         <dt class="font-bold text-stone-500">Connected email</dt>
                         <dd class="font-extrabold text-ink">{{ active_email_connection.email_address }}</dd>
@@ -194,7 +194,7 @@
             <span class="inline-flex items-center rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-stone-600">Not connected</span>
             {% endif %}
         </div>
-        <div class="mt-5 flex flex-wrap gap-3">
+        <div class="mt-6 flex flex-wrap gap-3">
             {% if active_email_connection %}
             <form method="post" action="{% url 'accounts:resync_gmail' active_email_connection.id %}">
                 {% csrf_token %}
@@ -210,7 +210,7 @@
         </div>
     </section>
 
-    <section class="rounded-[24px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
+    <section class="rounded-[24px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Recent activity</p>
         <div class="mt-5 grid gap-3">
             <div class="rounded-2xl border border-black/5 bg-stone-50 px-4 py-3">
@@ -225,7 +225,7 @@
     </section>
 </section>
 
-<section class="mt-6 rounded-[24px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
+<section class="mt-8 rounded-[24px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
     <div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
         <div>
             <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Privacy controls</p>
@@ -258,7 +258,7 @@
     </div>
 </section>
 
-<section class="mt-6 rounded-[24px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
+<section class="mt-8 rounded-[24px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
     <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
         <div>
             <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Account data</p>

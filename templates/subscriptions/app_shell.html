@@ -99,9 +99,9 @@
     </div>
 </header>
 
-<main class="mx-auto min-h-screen max-w-7xl px-4 py-6 md:px-6 lg:px-8">
+<main class="mx-auto min-h-screen max-w-7xl px-4 py-8 md:px-6 lg:px-8">
     {% if messages %}
-    <section class="mt-6 space-y-3">
+    <section class="mt-8 space-y-3">
         {% for message in messages %}
         <div class="rounded-2xl px-4 py-3 text-sm font-semibold shadow-sm {% if message.tags == 'success' %}border border-emerald-100 bg-emerald-50 text-emerald-800{% elif message.tags == 'error' %}border border-rose-100 bg-rose-50 text-rose-800{% else %}border border-stone-200 bg-white/90 text-stone-700{% endif %}">
             {{ message }}
