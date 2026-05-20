@@ -157,6 +157,19 @@ class RegistrationTest(TestCase):
         self.assertRedirects(login_response, reverse('dashboard'))
         self.assertRedirects(signin_response, reverse('dashboard'))
 
+    def test_authenticated_verified_user_is_redirected_from_signup_to_dashboard(self):
+        user = User.objects.create_user(
+            username='signedupalready',
+            email='signedupalready@gmail.com',
+            password='Complex123!',
+            is_active=True,
+        )
+        self.login_verified(user)
+
+        response = self.client.get(self.signup_url)
+
+        self.assertRedirects(response, reverse('dashboard'))
+
     def test_login_is_rate_limited_after_repeated_invalid_attempts(self):
         User.objects.create_user(
             username='ratelimited',
