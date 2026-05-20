@@ -3,6 +3,7 @@ from .views import (
     SubscriptionLoginView,
     account_settings_view,
     activate_view,
+    browser_session_closed_view,
     cancel_token_verification_view,
     change_password_view,
     change_username_view,
@@ -63,8 +64,10 @@ urlpatterns = [
     path('account/privacy-controls/', update_privacy_controls_view, name='update_privacy_controls'),
     path('verify-token/', verify_token_view, name='verify_token'),
     path('resend-token/', resend_token_view, name='resend_token'),
+    path('browser-session-closed/', browser_session_closed_view, name='browser_session_closed'),
     path('cancel-verification/', cancel_token_verification_view, name='cancel_verification'),
     path('reactivate-account/', reactivate_legacy_account_view, name='reactivate_account'),
     path('activate/<uidb64>/<token>/', activate_view, name='activate'),
     path('login/', SubscriptionLoginView.as_view(), name='login'),
+    path('signin/', SubscriptionLoginView.as_view(), name='signin'),
 ]

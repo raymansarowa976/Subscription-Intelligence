@@ -33,6 +33,56 @@
             }
         });
     </script>
+    {% if request.user.is_authenticated %}
+    <script>
+        (function () {
+            var internalNavigation = false;
+
+            function sameOrigin(url) {
+                try {
+                    return new URL(url, window.location.href).origin === window.location.origin;
+                } catch (error) {
+                    return false;
+                }
+            }
+
+            function csrfToken() {
+                var match = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+                return match ? decodeURIComponent(match[1]) : "";
+            }
+
+            document.addEventListener("click", function (event) {
+                var link = event.target.closest && event.target.closest("a[href]");
+                if (!link || link.target === "_blank" || link.hasAttribute("download")) {
+                    return;
+                }
+                internalNavigation = sameOrigin(link.href);
+            });
+
+            document.addEventListener("submit", function (event) {
+                var form = event.target;
+                if (!form || !form.action) {
+                    return;
+                }
+                internalNavigation = sameOrigin(form.action);
+            });
+
+            window.addEventListener("beforeunload", function () {
+                if (internalNavigation) {
+                    return;
+                }
+                fetch("{% url 'accounts:browser_session_closed' %}", {
+                    method: "POST",
+                    credentials: "same-origin",
+                    keepalive: true,
+                    headers: {
+                        "X-CSRFToken": csrfToken()
+                    }
+                });
+            });
+        })();
+    </script>
+    {% endif %}
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

@@ -150,3 +150,4 @@ GMAIL_OAUTH_REDIRECT_URI = env('GMAIL_OAUTH_REDIRECT_URI', default='')
 SHOW_LOGIN_TOKEN_IN_UI = env.bool('SHOW_LOGIN_TOKEN_IN_UI', default=DEBUG and not RUNNING_TESTS)
 LOGIN_URL = '/accounts/login/'
 CSRF_FAILURE_VIEW = 'users.auth.views.csrf_failure_view'
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True

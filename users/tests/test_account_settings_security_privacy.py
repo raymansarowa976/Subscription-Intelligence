@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 
+from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
 from django.test import Client, TestCase
@@ -62,6 +63,9 @@ class AccountSettingsSecurityPrivacyTest(TestCase):
         }
         defaults.update(overrides)
         return EmailConnection.objects.create(**defaults)
+
+    def _scan_preference_model(self):
+        return apps.get_model("subscriptions", "EmailScanPreference")
 
     def _subscription_data(self, user=None):
         owner = user or self.user
@@ -148,11 +152,7 @@ class AccountSettingsSecurityPrivacyTest(TestCase):
         self.assertContains(response, "Recent activity")
         self.assertContains(response, "Change username")
         self.assertContains(response, "Change password")
-        self.assertContains(response, "Danger zone")
-        self.assertContains(response, "Log out other sessions")
         self.assertContains(response, "Export account data")
-        self.assertContains(response, "Delete imported evidence")
-        self.assertContains(response, "Close account")
         self.assertContains(response, "Privacy controls")
         self.assertContains(response, "Scan scope")
         self.assertContains(response, "Retention period")
@@ -164,6 +164,9 @@ class AccountSettingsSecurityPrivacyTest(TestCase):
         self.assertContains(response, reverse("accounts:resync_gmail", kwargs={"connection_id": connection.id}))
         self.assertContains(response, reverse("accounts:revoke_gmail", kwargs={"connection_id": connection.id}))
         self.assertNotContains(response, "Kelowna, BC - 2 mins ago")
+        self.assertNotContains(response, "Log out other sessions")
+        self.assertNotContains(response, "Delete imported evidence")
+        self.assertNotContains(response, "Close account")
 
     def test_inline_username_form_preserves_validation_errors_in_account_settings_context(self):
         response = self.client.post(
@@ -181,7 +184,7 @@ class AccountSettingsSecurityPrivacyTest(TestCase):
         self.assertContains(response, "Change username")
         self.assertContains(response, "Usernames do not match.")
         self.assertContains(response, 'name="confirm_username"', html=False)
-        self.assertContains(response, "Danger zone")
+        self.assertContains(response, "Account settings")
 
     def test_inline_password_form_preserves_validation_errors_in_account_settings_context(self):
         response = self.client.post(
@@ -199,20 +202,19 @@ class AccountSettingsSecurityPrivacyTest(TestCase):
         self.assertContains(response, "Change password")
         self.assertContains(response, "Enter your current password.")
         self.assertContains(response, 'id="password-strength-bar"', html=False)
-        self.assertContains(response, "Danger zone")
+        self.assertContains(response, "Account settings")
 
-    def test_user_can_log_out_other_active_sessions_while_preserving_current_session(self):
+    def test_account_settings_does_not_offer_logout_other_sessions_control(self):
         other_client = self._login_verified_client(self.user)
         current_session_key = self.client.session.session_key
         other_session_key = other_client.session.session_key
 
-        response = self.client.post(reverse("accounts:logout_other_sessions"), follow=True)
+        response = self.client.get(self.account_settings_url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Other sessions have been logged out.")
+        self.assertNotContains(response, reverse("accounts:logout_other_sessions"))
         self.assertTrue(Session.objects.filter(session_key=current_session_key).exists())
-        self.assertFalse(Session.objects.filter(session_key=other_session_key).exists())
-        self.assertEqual(self.client.get(self.account_settings_url).status_code, 200)
+        self.assertTrue(Session.objects.filter(session_key=other_session_key).exists())
 
     def test_account_deletion_and_data_deletion_require_password_and_typed_confirmation(self):
         self._subscription_data()
@@ -285,6 +287,7 @@ class AccountSettingsSecurityPrivacyTest(TestCase):
 
     def test_gmail_resync_revoke_and_privacy_controls_post_card_level_feedback(self):
         connection = self._email_connection()
+        ScanPreference = self._scan_preference_model()
 
         privacy_response = self.client.post(
             reverse("accounts:update_privacy_controls"),
@@ -310,14 +313,17 @@ class AccountSettingsSecurityPrivacyTest(TestCase):
         self.assertContains(resync_response, "Connected services")
         self.assertContains(revoke_response, "Gmail access revoked.")
         self.assertContains(revoke_response, "Connected services")
+        preferences = ScanPreference.objects.get(user=self.user)
+        self.assertEqual(preferences.scan_scope, "receipts_only")
+        self.assertEqual(preferences.retention_period_days, 90)
+        self.assertFalse(preferences.automatic_scans)
 
-    def test_destructive_disclosures_are_keyboard_and_screen_reader_addressable(self):
+    def test_account_settings_does_not_render_deprecated_destructive_disclosures(self):
         response = self.client.get(self.account_settings_url)
 
-        self.assertContains(response, 'aria-expanded="false"', html=False)
-        self.assertContains(response, 'aria-controls="delete-imported-evidence-panel"', html=False)
-        self.assertContains(response, 'id="delete-imported-evidence-panel"', html=False)
-        self.assertContains(response, 'aria-controls="close-account-panel"', html=False)
-        self.assertContains(response, 'id="close-account-panel"', html=False)
-        self.assertContains(response, 'role="alert"', html=False)
-        self.assertContains(response, 'aria-live="polite"', html=False)
+        self.assertNotContains(response, 'aria-controls="delete-imported-evidence-panel"', html=False)
+        self.assertNotContains(response, 'id="delete-imported-evidence-panel"', html=False)
+        self.assertNotContains(response, 'aria-controls="close-account-panel"', html=False)
+        self.assertNotContains(response, 'id="close-account-panel"', html=False)
+        self.assertNotContains(response, "Delete imported evidence")
+        self.assertNotContains(response, "Close account")

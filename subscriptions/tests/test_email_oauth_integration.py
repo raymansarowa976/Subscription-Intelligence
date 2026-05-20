@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from users.auth.views import LOGIN_TOKEN_VERIFIED_SESSION_KEY
 
-from subscriptions.models import EmailScanRun, EmailSubscriptionLead, SubscriptionCandidate
+from subscriptions.models import EmailConnection, EmailScanRun, EmailSubscriptionLead, SubscriptionCandidate
 from subscriptions.services import InboxScanError, scan_email_inbox_for_subscriptions
 from subscriptions.tasks import scan_email_inbox_task
 
@@ -61,6 +61,9 @@ class EmailOAuthIntegrationTest(TestCase):
 
     def _email_connection_model(self):
         return apps.get_model("subscriptions", "EmailConnection")
+
+    def _scan_preference_model(self):
+        return apps.get_model("subscriptions", "EmailScanPreference")
 
     def _connection(self, user=None, **overrides):
         EmailConnection = self._email_connection_model()
@@ -141,6 +144,46 @@ class EmailOAuthIntegrationTest(TestCase):
         self.assertNotEqual(connection.access_token, "new-access-token")
         self.assertNotEqual(connection.refresh_token, "new-refresh-token")
 
+    @override_settings(
+        GMAIL_OAUTH_CLIENT_ID="client-id",
+        GMAIL_OAUTH_CLIENT_SECRET="client-secret",
+        GMAIL_OAUTH_REDIRECT_URI="http://testserver/accounts/email/gmail/callback/",
+    )
+    def test_gmail_callback_queues_scan_when_automatic_scans_are_enabled(self):
+        ScanPreference = self._scan_preference_model()
+        ScanPreference.objects.create(
+            user=self.user,
+            scan_scope="receipts_only",
+            retention_period_days=90,
+            automatic_scans=True,
+        )
+        session = self.client.session
+        session["gmail_oauth_state"] = "state-token"
+        session.save()
+
+        token_payload = {
+            "access_token": "new-access-token",
+            "refresh_token": "new-refresh-token",
+            "expires_in": 3600,
+            "scope": "https://www.googleapis.com/auth/gmail.readonly",
+        }
+        profile_payload = {"emailAddress": "connected@gmail.com"}
+
+        with (
+            patch("users.auth.views.exchange_gmail_oauth_code", return_value=token_payload),
+            patch("users.auth.views.fetch_gmail_profile", return_value=profile_payload),
+            patch("users.auth.views.scan_email_inbox_task") as scan_task,
+        ):
+            response = self.client.get(
+                reverse("accounts:gmail_oauth_callback"),
+                {"state": "state-token", "code": "oauth-code"},
+                follow=True,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        connection = EmailConnection.objects.get(user=self.user, email_address="connected@gmail.com")
+        scan_task.assert_called_once_with(self.user.id, connection.id)
+
     def test_gmail_callback_rejects_invalid_oauth_state(self):
         session = self.client.session
         session["gmail_oauth_state"] = "expected-state"
@@ -218,6 +261,18 @@ class EmailOAuthIntegrationTest(TestCase):
         fetch_messages.assert_not_called()
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Reconnect Gmail to scan this mailbox.")
+        self.assertFalse(EmailScanRun.objects.filter(user=self.user, provider="gmail").exists())
+
+    def test_background_scan_task_blocks_revoked_gmail_connection(self):
+        EmailConnection = self._email_connection_model()
+        connection = self._connection(status=EmailConnection.STATUS_DISCONNECTED)
+
+        with patch("subscriptions.services.fetch_gmail_messages") as fetch_messages:
+            result = scan_email_inbox_task.call_local(self.user.id, connection.id)
+
+        fetch_messages.assert_not_called()
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["error"], "Reconnect Gmail to scan this mailbox.")
         self.assertFalse(EmailScanRun.objects.filter(user=self.user, provider="gmail").exists())
 
     def test_expired_email_connection_refreshes_before_scanning(self):

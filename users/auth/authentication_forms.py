@@ -16,12 +16,16 @@ class SubscriptionAuthenticationForm(AuthenticationForm):
     }
 
     def clean(self):
-        username = self.cleaned_data.get("username")
+        username = (self.cleaned_data.get("username") or "").strip()
         password = self.cleaned_data.get("password")
         self.inactive_user = None
 
         if username and password:
             user = User.objects.filter(username=username).first()
+            if user is None and "@" in username:
+                user = User.objects.filter(email__iexact=username).first()
+                if user is not None:
+                    self.cleaned_data["username"] = user.get_username()
             if user and user.check_password(password) and not user.is_active:
                 self.inactive_user = user
                 raise ValidationError(
