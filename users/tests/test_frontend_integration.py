@@ -362,6 +362,9 @@ class FrontendIntegrationTest(TestCase):
             self.dashboard_url,
             reverse("transactions:candidates"),
             reverse("transactions:add_subscription"),
+            "/dashboard/analytics/",
+            "/dashboard/gmail/",
+            "/dashboard/data-sources/",
         ]
         for url in subscription_pages:
             with self.subTest(url=url):
@@ -491,6 +494,10 @@ class FrontendIntegrationTest(TestCase):
         self.assertContains(response, "Analytics and reports")
         self.assertContains(response, "Gmail integrations")
         self.assertContains(response, "Data sources")
+        self.assertContains(response, "/dashboard/analytics/")
+        self.assertContains(response, "/dashboard/gmail/")
+        self.assertContains(response, "/dashboard/data-sources/")
+        self.assertNotContains(response, ">Soon<", html=False)
         self.assertContains(response, self.account_settings_url)
         self.assertNotContains(response, "Profile and username management")
 
