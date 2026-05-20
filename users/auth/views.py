@@ -247,6 +247,11 @@ class SubscriptionLoginView(LoginView):
 
 
 def signup_view(request):
+    if request.user.is_authenticated:
+        if request.session.get(LOGIN_TOKEN_VERIFIED_SESSION_KEY):
+            return redirect("dashboard")
+        return redirect("accounts:verify_token")
+
     form = SignupForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         try:
