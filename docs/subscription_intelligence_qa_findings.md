@@ -9,8 +9,8 @@
 ##  1. User Interface (UI) & Core Presentation
 - [x] **Enforce UI Consistency:** Unify design systems, component borders, and container spacing across all pages.
 - [x] **Standardize Design Language:** Apply the "Neubrutalist-lite" visual framework from the landing page to all authenticated views (simpler, cleaner, and more professional).
-- [ ] **Optimize Spacing & Visual Density:** Enhance padding and layout breathing room to maximize user-friendliness and reduce cognitive load.
-- [ ] **Build Contact Page:** Implement a functional `Contact Us` page or view to handle support channels and recruiter inquiries.
+- [x] **Optimize Spacing & Visual Density:** Enhance padding and layout breathing room to maximize user-friendliness and reduce cognitive load.
+- [x] **Build Contact Page:** Implement a functional `Contact Us` page or view to handle support channels and recruiter inquiries.
 
 ---
 
