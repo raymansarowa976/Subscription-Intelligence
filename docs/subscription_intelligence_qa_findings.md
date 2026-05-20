@@ -15,9 +15,9 @@
 ---
 
 ##  2. Authentication, Authorization & Session Management (Auth)
-- [ ] **Implement Dual-Identifier Login:** Update backend authentication logic to accept **either** `username` OR `email` in the login form.
-- [ ] **Configure Transient Session Security:** Set up session termination so the user is automatically logged out when the browser tab or window is closed.
-- [ ] **Add Intelligent Sign-In Routing:** Implement a middleware check: if an already authenticated user visits the sign-in page, automatically redirect them to the dashboard.
+- [x] **Implement Dual-Identifier Login:** Update backend authentication logic to accept **either** `username` OR `email` in the login form.
+- [x] **Configure Transient Session Security:** Set up session termination so the user is automatically logged out when the browser tab or window is closed.
+- [x] **Add Intelligent Sign-In Routing:** Implement a middleware check: if an already authenticated user visits the sign-in page, automatically redirect them to the dashboard.
 
 ---
 
