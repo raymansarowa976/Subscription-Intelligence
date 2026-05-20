@@ -25,6 +25,7 @@ class FrontendIntegrationTest(TestCase):
         self.confirm_username_change_url = reverse("accounts:confirm_username_change")
         self.change_password_url = reverse("accounts:change_password")
         self.home_url = reverse("home")
+        self.contact_url = reverse("contact")
         self.dashboard_url = reverse("dashboard")
         self.valid_signup = {
             "first_name": "Taylor",
@@ -280,6 +281,20 @@ class FrontendIntegrationTest(TestCase):
         self.assertContains(response, "Sign in")
         self.assertContains(response, self.login_url)
         self.assertContains(response, "Review before tracking")
+        self.assertContains(response, "Contact us")
+        self.assertContains(response, self.contact_url)
+        self.assertContains(response, "css/tailwind.css")
+        self.assertNotContains(response, "cdn.tailwindcss.com")
+
+    def test_contact_page_renders_support_channels(self):
+        response = self.client.get(self.contact_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Contact Subscription Intelligence")
+        self.assertContains(response, "support@subscriptionintelligence.app")
+        self.assertContains(response, "security@subscriptionintelligence.app")
+        self.assertContains(response, "rayman@subscriptionintelligence.app")
+        self.assertContains(response, "Portfolio and hiring inquiries")
         self.assertContains(response, "css/tailwind.css")
         self.assertNotContains(response, "cdn.tailwindcss.com")
 

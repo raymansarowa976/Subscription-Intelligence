@@ -35,6 +35,7 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.subscription_results_url = "/dashboard/subscriptions/"
         self.candidates_url = reverse("transactions:candidates")
         self.add_subscription_url = reverse("transactions:add_subscription")
+        self.contact_url = reverse("contact")
 
     def test_dashboard_renders_metrics_workspace_and_empty_states(self):
         response = self.client.get(self.dashboard_url)
@@ -46,6 +47,8 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Annual run-rate")
         self.assertContains(response, "Subscriptions")
         self.assertContains(response, "Log out")
+        self.assertContains(response, "Contact support")
+        self.assertContains(response, self.contact_url)
         self.assertContains(response, "Scan email for subscriptions")
         self.assertContains(response, "Scan inbox now")
         self.assertContains(response, 'id="inbox-scan-panel"', html=False)
