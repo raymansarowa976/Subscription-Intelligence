@@ -955,6 +955,13 @@ def cancel_token_verification_view(request):
     return redirect("accounts:login")
 
 
+@require_POST
+def browser_session_closed_view(request):
+    if request.user.is_authenticated:
+        logout(request)
+    return JsonResponse({"status": "signed_out"})
+
+
 def reactivate_legacy_account_view(request):
     if request.method != "POST":
         return redirect("accounts:login")
