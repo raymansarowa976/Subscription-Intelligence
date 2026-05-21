@@ -366,6 +366,10 @@ class SubscriptionReviewPageFullFunctionalityTest(TestCase):
 
         self.assertContains(response, "<details", html=False)
         self.assertContains(response, "<summary", html=False)
+        self.assertContains(response, "candidate-review-card", html=False)
+        self.assertContains(response, "[&::-webkit-details-marker]:hidden", html=False)
+        self.assertContains(response, "Review")
+        self.assertContains(response, "Hide")
         self.assertContains(response, "focus-visible", html=False)
         self.assertContains(response, "break-words", html=False)
         self.assertContains(response, "overflow-hidden", html=False)
