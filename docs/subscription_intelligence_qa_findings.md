@@ -36,15 +36,15 @@
 ---
 
 ##  5. Account Settings & System Preferences
-- [ ] **Redesign Settings Layout:** Build a two-column layout featuring a dedicated **Account Settings Sidebar** that mimics native desktop/laptop settings menus.
-- [ ] **Isolate the Danger Zone:** Move high-risk actions away from general settings into an isolated, distinct view linked explicitly from the main settings pane.
-- [ ] **Prune Redundant Sessions:** Permanently remove the "Log out other sessions" button from the UI.
-- [ ] **Prune Deprecated Account Actions:** Remove the useless "Delete imported evidence" and "Close account" buttons that clutter the layout containers.
-- [ ] **Standardize Password Visibility:** Add an eye-icon toggle (mask/unmask) to the password fields inside confirmation boxes to align with the rest of the application's forms.
-- [ ] **Refactor Micro-Copy Labels:** Rewrite text strings for user interaction headings (e.g., update `Change Username` and `Change Password` titles for better clarity).
-- [ ] **Build Revocation Gatekeeping Logic:** Implement backend validation to ensure that if a user revokes Gmail permissions, the inbox scan engine completely blocks execution and surfaces a warning state.
-- [ ] **Build Login-Triggered Automation:** Program the background worker logic (**Huey**) to automatically trigger an inbox scan the moment a user signs into the platform if they have "Automatic Scans" enabled.
-- [ ] **Hook Up Scan Preferences:** Make the scanning interval checkboxes and email selection rules fully functional, persisting their configurations directly into PostgreSQL.
+- [x] **Redesign Settings Layout:** Build a two-column layout featuring a dedicated **Account Settings Sidebar** that mimics native desktop/laptop settings menus.
+- [x] **Isolate the Danger Zone:** Move high-risk actions away from general settings into an isolated, distinct view linked explicitly from the main settings pane.
+- [x] **Prune Redundant Sessions:** Permanently remove the "Log out other sessions" button from the UI.
+- [x] **Prune Deprecated Account Actions:** Remove the useless "Delete imported evidence" and "Close account" buttons that clutter the layout containers.
+- [x] **Standardize Password Visibility:** Add an eye-icon toggle (mask/unmask) to the password fields inside confirmation boxes to align with the rest of the application's forms.
+- [x] **Refactor Micro-Copy Labels:** Rewrite text strings for user interaction headings (e.g., update `Change Username` and `Change Password` titles for better clarity).
+- [x] **Build Revocation Gatekeeping Logic:** Implement backend validation to ensure that if a user revokes Gmail permissions, the inbox scan engine completely blocks execution and surfaces a warning state.
+- [x] **Build Login-Triggered Automation:** Program the background worker logic (**Huey**) to automatically trigger an inbox scan the moment a user signs into the platform if they have "Automatic Scans" enabled.
+- [x] **Hook Up Scan Preferences:** Make the scanning interval checkboxes and email selection rules fully functional, persisting their configurations directly into PostgreSQL.
 
 ### Preferences & Automation Business Logic
 * **Revocation Gatekeeping:** Implement a hard validation wall on background actions. If a user revokes their Google Cloud permissions, the `Inbox Scan` engine must automatically disable, block manually forced tasks, and throw a clear alert state.
