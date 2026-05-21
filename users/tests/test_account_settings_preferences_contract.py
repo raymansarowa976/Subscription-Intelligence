@@ -65,8 +65,8 @@ class AccountSettingsPreferencesContractTest(TestCase):
         self.assertContains(response, "Danger Zone")
         self.assertContains(response, "Open Danger Zone")
         self.assertGreater(content.index("Danger Zone"), content.index("Manage account data"))
-        self.assertNotContains(response, 'action="%s"' % reverse("accounts:delete_imported_evidence"), html=False)
-        self.assertNotContains(response, 'action="%s"' % reverse("accounts:close_account"), html=False)
+        self.assertNotContains(response, f'action="{reverse("accounts:delete_imported_evidence")}"', html=False)
+        self.assertNotContains(response, f'action="{reverse("accounts:close_account")}"', html=False)
 
     def test_danger_zone_owns_destructive_actions_and_masks_confirmation_passwords(self):
         response = self.client.get(reverse("accounts:danger_zone"))
@@ -75,8 +75,8 @@ class AccountSettingsPreferencesContractTest(TestCase):
         self.assertContains(response, "Danger Zone")
         self.assertContains(response, "Delete imported evidence")
         self.assertContains(response, "Close account")
-        self.assertContains(response, 'action="%s"' % reverse("accounts:delete_imported_evidence"), html=False)
-        self.assertContains(response, 'action="%s"' % reverse("accounts:close_account"), html=False)
+        self.assertContains(response, f'action="{reverse("accounts:delete_imported_evidence")}"', html=False)
+        self.assertContains(response, f'action="{reverse("accounts:close_account")}"', html=False)
         self.assertContains(response, 'name="password"', html=False)
         self.assertContains(response, 'data-password-toggle="danger-delete-password"', html=False)
         self.assertContains(response, 'data-password-toggle="danger-close-password"', html=False)

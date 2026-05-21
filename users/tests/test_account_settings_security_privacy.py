@@ -149,8 +149,8 @@ class AccountSettingsSecurityPrivacyTest(TestCase):
         self.assertContains(response, "Active")
         self.assertContains(response, self.user.date_joined.strftime("%b"))
         self.assertContains(response, "Recent activity")
-        self.assertContains(response, "Change username")
-        self.assertContains(response, "Change password")
+        self.assertContains(response, "Update your username")
+        self.assertContains(response, "Update your password")
         self.assertContains(response, "Export account data")
         self.assertContains(response, reverse("gmail_integrations"))
         self.assertNotContains(response, "Connected services")
@@ -180,7 +180,7 @@ class AccountSettingsSecurityPrivacyTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Account settings")
-        self.assertContains(response, "Change username")
+        self.assertContains(response, "Update your username")
         self.assertContains(response, "Usernames do not match.")
         self.assertContains(response, 'name="confirm_username"', html=False)
         self.assertContains(response, "Account settings")
@@ -198,7 +198,7 @@ class AccountSettingsSecurityPrivacyTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Account settings")
-        self.assertContains(response, "Change password")
+        self.assertContains(response, "Update your password")
         self.assertContains(response, "Enter your current password.")
         self.assertContains(response, 'id="password-strength-bar"', html=False)
         self.assertContains(response, "Account settings")

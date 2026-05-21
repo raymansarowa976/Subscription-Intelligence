@@ -4,7 +4,6 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
 from django.urls import reverse
-from django.conf import settings
 
 from users.auth.forms import AccountRecoveryForm, PasswordChangeForm, UsernameChangeRequestForm
 from users.auth.token_service import issue_email_token, verify_email_token
