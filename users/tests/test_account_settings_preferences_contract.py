@@ -45,23 +45,26 @@ class AccountSettingsPreferencesContractTest(TestCase):
         defaults.update(overrides)
         return EmailConnection.objects.create(**defaults)
 
-    def test_account_settings_uses_native_two_column_sidebar_layout(self):
+    def test_account_settings_uses_simple_content_layout_without_in_page_sidebar(self):
         response = self.client.get(reverse("accounts:account_settings"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-settings-layout="account-settings"', html=False)
-        self.assertContains(response, 'aria-label="Account settings sections"', html=False)
-        self.assertContains(response, 'data-settings-sidebar="account"', html=False)
         self.assertContains(response, 'data-settings-pane="profile"', html=False)
         self.assertContains(response, 'data-settings-pane="security"', html=False)
         self.assertContains(response, 'data-settings-pane="data-export"', html=False)
+        self.assertNotContains(response, 'aria-label="Account settings sections"', html=False)
+        self.assertNotContains(response, 'data-settings-sidebar="account"', html=False)
 
-    def test_account_settings_links_to_isolated_danger_zone_without_rendering_destructive_forms(self):
+    def test_account_settings_links_to_isolated_danger_zone_at_bottom_without_rendering_forms(self):
         response = self.client.get(reverse("accounts:account_settings"))
+        content = response.content.decode()
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, reverse("accounts:danger_zone"))
         self.assertContains(response, "Danger Zone")
+        self.assertContains(response, "Open Danger Zone")
+        self.assertGreater(content.index("Danger Zone"), content.index("Manage account data"))
         self.assertNotContains(response, 'action="%s"' % reverse("accounts:delete_imported_evidence"), html=False)
         self.assertNotContains(response, 'action="%s"' % reverse("accounts:close_account"), html=False)
 
