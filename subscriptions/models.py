@@ -142,6 +142,8 @@ class EmailScanPreference(models.Model):
     scan_scope = models.CharField(max_length=30, choices=SCOPE_CHOICES, default=SCOPE_RECEIPTS_ONLY)
     retention_period_days = models.PositiveIntegerField(default=180)
     automatic_scans = models.BooleanField(default=False)
+    scan_intervals = models.JSONField(default=list, blank=True)
+    email_selection_rules = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -98,6 +98,25 @@
                 <input class="h-4 w-4 rounded border-black/20 text-pine focus:ring-pine" type="checkbox" name="automatic_scans" {% if privacy_controls.automatic_scans %}checked{% endif %}>
                 <span>Automatic scans</span>
             </label>
+            <fieldset class="grid gap-3 rounded-2xl border border-black/5 bg-stone-50 px-4 py-3">
+                <legend class="text-sm font-bold text-ink">Scan intervals</legend>
+                <label class="flex items-center gap-3 text-sm font-bold text-ink">
+                    <input class="h-4 w-4 rounded border-black/20 text-pine focus:ring-pine" type="checkbox" name="scan_intervals" value="daily" {% if "daily" in privacy_controls.scan_intervals %}checked{% endif %}>
+                    <span>Daily</span>
+                </label>
+                <label class="flex items-center gap-3 text-sm font-bold text-ink">
+                    <input class="h-4 w-4 rounded border-black/20 text-pine focus:ring-pine" type="checkbox" name="scan_intervals" value="weekly" {% if "weekly" in privacy_controls.scan_intervals %}checked{% endif %}>
+                    <span>Weekly</span>
+                </label>
+                <label class="flex items-center gap-3 text-sm font-bold text-ink">
+                    <input class="h-4 w-4 rounded border-black/20 text-pine focus:ring-pine" type="checkbox" name="scan_intervals" value="monthly" {% if "monthly" in privacy_controls.scan_intervals %}checked{% endif %}>
+                    <span>Monthly</span>
+                </label>
+            </fieldset>
+            <label class="grid gap-2 text-sm font-bold text-ink">
+                <span>Email selection rules</span>
+                <textarea class="min-h-24 rounded-2xl border-black/10 bg-stone-50 px-4 py-3 text-sm" name="email_selection_rules">{{ privacy_controls.email_selection_rules }}</textarea>
+            </label>
             <button class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" type="submit">Save privacy controls</button>
         </form>
     </aside>

@@ -10,6 +10,7 @@ from .views import (
     close_account_view,
     confirm_username_change_view,
     connect_gmail_view,
+    danger_zone_view,
     delete_imported_evidence_for_user_view,
     delete_imported_evidence_view,
     delete_subscription_view,
@@ -38,6 +39,7 @@ urlpatterns = [
     path('forgot-password/', forgot_password_view, name='forgot_password'),
     path('reset-password/<uidb64>/<token>/', reset_password_confirm_view, name='reset_password_confirm'),
     path('account/settings/', account_settings_view, name='account_settings'),
+    path('account/settings/danger-zone/', danger_zone_view, name='danger_zone'),
     path('email/gmail/connect/', connect_gmail_view, name='connect_gmail'),
     path('email/gmail/callback/', gmail_oauth_callback_view, name='gmail_oauth_callback'),
     path(
