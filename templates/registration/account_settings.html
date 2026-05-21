@@ -6,8 +6,8 @@
 {% block settings_nav_class %}border-pine bg-white text-pine shadow-[0_0_0_4px_rgba(14,90,82,0.08),0_12px_28px_rgba(15,23,42,0.08)]{% endblock %}
 
 {% block app_panel %}
-<section class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-    <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl md:p-8">
+<section class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]" data-settings-layout="account-settings">
+    <section id="profile" class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl md:p-8" data-settings-pane="profile">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Account overview</p>
@@ -29,12 +29,12 @@
         </div>
     </section>
 
-    <section class="grid gap-5">
+    <section id="security" class="grid gap-5" data-settings-pane="security">
         <details class="group rounded-[24px] border border-black/10 bg-white/90 p-7 shadow-panel transition open:border-pine">
             <summary class="flex cursor-pointer list-none items-start justify-between gap-4">
                 <span>
                     <span class="block text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Username</span>
-                    <span class="mt-2 block text-2xl font-extrabold text-ink">Change username</span>
+                    <span class="mt-2 block text-2xl font-extrabold text-ink">Update your username</span>
                     <span class="mt-3 block text-sm leading-7 text-stone-500">Check your inbox for a 6-digit code. Estimated time: 1 minute.</span>
                 </span>
                 <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-stone-100 text-ink transition group-open:rotate-90 group-open:bg-pine group-open:text-white group-hover:bg-pine group-hover:text-white" aria-hidden="true">
@@ -90,7 +90,7 @@
             <summary class="flex cursor-pointer list-none items-start justify-between gap-4">
                 <span>
                     <span class="block text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Password</span>
-                    <span class="mt-2 block text-2xl font-extrabold text-ink">Change password</span>
+                    <span class="mt-2 block text-2xl font-extrabold text-ink">Update your password</span>
                     <span class="mt-3 block text-sm leading-7 text-stone-500">Update your password and clear existing signed-in sessions.</span>
                 </span>
                 <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-stone-100 text-ink transition group-open:rotate-90 group-open:bg-pine group-open:text-white group-hover:bg-pine group-hover:text-white" aria-hidden="true">
@@ -168,14 +168,25 @@
         </div>
 </section>
 
-<section class="mt-8 rounded-[24px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
+<section id="data-export" class="mt-8 rounded-[24px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl" data-settings-pane="data-export">
     <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
         <div>
             <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Account data</p>
-            <h2 class="mt-2 text-2xl font-extrabold text-ink">Export account data</h2>
+            <h2 class="mt-2 text-2xl font-extrabold text-ink">Manage account data</h2>
             <p class="mt-3 max-w-3xl text-sm leading-7 text-stone-500">Download a JSON copy of your account, subscriptions, and saved evidence.</p>
         </div>
         <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-extrabold text-ink transition hover:border-pine hover:text-pine" href="{% url 'accounts:export_account_data' %}">Export account data</a>
+    </div>
+</section>
+
+<section class="mt-8 rounded-[24px] border border-rose-200 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
+    <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+        <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-rose-600">Danger Zone</p>
+            <h2 class="mt-2 text-2xl font-extrabold text-ink">High-risk account actions</h2>
+            <p class="mt-3 max-w-3xl text-sm leading-7 text-stone-500">Delete imported evidence or close your account from an isolated confirmation page.</p>
+        </div>
+        <a class="inline-flex items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-sm font-extrabold text-rose-700 transition hover:bg-rose-100" href="{% url 'accounts:danger_zone' %}">Open Danger Zone</a>
     </div>
 </section>
 {% endblock %}

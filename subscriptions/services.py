@@ -23,6 +23,7 @@ from django.utils import timezone
 
 from .models import (
     EmailConnection,
+    EmailScanPreference,
     EmailScanRun,
     EmailSubscriptionLead,
     Subscription,
@@ -511,6 +512,17 @@ def _scan_gmail_connection(user, email_connection_id):
     if connection is None:
         raise InboxScanError("Email connection was not found for this account.")
     if connection.status != EmailConnection.STATUS_ACTIVE:
+        EmailScanRun.objects.create(
+            user=user,
+            email_connection=connection,
+            provider="gmail_permission_revoked",
+            mailbox=connection.email_address,
+            status=EmailScanRun.STATUS_FAILED,
+            error_details={
+                "errors": ["Reconnect Gmail to scan this mailbox."],
+                "warning_state": "gmail_permission_revoked",
+            },
+        )
         raise InboxScanError("Reconnect Gmail to scan this mailbox.")
     if connection.token_expires_at and connection.token_expires_at <= timezone.now():
         refresh_gmail_access_token(connection)
@@ -523,7 +535,13 @@ def _scan_gmail_connection(user, email_connection_id):
         mailbox=connection.email_address,
         status=EmailScanRun.STATUS_SUCCEEDED,
     )
-    query = f"newer_than:{lookback_days}d (receipt OR invoice OR subscription OR billing OR renewal OR charged)"
+    scan_preferences = EmailScanPreference.objects.filter(user=user).first()
+    query_terms = "receipt OR invoice OR subscription OR billing OR renewal OR charged"
+    if scan_preferences and scan_preferences.scan_scope == EmailScanPreference.SCOPE_RECEIPTS_ONLY:
+        query_terms = "receipt OR invoice"
+    query = f"newer_than:{lookback_days}d ({query_terms})"
+    if scan_preferences and scan_preferences.email_selection_rules.strip():
+        query = f"{query} {scan_preferences.email_selection_rules.strip()}"
     scanned_count = 0
     matched_count = 0
     created_count = 0

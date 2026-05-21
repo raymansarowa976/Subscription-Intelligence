@@ -371,6 +371,8 @@ def _account_settings_context(request, username_form=None, password_form=None):
         "scan_scope": scan_preferences.scan_scope,
         "retention_period_days": str(scan_preferences.retention_period_days),
         "automatic_scans": scan_preferences.automatic_scans,
+        "scan_intervals": scan_preferences.scan_intervals,
+        "email_selection_rules": scan_preferences.email_selection_rules,
     }
     return {
         "username_form": username_form or UsernameChangeRequestForm(user=request.user),
@@ -404,6 +406,10 @@ def _render_account_settings(request, username_form=None, password_form=None):
         "registration/account_settings.html",
         _account_settings_context(request, username_form=username_form, password_form=password_form),
     )
+
+
+def _render_danger_zone(request):
+    return render(request, "registration/danger_zone.html")
 
 
 def _confirmation_is_valid(request, expected_text):
@@ -501,6 +507,14 @@ def account_settings_view(request):
     if gate:
         return gate
     return _render_account_settings(request)
+
+
+@login_required
+def danger_zone_view(request):
+    gate = _require_verified_session(request)
+    if gate:
+        return gate
+    return _render_danger_zone(request)
 
 
 @login_required
@@ -749,6 +763,12 @@ def update_privacy_controls_view(request):
         retention_period_days = 180
     if retention_period_days not in {30, 90, 180}:
         retention_period_days = 180
+    scan_intervals = [
+        interval
+        for interval in request.POST.getlist("scan_intervals")
+        if interval in {"daily", "weekly", "monthly"}
+    ]
+    email_selection_rules = request.POST.get("email_selection_rules", "").strip()
 
     EmailScanPreference.objects.update_or_create(
         user=request.user,
@@ -756,6 +776,8 @@ def update_privacy_controls_view(request):
             "scan_scope": scan_scope,
             "retention_period_days": retention_period_days,
             "automatic_scans": request.POST.get("automatic_scans") == "on",
+            "scan_intervals": scan_intervals,
+            "email_selection_rules": email_selection_rules,
         },
     )
     messages.success(request, "Privacy controls saved.")
@@ -874,6 +896,12 @@ def verify_token_view(request):
                 request.session[LOGIN_TOKEN_VERIFIED_SESSION_KEY] = True
                 clear_attempts("login-token-verify", email, ip_address)
                 clear_email_token(email)
+                active_connection = EmailConnection.objects.filter(
+                    user=request.user,
+                    status=EmailConnection.STATUS_ACTIVE,
+                ).first()
+                if active_connection is not None:
+                    _queue_automatic_gmail_scan(request.user, active_connection)
                 messages.success(request, "Token verified. Welcome back.")
                 return redirect("dashboard")
             record_attempt(

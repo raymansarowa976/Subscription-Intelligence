@@ -175,6 +175,8 @@ def gmail_integrations_context(user):
             "scan_scope": scan_preferences.scan_scope,
             "retention_period_days": str(scan_preferences.retention_period_days),
             "automatic_scans": scan_preferences.automatic_scans,
+            "scan_intervals": scan_preferences.scan_intervals,
+            "email_selection_rules": scan_preferences.email_selection_rules,
         },
     }
 
