@@ -147,8 +147,8 @@
 - [x] Mypy passes for `config`, `users`, and `subscriptions`.
 - [x] Ruff passes for the current configured baseline.
 - [x] Pytest suite passes.
-- [ ] Add CI workflow to run pytest, Ruff, Mypy, and Tailwind build.
-- [ ] Add Tailwind build freshness check if generated CSS is committed.
+- [x] Add CI workflow to run pytest, Ruff, Mypy, and Tailwind build.
+- [x] Add Tailwind build freshness check if generated CSS is committed.
 
 ### Issue #14: Per-User Email OAuth Integration
 **Acceptance Criteria**
