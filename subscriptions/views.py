@@ -11,7 +11,16 @@ from django.views.decorators.http import require_POST
 from users.auth.views import LOGIN_TOKEN_VERIFIED_SESSION_KEY
 
 from .forms import ManualSubscriptionForm
-from .models import EmailScanRun, EmailSubscriptionLead, Subscription, SubscriptionCandidate, TransactionEvidence
+from .models import (
+    EmailConnection,
+    EmailScanPreference,
+    EmailScanRun,
+    EmailSubscriptionLead,
+    Subscription,
+    SubscriptionCandidate,
+    TransactionEvidence,
+    TransactionImportRun,
+)
 from .services import (
     IngestionValidationError,
     InboxScanError,
@@ -140,11 +149,52 @@ def _candidate_review_partial(request, review_notice, form_errors=None):
 
 
 def _inbox_scan_partial(request, scan_notice, scan_notice_level="success"):
-    context = build_dashboard_context(request.user)
+    context = gmail_integrations_context(request.user)
     context["scan_notice"] = scan_notice
     context["scan_notice_level"] = scan_notice_level
     context["htmx_response"] = True
-    return render(request, "subscriptions/_inbox_scan_panel.html", context)
+    return render(request, "subscriptions/_gmail_scan_panel.html", context)
+
+
+def gmail_integrations_context(user):
+    email_connections = EmailConnection.objects.filter(user=user)
+    active_email_connection = email_connections.filter(status=EmailConnection.STATUS_ACTIVE).first()
+    latest_scan = None
+    if active_email_connection is not None:
+        latest_scan = (
+            EmailScanRun.objects.filter(user=user, email_connection=active_email_connection)
+            .order_by("-created_at", "-id")
+            .first()
+        )
+    scan_preferences, _ = EmailScanPreference.objects.get_or_create(user=user)
+    return {
+        "email_connections": email_connections,
+        "active_email_connection": active_email_connection,
+        "latest_gmail_scan": latest_scan,
+        "privacy_controls": {
+            "scan_scope": scan_preferences.scan_scope,
+            "retention_period_days": str(scan_preferences.retention_period_days),
+            "automatic_scans": scan_preferences.automatic_scans,
+        },
+    }
+
+
+def data_sources_context(user):
+    context = build_dashboard_context(user)
+    recent_scans = list(EmailScanRun.objects.filter(user=user).order_by("-created_at", "-id")[:10])
+    for scan in recent_scans:
+        scan.status_label = _scan_status_label(scan)
+        scan.duration_seconds = max(0, int((scan.completed_at - scan.created_at).total_seconds()))
+        scan.parser_candidate_count = SubscriptionCandidate.objects.filter(
+            user=user,
+            source_email_lead__scan_run=scan,
+        ).count()
+        errors = scan.error_details.get("errors", []) if isinstance(scan.error_details, dict) else []
+        scan.error_summary = ", ".join(str(error) for error in errors)
+    context["recent_email_scans"] = recent_scans
+    context["latest_sync"] = TransactionImportRun.objects.filter(user=user).first()
+    context["email_connections"] = EmailConnection.objects.filter(user=user)
+    return context
 
 
 @login_required
@@ -153,6 +203,30 @@ def dashboard_view(request):
     if gate:
         return gate
     return render(request, "subscriptions/dashboard.html", build_dashboard_context(request.user))
+
+
+@login_required
+def gmail_integrations_view(request):
+    gate = _require_verified_session(request)
+    if gate:
+        return gate
+    return render(request, "subscriptions/gmail_integrations.html", gmail_integrations_context(request.user))
+
+
+@login_required
+def analytics_view(request):
+    gate = _require_verified_session(request)
+    if gate:
+        return gate
+    return render(request, "subscriptions/analytics.html", build_dashboard_context(request.user))
+
+
+@login_required
+def data_sources_view(request):
+    gate = _require_verified_session(request)
+    if gate:
+        return gate
+    return render(request, "subscriptions/data_sources.html", data_sources_context(request.user))
 
 
 def _filtered_subscriptions(request):
@@ -226,14 +300,15 @@ def scan_inbox_view(request):
 
     email_connection_id = request.POST.get("email_connection_id") or None
     if email_connection_id is None:
-        from .models import EmailConnection
-
         active_connection = EmailConnection.objects.filter(
             user=request.user,
             status=EmailConnection.STATUS_ACTIVE,
         ).first()
         if active_connection is not None:
             email_connection_id = str(active_connection.id)
+        else:
+            messages.info(request, "Connect Gmail to unlock inbox scanning.")
+            return redirect("gmail_integrations")
     try:
         if email_connection_id:
             result = scan_email_inbox_for_subscriptions(request.user, email_connection_id=int(email_connection_id))
@@ -248,7 +323,7 @@ def scan_inbox_view(request):
             if _is_htmx_request(request):
                 return _inbox_scan_partial(request, result.get("error", "Inbox scan failed."), "error")
             messages.error(request, result.get("error", "Inbox scan failed."))
-            return redirect("transactions:candidates")
+            return redirect("gmail_integrations")
         success_message = (
             f"Inbox scan complete. Checked {result['scanned_message_count']} messages and found "
             f"{result['matched_message_count']} likely subscription emails."
@@ -259,7 +334,7 @@ def scan_inbox_view(request):
             request,
             success_message,
         )
-    return redirect("transactions:candidates")
+    return redirect("gmail_integrations")
 
 
 def candidate_list_view(request):

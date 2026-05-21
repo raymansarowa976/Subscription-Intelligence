@@ -40,47 +40,66 @@
 
 <section class="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.95fr)]">
     <section class="space-y-6">
-        <section class="rounded-[30px] border border-black/10 bg-white/90 p-7 shadow-panel md:p-8">
-            <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div>
-                    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Pending detections</p>
-                    <h2 class="mt-2 text-3xl font-extrabold text-ink">Recurring subscription candidates</h2>
-                    <p class="mt-3 max-w-2xl text-sm font-medium leading-7 text-stone-600">Confirm the recurring charges that belong in your portfolio and dismiss anything that looks like a one-off purchase.</p>
-                </div>
-                <a class="inline-flex items-center justify-center rounded-2xl bg-pine px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 hover:bg-pineDeep" href="{% url 'dashboard' %}">Back to dashboard</a>
-            </div>
-            <form class="mt-7 grid gap-4 rounded-[24px] border border-black/10 bg-stone-50 p-5 md:grid-cols-3" method="get" action="{% url 'transactions:candidates' %}">
-                <input class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" type="search" name="q" value="{{ request.GET.q }}" placeholder="Search review items">
-                <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="source">
-                    <option value="">All sources</option>
-                    {% for value, label in source_type_choices %}<option value="{{ value }}" {% if request.GET.source == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
-                </select>
-                <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="confidence">
-                    <option value="">All confidence</option>
-                    <option value="high" {% if request.GET.confidence == "high" %}selected{% endif %}>High</option>
-                    <option value="medium" {% if request.GET.confidence == "medium" %}selected{% endif %}>Medium</option>
-                    <option value="low" {% if request.GET.confidence == "low" %}selected{% endif %}>Low</option>
-                </select>
-                <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="status">
-                    <option value="">Any status</option>
-                    {% for value, label in candidate_status_choices %}<option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
-                </select>
-                <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="cadence">
-                    <option value="">Any cadence</option>
-                    {% for value, label in cadence_choices %}<option value="{{ value }}" {% if request.GET.cadence == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
-                </select>
-                <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="sort">
-                    <option value="">Newest</option>
-                    <option value="confidence" {% if request.GET.sort == "confidence" %}selected{% endif %}>Confidence</option>
-                    <option value="renewal_date" {% if request.GET.sort == "renewal_date" %}selected{% endif %}>Renewal date</option>
-                    <option value="amount" {% if request.GET.sort == "amount" %}selected{% endif %}>Amount</option>
-                    <option value="merchant" {% if request.GET.sort == "merchant" %}selected{% endif %}>Merchant name</option>
-                </select>
-                <button class="rounded-2xl bg-pine px-4 py-3 text-sm font-extrabold text-white" type="submit">Apply filters</button>
-                <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-bold text-ink" href="{% url 'transactions:candidates' %}">Reset filters</a>
-            </form>
+        <section class="rounded-[30px] border border-black/10 bg-white/90 shadow-panel">
+            <details class="group" open>
+                <summary class="flex cursor-pointer list-none flex-col gap-4 p-7 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pine md:flex-row md:items-start md:justify-between md:p-8 [&::-webkit-details-marker]:hidden">
+                    <span class="flex min-w-0 items-start gap-3">
+                        <span class="mt-1 grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/10 text-sky-100 transition group-open:rotate-90" aria-hidden="true">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                                <path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                        <span class="min-w-0">
+                            <span class="block text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Pending detections</span>
+                            <span class="mt-2 block text-3xl font-extrabold text-ink">Recurring subscription candidates</span>
+                            <span class="mt-3 block max-w-2xl text-sm font-medium leading-7 text-stone-600">Confirm the recurring charges that belong in your portfolio and dismiss anything that looks like a one-off purchase.</span>
+                        </span>
+                    </span>
+                    <span class="flex flex-wrap items-center gap-3">
+                        <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.14em] text-sky-100">
+                            <span class="group-open:hidden">Show</span>
+                            <span class="hidden group-open:inline">Hide</span>
+                        </span>
+                    </span>
+                </summary>
+                <div class="px-7 pb-7 md:px-8 md:pb-8">
+                    <div class="mb-5 flex justify-end">
+                        <a class="inline-flex items-center justify-center rounded-2xl bg-pine px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 hover:bg-pineDeep" href="{% url 'dashboard' %}">Back to dashboard</a>
+                    </div>
+                    <form class="grid gap-4 rounded-[24px] border border-black/10 bg-stone-50 p-5 md:grid-cols-3" method="get" action="{% url 'transactions:candidates' %}">
+                        <input class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" type="search" name="q" value="{{ request.GET.q }}" placeholder="Search review items">
+                        <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="source">
+                            <option value="">All sources</option>
+                            {% for value, label in source_type_choices %}<option value="{{ value }}" {% if request.GET.source == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
+                        <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="confidence">
+                            <option value="">All confidence</option>
+                            <option value="high" {% if request.GET.confidence == "high" %}selected{% endif %}>High</option>
+                            <option value="medium" {% if request.GET.confidence == "medium" %}selected{% endif %}>Medium</option>
+                            <option value="low" {% if request.GET.confidence == "low" %}selected{% endif %}>Low</option>
+                        </select>
+                        <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="status">
+                            <option value="">Any status</option>
+                            {% for value, label in candidate_status_choices %}<option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
+                        <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="cadence">
+                            <option value="">Any cadence</option>
+                            {% for value, label in cadence_choices %}<option value="{{ value }}" {% if request.GET.cadence == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
+                        <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="sort">
+                            <option value="">Newest</option>
+                            <option value="confidence" {% if request.GET.sort == "confidence" %}selected{% endif %}>Confidence</option>
+                            <option value="renewal_date" {% if request.GET.sort == "renewal_date" %}selected{% endif %}>Renewal date</option>
+                            <option value="amount" {% if request.GET.sort == "amount" %}selected{% endif %}>Amount</option>
+                            <option value="merchant" {% if request.GET.sort == "merchant" %}selected{% endif %}>Merchant name</option>
+                        </select>
+                        <button class="rounded-2xl bg-pine px-4 py-3 text-sm font-extrabold text-white" type="submit">Apply filters</button>
+                        <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-bold text-ink" href="{% url 'transactions:candidates' %}">Reset filters</a>
+                    </form>
 
-            {% include "subscriptions/_candidate_list.html" %}
+                    {% include "subscriptions/_candidate_list.html" %}
+                </div>
+            </details>
         </section>
 
         <section class="rounded-[30px] border border-black/10 bg-white/90 p-7 shadow-panel md:p-8">
@@ -251,51 +270,10 @@
         </section>
 
         <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl md:col-span-2 xl:col-span-1">
-            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Sync status</p>
-            <h2 class="mt-2 text-2xl font-extrabold text-ink">Source health</h2>
-            <div class="mt-5 space-y-5">
-                <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Transactions</p>
-                    <p class="mt-2 text-sm font-medium leading-7 text-stone-600">
-                        {% if latest_sync %}
-                        {{ latest_sync.completed_at|date:"M j, Y g:i A" }} from {{ latest_sync.provider|title }} for account {{ latest_sync.account_id }}.
-                        {% else %}
-                        No sync has been recorded yet for your account.
-                        {% endif %}
-                    </p>
-                    {% if latest_sync %}
-                    <p class="mt-2 text-xs font-semibold uppercase tracking-[0.18em] {% if latest_sync.status == 'succeeded' %}text-emerald-700{% else %}text-rose-700{% endif %}">
-                        Sync status: {{ latest_sync.get_status_display }}
-                    </p>
-                    {% endif %}
-                </div>
-                <div class="border-t border-black/10 pt-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Inbox scan</p>
-                    <p class="mt-2 text-sm font-medium leading-7 text-stone-600">
-                        {% if latest_email_scan %}
-                        {{ latest_email_scan.completed_at|date:"M j, Y g:i A" }} from {{ latest_email_scan.mailbox }}.
-                        {% else %}
-                        Inbox scan has not been run yet.
-                        {% endif %}
-                    </p>
-                    {% if latest_email_scan %}
-                    <p class="mt-2 text-xs font-semibold uppercase tracking-[0.18em] {% if latest_email_scan.status == 'succeeded' %}text-emerald-700{% else %}text-rose-700{% endif %}">
-                        Inbox scan status: {{ latest_email_scan.get_status_display }} - {{ latest_email_scan.scanned_message_count }} processed - {{ latest_email_scan.matched_message_count }} matched
-                    </p>
-                    {% endif %}
-                    <div class="mt-5 grid gap-3">
-                        {% for scan in recent_email_scans %}
-                        <article class="rounded-2xl border border-black/10 bg-stone-50 p-4">
-                            <p class="text-sm font-extrabold text-ink">{{ scan.status_label }}</p>
-                            <p class="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">{{ scan.scanned_message_count }} processed - {{ scan.matched_message_count }} matched</p>
-                            <p class="mt-2 text-xs font-medium text-stone-600">Started {{ scan.created_at|date:"M j, Y g:i A" }}. Completed {{ scan.completed_at|date:"M j, Y g:i A" }}. Duration {{ scan.duration_seconds }}s. Parser candidates {{ scan.parser_candidate_count }}.</p>
-                            <a class="mt-3 inline-flex text-xs font-extrabold uppercase tracking-[0.14em] text-pine" href="{% url 'transactions:candidates' %}?scan={{ scan.id }}">Scan details</a>
-                            {% if scan.status == "failed" %}<button class="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-extrabold uppercase tracking-[0.14em] text-rose-700" type="button">Retry scan</button>{% endif %}
-                        </article>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Data operations</p>
+            <h2 class="mt-2 text-2xl font-extrabold text-ink">Scan history moved</h2>
+            <p class="mt-3 text-sm font-medium leading-7 text-stone-600">Mailbox health and connection logs now live on the data sources page, keeping this review queue focused on decisions.</p>
+            <a class="mt-5 inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-extrabold text-ink transition hover:border-pine hover:text-pine" href="{% url 'data_sources' %}">Open data sources</a>
         </section>
     </aside>
 </section>

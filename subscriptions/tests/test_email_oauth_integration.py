@@ -84,8 +84,36 @@ class EmailOAuthIntegrationTest(TestCase):
         response = self.client.get(reverse("accounts:account_settings"))
 
         self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Connect Gmail")
+        self.assertNotContains(response, reverse("accounts:connect_gmail"))
+        self.assertNotContains(response, "Gmail API")
+        self.assertNotContains(response, "Email scan preferences")
+
+    def test_gmail_integrations_page_owns_connection_state_and_sync_controls(self):
+        connection = self._connection()
+        EmailScanRun.objects.create(
+            user=self.user,
+            email_connection=connection,
+            provider="gmail",
+            mailbox="connected@gmail.com",
+            status=EmailScanRun.STATUS_SUCCEEDED,
+            scanned_message_count=12,
+            matched_message_count=3,
+        )
+
+        response = self.client.get("/dashboard/gmail/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Gmail integrations")
+        self.assertContains(response, "connected@gmail.com")
+        self.assertContains(response, "Token healthy")
         self.assertContains(response, "Connect Gmail")
         self.assertContains(response, reverse("accounts:connect_gmail"))
+        self.assertContains(response, reverse("accounts:resync_gmail", kwargs={"connection_id": connection.id}))
+        self.assertContains(response, reverse("accounts:revoke_gmail", kwargs={"connection_id": connection.id}))
+        self.assertContains(response, reverse("accounts:disconnect_email_connection", kwargs={"connection_id": connection.id}))
+        self.assertContains(response, "Automatic scans")
+        self.assertContains(response, "Scan scope")
 
     @override_settings(
         GMAIL_OAUTH_CLIENT_ID="client-id",
@@ -134,6 +162,7 @@ class EmailOAuthIntegrationTest(TestCase):
             )
 
         self.assertEqual(response.status_code, 200)
+        self.assertRedirects(response, "/dashboard/gmail/")
         EmailConnection = self._email_connection_model()
         connection = EmailConnection.objects.get(email_address="connected@gmail.com")
         self.assertEqual(connection.user, self.user)
@@ -181,6 +210,7 @@ class EmailOAuthIntegrationTest(TestCase):
             )
 
         self.assertEqual(response.status_code, 200)
+        self.assertRedirects(response, "/dashboard/gmail/")
         connection = EmailConnection.objects.get(user=self.user, email_address="connected@gmail.com")
         scan_task.assert_called_once_with(self.user.id, connection.id)
 
@@ -328,6 +358,7 @@ class EmailOAuthIntegrationTest(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
+        self.assertRedirects(response, "/dashboard/gmail/")
         connection.refresh_from_db()
         self.assertEqual(connection.status, EmailConnection.STATUS_DISCONNECTED)
         self.assertContains(response, "Gmail disconnected.")

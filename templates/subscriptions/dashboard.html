@@ -2,13 +2,10 @@
 
 {% block title %}Dashboard | Subscription Intelligence{% endblock %}
 {% block app_title %}Dashboard{% endblock %}
+{% block sidebar_subscription_link %}{% endblock %}
+{% block top_subscription_link %}{% endblock %}
 
 {% block app_panel %}
-{{ category_labels|json_script:"category-labels" }}
-{{ category_values|json_script:"category-values" }}
-{{ trend_labels|json_script:"trend-labels" }}
-{{ trend_values|json_script:"trend-values" }}
-
 <section class="mt-8 rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_78%_20%,rgba(236,72,153,0.20),transparent_28%),radial-gradient(circle_at_20%_0%,rgba(56,189,248,0.18),transparent_28%),linear-gradient(135deg,rgba(7,20,92,0.74),rgba(5,11,47,0.82))] p-6 shadow-panel backdrop-blur-xl md:p-7">
     <div class="grid gap-6 xl:grid-cols-[minmax(250px,0.72fr)_minmax(0,1.8fr)] xl:items-start">
         <div class="grid gap-5 rounded-[30px] border border-white/15 bg-white/[0.07] p-6 text-white shadow-[0_20px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl">
@@ -56,15 +53,21 @@
                 <p class="mt-3 max-w-3xl text-sm font-medium leading-7 text-sky-50/70">Everything on this dashboard is filtered to your account so you can review recurring spend with confidence, spot overlap, and stay ahead of the next billing cycle.</p>
             </div>
 
-            {% include "subscriptions/_inbox_scan_panel.html" %}
+            <div class="rounded-[28px] border border-black/10 bg-white/90 p-6 text-ink shadow-panel backdrop-blur-xl">
+                <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Guided onboarding</p>
+                <h3 class="mt-2 text-2xl font-extrabold">Connect Gmail to unlock inbox scanning</h3>
+                <p class="mt-3 text-sm font-medium leading-7 text-stone-600">
+                    Gmail setup now lives in its own workspace, so scan controls only appear after a mailbox is connected and ready.
+                </p>
+                <div class="mt-5 flex flex-wrap gap-3">
+                    <a class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" href="{% url 'gmail_integrations' %}">Open Gmail integrations</a>
+                    <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'analytics' %}">View analytics</a>
+                </div>
+            </div>
 
             <div class="flex flex-wrap gap-3">
-                <a id="dashboard-review-cta" class="inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm transition {% if candidate_count %}bg-gradient-to-r from-pine to-pineDeep font-extrabold text-white shadow-lg shadow-pine/20 hover:-translate-y-0.5{% else %}border border-black/10 bg-white font-bold text-ink hover:border-pine hover:text-pine{% endif %}" href="{% url 'transactions:candidates' %}">
-                    {% if candidate_count %}
-                    Review {{ candidate_count }} pending item{{ candidate_count|pluralize }}
-                    {% else %}
-                    Review subscriptions
-                    {% endif %}
+                <a id="dashboard-review-cta" class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" href="{% url 'transactions:candidates' %}">
+                    Review Pending Items
                 </a>
             </div>
 
@@ -78,8 +81,8 @@
                         <div class="mt-5 grid gap-3 md:grid-cols-3">
                             <div class="rounded-[22px] border border-black/10 bg-stone-50 p-4">
                                 <p class="text-xs font-bold uppercase tracking-[0.18em] text-stone-500">Step 1</p>
-                                <p class="mt-2 text-sm font-extrabold text-ink">Scan inbox</p>
-                                <p class="mt-1 text-xs font-medium leading-5 text-stone-600">Find likely subscription receipts.</p>
+                                <p class="mt-2 text-sm font-extrabold text-ink">Connect Gmail</p>
+                                <p class="mt-1 text-xs font-medium leading-5 text-stone-600">Enable inbox discovery first.</p>
                             </div>
                             <div class="rounded-[22px] border border-black/10 bg-stone-50 p-4">
                                 <p class="text-xs font-bold uppercase tracking-[0.18em] text-stone-500">Step 2</p>
@@ -155,96 +158,4 @@
         {% include "subscriptions/_subscription_results.html" %}
     </div>
 </section>
-
-<section class="mt-8 grid gap-6 lg:grid-cols-2">
-        <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
-            <div class="flex items-start justify-between gap-4">
-                <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Spending by category</p>
-                    <h2 class="mt-2 text-xl font-extrabold text-ink">Category mix</h2>
-                </div>
-            </div>
-            <div class="mt-4 h-56">
-                <canvas id="categoryChart" aria-label="Spending by category chart"></canvas>
-            </div>
-        </article>
-
-        <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 shadow-panel backdrop-blur-xl">
-            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Monthly trend</p>
-            <h2 class="mt-2 text-xl font-extrabold text-ink">6-month spend curve</h2>
-            <div class="mt-4 h-56">
-                <canvas id="trendChart" aria-label="Monthly spend trend chart"></canvas>
-            </div>
-        </article>
-</section>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    const categoryLabels = JSON.parse(document.getElementById("category-labels").textContent);
-    const categoryValues = JSON.parse(document.getElementById("category-values").textContent);
-    const trendLabels = JSON.parse(document.getElementById("trend-labels").textContent);
-    const trendValues = JSON.parse(document.getElementById("trend-values").textContent);
-
-    const chartDefaults = {
-        color: "#57534e",
-        plugins: {
-            legend: {
-                labels: {
-                    color: "#1c1917",
-                    font: { family: "ui-sans-serif, system-ui, sans-serif", weight: "600" },
-                },
-            },
-            tooltip: {
-                titleColor: "#111827",
-                bodyColor: "#111827",
-            },
-        },
-    };
-
-    const categoryCanvas = document.getElementById("categoryChart");
-    if (categoryCanvas && categoryLabels.length) {
-        new Chart(categoryCanvas, {
-            type: "doughnut",
-            data: {
-                labels: categoryLabels,
-                datasets: [{
-                    data: categoryValues,
-                    backgroundColor: ["#0f766e", "#14b8a6", "#c96f3b", "#334155", "#a8a29e"],
-                    borderWidth: 0,
-                }],
-            },
-            options: {
-                ...chartDefaults,
-                maintainAspectRatio: false,
-            },
-        });
-    }
-
-    const trendCanvas = document.getElementById("trendChart");
-    if (trendCanvas) {
-        new Chart(trendCanvas, {
-            type: "line",
-            data: {
-                labels: trendLabels,
-                datasets: [{
-                    label: "Spend",
-                    data: trendValues,
-                    borderColor: "#0f766e",
-                    backgroundColor: "rgba(15, 118, 110, 0.15)",
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.35,
-                }],
-            },
-            options: {
-                ...chartDefaults,
-                maintainAspectRatio: false,
-                scales: {
-                    x: { ticks: { color: "#57534e" }, grid: { display: false } },
-                    y: { ticks: { color: "#57534e" }, grid: { color: "rgba(28, 25, 23, 0.08)" } },
-                },
-            },
-        });
-    }
-</script>
 {% endblock %}

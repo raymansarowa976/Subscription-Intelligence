@@ -36,6 +36,9 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.candidates_url = reverse("transactions:candidates")
         self.add_subscription_url = reverse("transactions:add_subscription")
         self.contact_url = reverse("contact")
+        self.gmail_integrations_url = "/dashboard/gmail/"
+        self.analytics_url = "/dashboard/analytics/"
+        self.data_sources_url = "/dashboard/data-sources/"
 
     def test_dashboard_renders_metrics_workspace_and_empty_states(self):
         response = self.client.get(self.dashboard_url)
@@ -49,9 +52,6 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Log out")
         self.assertContains(response, "Contact support")
         self.assertContains(response, self.contact_url)
-        self.assertContains(response, "Scan email for subscriptions")
-        self.assertContains(response, "Scan inbox now")
-        self.assertContains(response, 'id="inbox-scan-panel"', html=False)
         self.assertContains(response, 'id="dashboard-inbox-lead-count-value"', html=False)
         self.assertContains(response, 'id="dashboard-review-queue-count-value"', html=False)
         self.assertContains(response, "Discovery pipeline")
@@ -61,14 +61,13 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Email matches move from found signals into review")
         self.assertNotContains(response, "Inbox leads")
         self.assertNotContains(response, "Review queue")
-        self.assertContains(response, 'hx-post="/dashboard/email/scan/"', html=False)
-        self.assertContains(response, 'hx-target="#inbox-scan-panel"', html=False)
-        self.assertContains(response, 'hx-push-url="false"', html=False)
-        self.assertContains(response, 'hx-disabled-elt="find button"', html=False)
-        self.assertContains(response, 'data-htmx-polish', html=False)
-        self.assertContains(response, 'htmx-idle-label', html=False)
-        self.assertContains(response, "Scanning...")
-        self.assertContains(response, "No inbox scan has been run yet for this account.")
+        self.assertNotContains(response, "Scan email for subscriptions")
+        self.assertNotContains(response, "Scan inbox now")
+        self.assertNotContains(response, 'id="inbox-scan-panel"', html=False)
+        self.assertNotContains(response, 'hx-post="/dashboard/email/scan/"', html=False)
+        self.assertNotContains(response, "Scanning...")
+        self.assertContains(response, "Connect Gmail to unlock inbox scanning")
+        self.assertContains(response, self.gmail_integrations_url)
         self.assertContains(response, "First workspace setup")
         self.assertContains(response, "Turn this empty dashboard into a renewal map.")
         self.assertContains(response, "Step 1")
@@ -81,13 +80,17 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         content = response.content.decode()
         self.assertLess(content.index("Portfolio overview"), content.index("Personalized snapshot"))
         self.assertLess(content.index("Personalized snapshot"), content.index("Total monthly spend"))
-        self.assertLess(content.index("Annual run-rate"), content.index("Spending by category"))
-        self.assertLess(content.index("Spending by category"), content.index("Monthly trend"))
+        self.assertNotContains(response, "Spending by category")
+        self.assertNotContains(response, "Monthly trend")
+        self.assertNotContains(response, "6-month spend curve")
+        self.assertNotContains(response, "categoryChart")
+        self.assertNotContains(response, "trendChart")
+        self.assertNotContains(response, "cdn.jsdelivr.net/npm/chart.js")
         self.assertNotContains(response, "Likely subscriptions from email")
         self.assertNotContains(response, "Next five charges")
         self.assertNotContains(response, "Potential savings")
 
-    def test_dashboard_displays_confirmed_subscriptions_and_personalized_metrics(self):
+    def test_dashboard_displays_confirmed_subscriptions_and_personalized_metrics_without_reports(self):
         Subscription.objects.create(
             user=self.user,
             merchant_name="Netflix",
@@ -155,11 +158,12 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Hello, productuser, you have 1 renewal this week.")
         self.assertContains(response, "$25.49")
         self.assertContains(response, "$305.88")
-        self.assertContains(response, "Category mix")
-        self.assertContains(response, "6-month spend curve")
+        self.assertNotContains(response, "Category mix")
+        self.assertNotContains(response, "6-month spend curve")
+        self.assertContains(response, self.analytics_url)
         self.assertContains(response, "Portfolio overview")
-        self.assertContains(response, "Review subscriptions")
-        self.assertContains(response, "Last inbox scan:")
+        self.assertContains(response, "Review Pending Items")
+        self.assertNotContains(response, "Last inbox scan:")
         self.assertNotContains(response, "First workspace setup")
 
     def test_dashboard_emphasizes_review_cta_when_candidates_are_pending(self):
@@ -177,9 +181,62 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="dashboard-review-cta"', html=False)
-        self.assertContains(response, "Review 1 pending item")
+        self.assertContains(response, "Review Pending Items")
         self.assertContains(response, "shadow-pine/20")
         self.assertNotContains(response, "Review subscriptions")
+        self.assertEqual(response.content.decode().count('id="dashboard-review-cta"'), 1)
+
+    def test_dashboard_has_exactly_one_primary_review_pending_items_action(self):
+        EmailScanRun.objects.create(
+            user=self.user,
+            mailbox="connected@gmail.com",
+            status=EmailScanRun.STATUS_SUCCEEDED,
+            scanned_message_count=12,
+            matched_message_count=2,
+        )
+        SubscriptionCandidate.objects.create(
+            user=self.user,
+            merchant_name="Spotify",
+            normalized_vendor="spotify",
+            amount="10.99",
+            currency="USD",
+            cadence=SubscriptionCandidate.CADENCE_MONTHLY,
+        )
+
+        response = self.client.get(self.dashboard_url)
+        content = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(content.count("Review Pending Items"), 1)
+        self.assertEqual(content.count('href="/transactions/candidates/"'), 1)
+        self.assertNotContains(response, "Review matches")
+        self.assertNotContains(response, "Review subscriptions")
+        self.assertNotContains(response, "Scan inbox now")
+        self.assertNotContains(response, "Run inbox scan")
+
+    def test_dashboard_sidebar_links_to_standalone_ecosystem_pages(self):
+        response = self.client.get(self.dashboard_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.gmail_integrations_url)
+        self.assertContains(response, self.analytics_url)
+        self.assertContains(response, self.data_sources_url)
+        self.assertNotContains(response, ">Soon<", html=False)
+
+    def test_dashboard_scan_tools_are_gated_until_gmail_is_connected(self):
+        response = self.client.get(self.dashboard_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Connect Gmail to unlock inbox scanning")
+        self.assertContains(response, self.gmail_integrations_url)
+        self.assertNotContains(response, reverse("scan_inbox"))
+        self.assertNotContains(response, "Scan inbox now")
+
+    def test_scan_post_without_connected_gmail_redirects_to_guided_onboarding(self):
+        response = self.client.post(reverse("scan_inbox"))
+
+        self.assertRedirects(response, self.gmail_integrations_url)
+        self.assertFalse(EmailScanRun.objects.filter(user=self.user).exists())
 
     def test_dashboard_orders_active_subscriptions_before_cancelled_ones(self):
         Subscription.objects.create(
@@ -399,7 +456,8 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertContains(response, "Showing matches at 50% confidence or higher.")
         self.assertContains(response, "Next five charges")
         self.assertContains(response, "Potential savings")
-        self.assertContains(response, "Source health")
+        self.assertNotContains(response, "Source health")
+        self.assertContains(response, self.data_sources_url)
 
     def test_htmx_confirm_candidate_refreshes_candidate_list_partial(self):
         candidate = SubscriptionCandidate.objects.create(

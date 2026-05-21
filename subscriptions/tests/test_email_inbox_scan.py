@@ -5,7 +5,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
-from subscriptions.models import EmailScanRun, EmailSubscriptionLead
+from subscriptions.models import EmailConnection, EmailScanRun, EmailSubscriptionLead
 from subscriptions.services import InboxScanError, scan_email_inbox_for_subscriptions
 from subscriptions.tasks import scan_email_inbox_task
 
@@ -85,6 +85,17 @@ class EmailInboxScanTest(TestCase):
         session["login_token_verified"] = True
         session.save()
 
+    def _gmail_connection(self):
+        return EmailConnection.objects.create(
+            user=self.user,
+            provider=EmailConnection.PROVIDER_GMAIL,
+            email_address="connected@gmail.com",
+            scopes=["https://www.googleapis.com/auth/gmail.readonly"],
+            access_token="access-token",
+            refresh_token="refresh-token",
+            status=EmailConnection.STATUS_ACTIVE,
+        )
+
     @patch("subscriptions.services.imaplib.IMAP4_SSL", new=FakeIMAP4)
     def test_scan_email_inbox_persists_likely_subscription_leads(self):
         result = scan_email_inbox_for_subscriptions(self.user)
@@ -104,14 +115,13 @@ class EmailInboxScanTest(TestCase):
         self.assertEqual(scan_run.matched_message_count, 1)
 
     @patch("subscriptions.services.imaplib.IMAP4_SSL", new=FakeIMAP4)
-    def test_scan_inbox_view_runs_scan_and_shows_success_feedback(self):
+    def test_scan_inbox_view_requires_connected_gmail_before_scanning(self):
         response = self.client.post(reverse("scan_inbox"), follow=True)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Inbox scan complete.")
-        self.assertContains(response, "Review subscriptions")
-        self.assertContains(response, "Your Netflix monthly receipt")
-        self.assertContains(response, "Likely subscriptions from email")
+        self.assertContains(response, "Connect Gmail to unlock inbox scanning.")
+        self.assertContains(response, "Gmail integrations")
+        self.assertFalse(EmailScanRun.objects.filter(user=self.user).exists())
 
     @patch("subscriptions.services.imaplib.IMAP4_SSL", new=FakeIMAP4)
     def test_huey_task_runs_inbox_scan_outside_request_response_cycle(self):
@@ -129,43 +139,36 @@ class EmailInboxScanTest(TestCase):
         with patch("subscriptions.views.scan_email_inbox_for_subscriptions", return_value=result) as scan_service:
             response = self.client.post(reverse("scan_inbox"), HTTP_HX_REQUEST="true")
 
-        self.assertEqual(response.status_code, 200)
-        scan_service.assert_called_once_with(self.user)
-        self.assertContains(response, "Inbox scan complete. Checked 2 messages and found 1 likely subscription emails.")
-        self.assertContains(response, "bg-emerald-50")
-        self.assertContains(response, 'id="inbox-scan-notice"', html=False)
+        self.assertEqual(response.status_code, 302)
+        scan_service.assert_not_called()
+        self.assertEqual(response["Location"], reverse("gmail_integrations"))
 
     @patch("subscriptions.services.imaplib.IMAP4_SSL", new=FakeIMAP4)
-    def test_htmx_scan_inbox_view_returns_dashboard_feedback_panel(self):
+    def test_htmx_scan_inbox_without_gmail_redirects_to_guided_onboarding(self):
         response = self.client.post(reverse("scan_inbox"), HTTP_HX_REQUEST="true")
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'id="dashboard-inbox-lead-count-value"', html=False)
-        self.assertContains(response, 'id="dashboard-review-queue-count-value"', html=False)
-        self.assertContains(response, 'hx-swap-oob="true"', html=False)
-        self.assertContains(response, 'id="inbox-scan-panel"', html=False)
-        self.assertContains(response, 'id="inbox-scan-notice"', html=False)
-        self.assertContains(response, 'role="status"', html=False)
-        self.assertContains(response, 'aria-live="polite"', html=False)
-        self.assertContains(response, 'data-htmx-focus-target', html=False)
-        self.assertContains(response, "Inbox scan complete. Checked 2 messages and found 1 likely subscription emails.")
-        self.assertContains(response, "Last inbox scan:")
-        self.assertContains(response, "Review matches")
-        self.assertNotContains(response, "Subscription review workspace")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], reverse("gmail_integrations"))
 
     @override_settings(IMAP_USERNAME="", IMAP_PASSWORD="")
-    def test_htmx_scan_inbox_view_returns_error_feedback_panel(self):
-        response = self.client.post(reverse("scan_inbox"), HTTP_HX_REQUEST="true")
+    def test_htmx_scan_inbox_with_gmail_returns_error_feedback_panel(self):
+        connection = self._gmail_connection()
+        with patch(
+            "subscriptions.views.scan_email_inbox_for_subscriptions",
+            side_effect=InboxScanError("Reconnect Gmail to scan this mailbox."),
+        ) as scan_service:
+            response = self.client.post(reverse("scan_inbox"), HTTP_HX_REQUEST="true")
 
         self.assertEqual(response.status_code, 200)
+        scan_service.assert_called_once_with(self.user, email_connection_id=connection.id)
         self.assertContains(response, 'id="dashboard-inbox-lead-count-value"', html=False)
         self.assertContains(response, 'hx-swap-oob="true"', html=False)
-        self.assertContains(response, 'id="inbox-scan-panel"', html=False)
+        self.assertContains(response, 'id="gmail-scan-panel"', html=False)
         self.assertContains(response, 'id="inbox-scan-notice"', html=False)
         self.assertContains(response, 'role="status"', html=False)
-        self.assertContains(response, "Inbox credentials are not configured.")
+        self.assertContains(response, "Reconnect Gmail to scan this mailbox.")
         self.assertContains(response, "Scan inbox now")
-        self.assertNotContains(response, "Subscription review workspace")
+        self.assertContains(response, f'value="{connection.id}"', html=False)
 
     @override_settings(IMAP_USERNAME="", IMAP_PASSWORD="")
     def test_scan_email_inbox_requires_configured_credentials(self):

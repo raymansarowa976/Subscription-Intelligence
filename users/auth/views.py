@@ -532,16 +532,16 @@ def gmail_oauth_callback_view(request):
     expected_state = request.session.pop(GMAIL_OAUTH_STATE_SESSION_KEY, "")
     if not expected_state or request.GET.get("state") != expected_state:
         messages.error(request, "Email connection could not be verified.")
-        return redirect("accounts:account_settings")
+        return redirect("gmail_integrations")
 
     if request.GET.get("error"):
         messages.error(request, "Gmail connection was cancelled.")
-        return redirect("accounts:account_settings")
+        return redirect("gmail_integrations")
 
     code = request.GET.get("code")
     if not code:
         messages.error(request, "Gmail did not return an authorization code.")
-        return redirect("accounts:account_settings")
+        return redirect("gmail_integrations")
 
     try:
         token_payload = exchange_gmail_oauth_code(code)
@@ -549,14 +549,14 @@ def gmail_oauth_callback_view(request):
     except Exception:
         logger.exception("Failed to complete Gmail OAuth callback.")
         messages.error(request, "Gmail connection failed. Please try again.")
-        return redirect("accounts:account_settings")
+        return redirect("gmail_integrations")
 
     scopes = token_payload.get("scope", GMAIL_READONLY_SCOPE).split()
     expires_in = int(token_payload.get("expires_in", 3600))
     email_address = profile_payload.get("emailAddress", "").strip()
     if not email_address:
         messages.error(request, "Gmail did not return a mailbox address.")
-        return redirect("accounts:account_settings")
+        return redirect("gmail_integrations")
 
     existing_connection = EmailConnection.objects.filter(
         user=request.user,
@@ -580,7 +580,7 @@ def gmail_oauth_callback_view(request):
     )
     _queue_automatic_gmail_scan(request.user, connection)
     messages.success(request, "Gmail connected.")
-    return redirect("accounts:account_settings")
+    return redirect("gmail_integrations")
 
 
 @login_required
@@ -593,13 +593,13 @@ def disconnect_email_connection_view(request, connection_id):
     connection = EmailConnection.objects.filter(pk=connection_id, user=request.user).first()
     if connection is None:
         messages.error(request, "Email connection was not found for this account.")
-        return redirect("accounts:account_settings")
+        return redirect("gmail_integrations")
 
     connection.status = EmailConnection.STATUS_DISCONNECTED
     connection.access_token = ""
     connection.save(update_fields=["status", "access_token", "updated_at"])
     messages.success(request, "Gmail disconnected.")
-    return redirect("accounts:account_settings")
+    return redirect("gmail_integrations")
 
 
 @login_required
@@ -619,7 +619,7 @@ def resync_gmail_view(request, connection_id):
 
     scan_email_inbox_task(request.user.id, connection.id)
     messages.success(request, "Gmail re-sync started.")
-    return redirect("accounts:account_settings")
+    return redirect("gmail_integrations")
 
 
 @login_required
@@ -639,7 +639,7 @@ def revoke_gmail_view(request, connection_id):
     connection.save(update_fields=["status", "access_token", "refresh_token", "updated_at"])
     _disable_automatic_scans(request.user)
     messages.success(request, "Gmail access revoked.")
-    return redirect("accounts:account_settings")
+    return redirect("gmail_integrations")
 
 
 @login_required
@@ -759,7 +759,7 @@ def update_privacy_controls_view(request):
         },
     )
     messages.success(request, "Privacy controls saved.")
-    return redirect("accounts:account_settings")
+    return redirect("gmail_integrations")
 
 
 @login_required

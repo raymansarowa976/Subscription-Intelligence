@@ -21,65 +21,93 @@
     {% endif %}
 
     {% for candidate in candidates %}
-    <article class="min-w-0 overflow-hidden rounded-[24px] border border-black/10 bg-[linear-gradient(180deg,#fafaf9,white)] p-6">
-        <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-            <div class="min-w-0">
-                <h3 class="break-words text-2xl font-extrabold text-ink [overflow-wrap:anywhere]">{{ candidate.merchant_name }}</h3>
-                <p class="mt-2 text-sm font-medium text-stone-600">{{ candidate.cadence_label }} recurring charge &bull; {{ candidate.currency }}</p>
-                {% if candidate.source_type == "email_receipt" %}
-                <p class="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">Suggested evidence from receipt parser</p>
-                {% if candidate.source_email_lead %}
-                <p class="mt-3 break-words text-sm font-medium leading-6 text-stone-600 [overflow-wrap:anywhere]">{{ candidate.source_email_lead.subject }}</p>
-                {% endif %}
-                <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
-                    <span class="rounded-full bg-stone-100 px-3 py-1 tabular-nums">Parser confidence {{ candidate.confidence_score }}%</span>
-                    {% if candidate.billing_date %}<span class="rounded-full bg-stone-100 px-3 py-1">Billed {{ candidate.billing_date|date:"M j, Y" }}</span>{% endif %}
-                    {% if candidate.likely_renewal_date %}<span class="rounded-full bg-stone-100 px-3 py-1">Likely renews {{ candidate.likely_renewal_date|date:"M j, Y" }}</span>{% endif %}
+    <article class="candidate-review-card min-w-0 overflow-hidden rounded-[24px] border border-white/15 bg-[#071042]/70 shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
+        <details class="group">
+            <summary class="grid cursor-pointer list-none gap-4 p-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pine sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center md:p-6 [&::-webkit-details-marker]:hidden">
+                <div class="flex min-w-0 items-start gap-3">
+                    <span class="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/10 text-sky-100 transition group-open:rotate-90" aria-hidden="true">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+                            <path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <span class="min-w-0">
+                        <span class="block break-words text-xl font-extrabold text-ink [overflow-wrap:anywhere]">{{ candidate.merchant_name }}</span>
+                        <span class="mt-2 block text-sm font-medium text-stone-600">{{ candidate.cadence_label }} recurring charge &bull; {{ candidate.currency }}</span>
+                        <span class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
+                            {% if candidate.source_type == "email_receipt" %}
+                            <span class="rounded-full bg-white px-3 py-1">Receipt parser</span>
+                            <span class="rounded-full bg-stone-100 px-3 py-1 tabular-nums">{{ candidate.confidence_score }}% confidence</span>
+                            {% else %}
+                            <span class="rounded-full bg-white px-3 py-1">{{ candidate.source_transaction_ids|length }} supporting transaction{{ candidate.source_transaction_ids|length|pluralize }}</span>
+                            {% endif %}
+                            {% if candidate.likely_renewal_date %}<span class="rounded-full bg-stone-100 px-3 py-1">Renews {{ candidate.likely_renewal_date|date:"M j, Y" }}</span>{% endif %}
+                        </span>
+                    </span>
                 </div>
-                <p class="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">Extracted fields</p>
-                {% else %}
-                <p class="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">{{ candidate.source_transaction_ids|length }} supporting transaction{{ candidate.source_transaction_ids|length|pluralize }}</p>
-                {% endif %}
-            </div>
-            <div class="text-left lg:text-right">
-                <p class="text-3xl font-extrabold tabular-nums text-ink">{{ candidate.formatted_amount }}</p>
-            </div>
-        </div>
-        {% if candidate.source_email_lead %}
-        <details class="mt-4 rounded-2xl border border-black/5 bg-white px-4 py-3">
-            <summary class="cursor-pointer rounded-xl text-sm font-extrabold text-pine focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pine">Show full email context</summary>
-            <p class="mt-3 break-words text-sm font-medium leading-7 text-stone-600 [overflow-wrap:anywhere]">{{ candidate.source_email_lead.cleaned_body|default:candidate.source_email_lead.snippet }}</p>
-        </details>
-        {% endif %}
+                <span class="flex items-center gap-4 sm:justify-end">
+                    <span class="text-2xl font-extrabold tabular-nums text-ink">{{ candidate.formatted_amount }}</span>
+                    <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.14em] text-sky-100">
+                        <span class="group-open:hidden">Review</span>
+                        <span class="hidden group-open:inline">Hide</span>
+                    </span>
+                </span>
+            </summary>
 
-        <div class="mt-6 flex flex-wrap gap-3">
-            <form method="post" action="{% url 'transactions:confirm_candidate' candidate.id %}" hx-post="{% url 'transactions:confirm_candidate' candidate.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML" hx-push-url="false" hx-disabled-elt="find button">
-                {% csrf_token %}
-                <input type="hidden" name="merchant_name" value="{{ candidate.merchant_name }}">
-                <input type="hidden" name="amount" value="{{ candidate.amount }}">
-                <input type="hidden" name="currency" value="{{ candidate.currency }}">
-                <input type="hidden" name="cadence" value="{{ candidate.cadence }}">
-                <input type="hidden" name="category" value="{{ candidate.suggested_category|default:'other' }}">
-                {% if candidate.likely_renewal_date %}<input type="hidden" name="next_renewal" value="{{ candidate.likely_renewal_date|date:'Y-m-d' }}">{% endif %}
-                <button class="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70" type="submit" name="action" value="confirm" aria-live="polite">
-                    <span class="htmx-idle-label">Confirm subscription</span>
-                    <span class="htmx-indicator inline-flex items-center gap-2">
-                        <span class="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true"></span>
-                        Saving...
-                    </span>
-                </button>
-            </form>
-            <form method="post" action="{% url 'transactions:reject_candidate' candidate.id %}" hx-post="{% url 'transactions:reject_candidate' candidate.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML" hx-push-url="false" hx-disabled-elt="find button">
-                {% csrf_token %}
-                <button class="inline-flex items-center justify-center gap-2 rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-rose-200 hover:text-rose-600 disabled:cursor-wait disabled:opacity-70" type="submit" aria-live="polite">
-                    <span class="htmx-idle-label">Reject</span>
-                    <span class="htmx-indicator inline-flex items-center gap-2 text-rose-600">
-                        <span class="h-3 w-3 animate-spin rounded-full border-2 border-rose-200 border-t-rose-600" aria-hidden="true"></span>
-                        Dismissing...
-                    </span>
-                </button>
-            </form>
-        </div>
+            <div class="border-t border-white/15 px-5 pb-6 pt-5 md:px-6">
+                {% if candidate.source_type == "email_receipt" %}
+                <div class="min-w-0">
+                    <p class="inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">Suggested evidence from receipt parser</p>
+                    {% if candidate.source_email_lead %}
+                    <p class="mt-3 break-words text-sm font-medium leading-6 text-stone-600 [overflow-wrap:anywhere]">{{ candidate.source_email_lead.subject }}</p>
+                    {% endif %}
+                    <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
+                        <span class="rounded-full bg-stone-100 px-3 py-1 tabular-nums">Parser confidence {{ candidate.confidence_score }}%</span>
+                        {% if candidate.billing_date %}<span class="rounded-full bg-stone-100 px-3 py-1">Billed {{ candidate.billing_date|date:"M j, Y" }}</span>{% endif %}
+                        {% if candidate.likely_renewal_date %}<span class="rounded-full bg-stone-100 px-3 py-1">Likely renews {{ candidate.likely_renewal_date|date:"M j, Y" }}</span>{% endif %}
+                    </div>
+                    <p class="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">Extracted fields</p>
+                </div>
+                {% else %}
+                <p class="inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">{{ candidate.source_transaction_ids|length }} supporting transaction{{ candidate.source_transaction_ids|length|pluralize }}</p>
+                {% endif %}
+
+                {% if candidate.source_email_lead %}
+                <details class="mt-4 rounded-2xl border border-black/5 bg-white px-4 py-3">
+                    <summary class="cursor-pointer rounded-xl text-sm font-extrabold text-pine focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pine">Show full email context</summary>
+                    <p class="mt-3 break-words text-sm font-medium leading-7 text-stone-600 [overflow-wrap:anywhere]">{{ candidate.source_email_lead.cleaned_body|default:candidate.source_email_lead.snippet }}</p>
+                </details>
+                {% endif %}
+
+                <div class="mt-6 flex flex-wrap gap-3">
+                    <form method="post" action="{% url 'transactions:confirm_candidate' candidate.id %}" hx-post="{% url 'transactions:confirm_candidate' candidate.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML" hx-push-url="false" hx-disabled-elt="find button">
+                        {% csrf_token %}
+                        <input type="hidden" name="merchant_name" value="{{ candidate.merchant_name }}">
+                        <input type="hidden" name="amount" value="{{ candidate.amount }}">
+                        <input type="hidden" name="currency" value="{{ candidate.currency }}">
+                        <input type="hidden" name="cadence" value="{{ candidate.cadence }}">
+                        <input type="hidden" name="category" value="{{ candidate.suggested_category|default:'other' }}">
+                        {% if candidate.likely_renewal_date %}<input type="hidden" name="next_renewal" value="{{ candidate.likely_renewal_date|date:'Y-m-d' }}">{% endif %}
+                        <button class="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70" type="submit" name="action" value="confirm" aria-live="polite">
+                            <span class="htmx-idle-label">Confirm subscription</span>
+                            <span class="htmx-indicator inline-flex items-center gap-2">
+                                <span class="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true"></span>
+                                Saving...
+                            </span>
+                        </button>
+                    </form>
+                    <form method="post" action="{% url 'transactions:reject_candidate' candidate.id %}" hx-post="{% url 'transactions:reject_candidate' candidate.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML" hx-push-url="false" hx-disabled-elt="find button">
+                        {% csrf_token %}
+                        <button class="inline-flex items-center justify-center gap-2 rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-rose-200 hover:text-rose-600 disabled:cursor-wait disabled:opacity-70" type="submit" aria-live="polite">
+                            <span class="htmx-idle-label">Reject</span>
+                            <span class="htmx-indicator inline-flex items-center gap-2 text-rose-600">
+                                <span class="h-3 w-3 animate-spin rounded-full border-2 border-rose-200 border-t-rose-600" aria-hidden="true"></span>
+                                Dismissing...
+                            </span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </details>
     </article>
     {% empty %}
     <div id="candidate-empty-state" class="rounded-[24px] border border-dashed border-black/15 bg-stone-50 p-8 text-center" role="status" aria-live="polite" tabindex="-1" {% if not review_notice %}data-htmx-focus-target{% endif %}>
