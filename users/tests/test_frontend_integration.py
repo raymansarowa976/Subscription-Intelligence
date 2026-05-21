@@ -534,9 +534,9 @@ class FrontendIntegrationTest(TestCase):
         response = self.client.get(self.account_settings_url)
 
         self.assertContains(response, "Account settings")
-        self.assertContains(response, "Change username")
+        self.assertContains(response, "Update your username")
         self.assertContains(response, self.change_username_url)
-        self.assertContains(response, "Change password")
+        self.assertContains(response, "Update your password")
         self.assertContains(response, self.change_password_url)
 
     def test_account_change_pages_render_for_verified_user(self):
