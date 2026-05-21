@@ -22,16 +22,16 @@
 ---
 
 ##  3. Core Dashboard Ecosystem
-- [ ] **Build Guided Onboarding Flow:** Force users to connect their Gmail account *before* accessing scan tools to eliminate initialization confusion.
-- [ ] **Decouple Gmail Integration:** Move all Gmail authentication logic, connection state details, and sync controls to a dedicated sidebar page.
-- [ ] **Decouple Analytics & Reports:** Extract the 6-month spend curve charts and complex data visualizations to a standalone analytics sidebar page.
-- [ ] **Decouple Data Sources Registry:** Move the mailbox health indicators and connection logs into a functional, standalone data sources page on the sidebar.
-- [ ] **Consolidate Dashboard Actions:** Remove redundant processing hooks and leave exactly one primary, high-visibility `Review Pending Items` button.
+- [x] **Build Guided Onboarding Flow:** Force users to connect their Gmail account *before* accessing scan tools to eliminate initialization confusion.
+- [x] **Decouple Gmail Integration:** Move all Gmail authentication logic, connection state details, and sync controls to a dedicated sidebar page.
+- [x] **Decouple Analytics & Reports:** Extract the 6-month spend curve charts and complex data visualizations to a standalone analytics sidebar page.
+- [x] **Decouple Data Sources Registry:** Move the mailbox health indicators and connection logs into a functional, standalone data sources page on the sidebar.
+- [x] **Consolidate Dashboard Actions:** Remove redundant processing hooks and leave exactly one primary, high-visibility `Review Pending Items` button.
 
 ---
 
 ##  4. Subscription Management Pipeline
-- [ ] **Implement Collapsible UI Components:** Upgrade the `Pending Detections` elements to use collapsible accordion lists to clean up vertical screen real estate.
+- [x] **Implement Collapsible UI Components:** Upgrade the `Pending Detections` elements to use collapsible accordion lists to clean up vertical screen real estate.
 
 ---
 
