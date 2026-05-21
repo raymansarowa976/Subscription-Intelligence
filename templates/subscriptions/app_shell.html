@@ -28,37 +28,30 @@
                     <span class="block text-sm font-extrabold text-ink">Overview and insights</span>
                     <span class="mt-1 block text-xs leading-5 text-stone-600">Costs, upcoming renewals, and savings signals.</span>
                 </a>
+                {% block sidebar_subscription_link %}
                 <a class="group rounded-2xl border border-black/10 bg-stone-50 px-4 py-3.5 shadow-sm transition hover:border-pine hover:bg-white" href="{% url 'transactions:candidates' %}">
                     <span class="block text-sm font-extrabold text-ink">Subscription list</span>
                     <span class="mt-1 block text-xs leading-5 text-stone-600">Review tracked services and detected candidates.</span>
                 </a>
-                <div class="rounded-2xl border border-black/10 bg-stone-50 px-4 py-3.5 text-stone-600">
-                    <div class="flex items-center justify-between gap-3">
-                        <span class="text-sm font-extrabold text-ink">Analytics and reports</span>
-                        <span class="rounded-full border border-black/10 bg-white px-2.5 py-1 text-[0.68rem] font-extrabold uppercase tracking-[0.16em] text-stone-500">Soon</span>
-                    </div>
-                    <p class="mt-1 text-xs leading-5 text-stone-600">Spending trends and monthly report views.</p>
-                </div>
+                {% endblock %}
+                <a class="group rounded-2xl border border-black/10 bg-stone-50 px-4 py-3.5 shadow-sm transition hover:border-pine hover:bg-white" href="{% url 'analytics' %}">
+                    <span class="block text-sm font-extrabold text-ink">Analytics and reports</span>
+                    <span class="mt-1 block text-xs leading-5 text-stone-600">Spending trends and monthly report views.</span>
+                </a>
             </div>
         </section>
 
         <section>
             <p class="px-3 text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Integrations</p>
             <div class="mt-3 grid gap-2">
-                <div class="rounded-2xl border border-black/10 bg-stone-50 px-4 py-3.5 text-stone-600">
-                    <div class="flex items-center justify-between gap-3">
-                        <span class="text-sm font-extrabold text-ink">Gmail integrations</span>
-                        <span class="rounded-full border border-black/10 bg-white px-2.5 py-1 text-[0.68rem] font-extrabold uppercase tracking-[0.16em] text-stone-500">Soon</span>
-                    </div>
-                    <p class="mt-1 text-xs leading-5 text-stone-600">Manage Gmail API access for receipt and billing scans.</p>
-                </div>
-                <div class="rounded-2xl border border-black/10 bg-stone-50 px-4 py-3.5 text-stone-600">
-                    <div class="flex items-center justify-between gap-3">
-                        <span class="text-sm font-extrabold text-ink">Data sources</span>
-                        <span class="rounded-full border border-black/10 bg-white px-2.5 py-1 text-[0.68rem] font-extrabold uppercase tracking-[0.16em] text-stone-500">Soon</span>
-                    </div>
-                    <p class="mt-1 text-xs leading-5 text-stone-600">Manual uploads, provider imports, and sync history.</p>
-                </div>
+                <a class="group rounded-2xl border border-black/10 bg-stone-50 px-4 py-3.5 shadow-sm transition hover:border-pine hover:bg-white" href="{% url 'gmail_integrations' %}">
+                    <span class="block text-sm font-extrabold text-ink">Gmail integrations</span>
+                    <span class="mt-1 block text-xs leading-5 text-stone-600">Manage Gmail access for receipt and billing scans.</span>
+                </a>
+                <a class="group rounded-2xl border border-black/10 bg-stone-50 px-4 py-3.5 shadow-sm transition hover:border-pine hover:bg-white" href="{% url 'data_sources' %}">
+                    <span class="block text-sm font-extrabold text-ink">Data sources</span>
+                    <span class="mt-1 block text-xs leading-5 text-stone-600">Mailbox health, provider imports, and sync history.</span>
+                </a>
             </div>
         </section>
     </nav>
@@ -90,7 +83,9 @@
             </div>
 
             <nav class="flex min-h-11 flex-wrap items-center gap-3 rounded-[22px] border border-black/10 bg-stone-50 p-1.5 backdrop-blur-xl">
+                {% block top_subscription_link %}
                 <a class="inline-flex h-11 items-center justify-center rounded-2xl px-4 text-sm font-bold transition {% block candidates_nav_class %}border border-black/10 bg-white text-ink shadow-sm hover:border-pine hover:text-pine{% endblock %}" href="{% url 'transactions:candidates' %}">Subscriptions</a>
+                {% endblock %}
                 <label class="inline-grid h-11 w-11 cursor-pointer place-items-center rounded-2xl border border-black/10 bg-white text-sm font-bold text-ink shadow-sm transition hover:border-pine hover:text-pine" for="right-sidebar-toggle" aria-label="Open navigation sidebar" title="Open navigation sidebar">
                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M4 7h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
