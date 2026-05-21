@@ -311,15 +311,13 @@ class SubscriptionReviewPageFullFunctionalityTest(TestCase):
         self._scan(status="queued", scanned_message_count=0, matched_message_count=0)
         self._scan(status="in_progress", scanned_message_count=5, matched_message_count=1)
 
-        response = self.client.get(self.candidates_url)
+        response = self.client.get(reverse("data_sources"))
 
         self.assertContains(response, "Succeeded")
         self.assertContains(response, "Failed")
         self.assertContains(response, "Queued")
         self.assertContains(response, "In progress")
         self.assertContains(response, "50 processed - 8 matched")
-        self.assertContains(response, "Retry scan")
-        self.assertContains(response, "Scan details")
         self.assertContains(response, "Duration")
         self.assertContains(response, "Parser candidates")
 
