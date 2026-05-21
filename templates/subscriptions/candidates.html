@@ -40,47 +40,66 @@
 
 <section class="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.95fr)]">
     <section class="space-y-6">
-        <section class="rounded-[30px] border border-black/10 bg-white/90 p-7 shadow-panel md:p-8">
-            <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div>
-                    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Pending detections</p>
-                    <h2 class="mt-2 text-3xl font-extrabold text-ink">Recurring subscription candidates</h2>
-                    <p class="mt-3 max-w-2xl text-sm font-medium leading-7 text-stone-600">Confirm the recurring charges that belong in your portfolio and dismiss anything that looks like a one-off purchase.</p>
-                </div>
-                <a class="inline-flex items-center justify-center rounded-2xl bg-pine px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 hover:bg-pineDeep" href="{% url 'dashboard' %}">Back to dashboard</a>
-            </div>
-            <form class="mt-7 grid gap-4 rounded-[24px] border border-black/10 bg-stone-50 p-5 md:grid-cols-3" method="get" action="{% url 'transactions:candidates' %}">
-                <input class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" type="search" name="q" value="{{ request.GET.q }}" placeholder="Search review items">
-                <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="source">
-                    <option value="">All sources</option>
-                    {% for value, label in source_type_choices %}<option value="{{ value }}" {% if request.GET.source == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
-                </select>
-                <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="confidence">
-                    <option value="">All confidence</option>
-                    <option value="high" {% if request.GET.confidence == "high" %}selected{% endif %}>High</option>
-                    <option value="medium" {% if request.GET.confidence == "medium" %}selected{% endif %}>Medium</option>
-                    <option value="low" {% if request.GET.confidence == "low" %}selected{% endif %}>Low</option>
-                </select>
-                <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="status">
-                    <option value="">Any status</option>
-                    {% for value, label in candidate_status_choices %}<option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
-                </select>
-                <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="cadence">
-                    <option value="">Any cadence</option>
-                    {% for value, label in cadence_choices %}<option value="{{ value }}" {% if request.GET.cadence == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
-                </select>
-                <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="sort">
-                    <option value="">Newest</option>
-                    <option value="confidence" {% if request.GET.sort == "confidence" %}selected{% endif %}>Confidence</option>
-                    <option value="renewal_date" {% if request.GET.sort == "renewal_date" %}selected{% endif %}>Renewal date</option>
-                    <option value="amount" {% if request.GET.sort == "amount" %}selected{% endif %}>Amount</option>
-                    <option value="merchant" {% if request.GET.sort == "merchant" %}selected{% endif %}>Merchant name</option>
-                </select>
-                <button class="rounded-2xl bg-pine px-4 py-3 text-sm font-extrabold text-white" type="submit">Apply filters</button>
-                <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-bold text-ink" href="{% url 'transactions:candidates' %}">Reset filters</a>
-            </form>
+        <section class="rounded-[30px] border border-black/10 bg-white/90 shadow-panel">
+            <details class="group" open>
+                <summary class="flex cursor-pointer list-none flex-col gap-4 p-7 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pine md:flex-row md:items-start md:justify-between md:p-8 [&::-webkit-details-marker]:hidden">
+                    <span class="flex min-w-0 items-start gap-3">
+                        <span class="mt-1 grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/10 text-sky-100 transition group-open:rotate-90" aria-hidden="true">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                                <path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                        <span class="min-w-0">
+                            <span class="block text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Pending detections</span>
+                            <span class="mt-2 block text-3xl font-extrabold text-ink">Recurring subscription candidates</span>
+                            <span class="mt-3 block max-w-2xl text-sm font-medium leading-7 text-stone-600">Confirm the recurring charges that belong in your portfolio and dismiss anything that looks like a one-off purchase.</span>
+                        </span>
+                    </span>
+                    <span class="flex flex-wrap items-center gap-3">
+                        <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.14em] text-sky-100">
+                            <span class="group-open:hidden">Show</span>
+                            <span class="hidden group-open:inline">Hide</span>
+                        </span>
+                    </span>
+                </summary>
+                <div class="px-7 pb-7 md:px-8 md:pb-8">
+                    <div class="mb-5 flex justify-end">
+                        <a class="inline-flex items-center justify-center rounded-2xl bg-pine px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5 hover:bg-pineDeep" href="{% url 'dashboard' %}">Back to dashboard</a>
+                    </div>
+                    <form class="grid gap-4 rounded-[24px] border border-black/10 bg-stone-50 p-5 md:grid-cols-3" method="get" action="{% url 'transactions:candidates' %}">
+                        <input class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" type="search" name="q" value="{{ request.GET.q }}" placeholder="Search review items">
+                        <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="source">
+                            <option value="">All sources</option>
+                            {% for value, label in source_type_choices %}<option value="{{ value }}" {% if request.GET.source == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
+                        <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="confidence">
+                            <option value="">All confidence</option>
+                            <option value="high" {% if request.GET.confidence == "high" %}selected{% endif %}>High</option>
+                            <option value="medium" {% if request.GET.confidence == "medium" %}selected{% endif %}>Medium</option>
+                            <option value="low" {% if request.GET.confidence == "low" %}selected{% endif %}>Low</option>
+                        </select>
+                        <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="status">
+                            <option value="">Any status</option>
+                            {% for value, label in candidate_status_choices %}<option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
+                        <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="cadence">
+                            <option value="">Any cadence</option>
+                            {% for value, label in cadence_choices %}<option value="{{ value }}" {% if request.GET.cadence == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
+                        <select class="rounded-2xl border-black/10 bg-white px-4 py-3 text-sm" name="sort">
+                            <option value="">Newest</option>
+                            <option value="confidence" {% if request.GET.sort == "confidence" %}selected{% endif %}>Confidence</option>
+                            <option value="renewal_date" {% if request.GET.sort == "renewal_date" %}selected{% endif %}>Renewal date</option>
+                            <option value="amount" {% if request.GET.sort == "amount" %}selected{% endif %}>Amount</option>
+                            <option value="merchant" {% if request.GET.sort == "merchant" %}selected{% endif %}>Merchant name</option>
+                        </select>
+                        <button class="rounded-2xl bg-pine px-4 py-3 text-sm font-extrabold text-white" type="submit">Apply filters</button>
+                        <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-bold text-ink" href="{% url 'transactions:candidates' %}">Reset filters</a>
+                    </form>
 
-            {% include "subscriptions/_candidate_list.html" %}
+                    {% include "subscriptions/_candidate_list.html" %}
+                </div>
+            </details>
         </section>
 
         <section class="rounded-[30px] border border-black/10 bg-white/90 p-7 shadow-panel md:p-8">
