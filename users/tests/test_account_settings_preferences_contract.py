@@ -88,9 +88,27 @@ class AccountSettingsPreferencesContractTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Update your username")
         self.assertContains(response, "Update your password")
+        self.assertContains(response, "Reporting currency")
         self.assertContains(response, "Manage account data")
         self.assertNotContains(response, "Change username")
         self.assertNotContains(response, "Change password")
+
+    def test_account_settings_renders_base_currency_preference_controls(self):
+        self.user.base_currency = "CAD"
+        self.user.save(update_fields=["base_currency"])
+
+        response = self.client.get(reverse("accounts:account_settings"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Reporting currency")
+        self.assertContains(response, "Dashboard totals and analytics convert into this currency.")
+        self.assertContains(response, f'action="{reverse("accounts:update_base_currency")}"', html=False)
+        self.assertContains(response, 'name="base_currency"', html=False)
+        self.assertContains(response, 'aria-label="Base reporting currency"', html=False)
+        self.assertContains(response, '<option value="USD"', html=False)
+        self.assertContains(response, '<option value="CAD" selected', html=False)
+        self.assertContains(response, '<option value="EUR"', html=False)
+        self.assertContains(response, '<option value="GBP"', html=False)
 
     def test_revoked_gmail_permission_blocks_background_scans_and_persists_warning_state(self):
         connection = self._gmail_connection(
