@@ -27,6 +27,7 @@ from .views import (
     resend_token_view,
     revoke_gmail_view,
     signup_view,
+    update_base_currency_view,
     update_privacy_controls_view,
     verify_token_view,
 )
@@ -63,6 +64,7 @@ urlpatterns = [
         name='delete_imported_evidence_for_user',
     ),
     path('account/close/', close_account_view, name='close_account'),
+    path('account/base-currency/', update_base_currency_view, name='update_base_currency'),
     path('account/privacy-controls/', update_privacy_controls_view, name='update_privacy_controls'),
     path('verify-token/', verify_token_view, name='verify_token'),
     path('resend-token/', resend_token_view, name='resend_token'),

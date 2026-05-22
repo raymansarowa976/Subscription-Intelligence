@@ -41,6 +41,7 @@ from subscriptions.tasks import scan_email_inbox_task
 from .authentication_forms import SubscriptionAuthenticationForm
 from .forms import (
     AccountRecoveryForm,
+    BaseCurrencyForm,
     LoginTokenVerificationForm,
     PasswordChangeForm,
     PasswordResetConfirmForm,
@@ -356,7 +357,7 @@ def _delete_user_sessions(user, keep_session_key=None):
             session.delete()
 
 
-def _account_settings_context(request, username_form=None, password_form=None):
+def _account_settings_context(request, username_form=None, password_form=None, base_currency_form=None):
     email_connections = EmailConnection.objects.filter(user=request.user)
     active_email_connection = email_connections.filter(status=EmailConnection.STATUS_ACTIVE).first()
     latest_scan = None
@@ -377,6 +378,7 @@ def _account_settings_context(request, username_form=None, password_form=None):
     return {
         "username_form": username_form or UsernameChangeRequestForm(user=request.user),
         "password_form": password_form or PasswordChangeForm(user=request.user),
+        "base_currency_form": base_currency_form or BaseCurrencyForm(user=request.user),
         "email_connections": email_connections,
         "active_email_connection": active_email_connection,
         "latest_gmail_scan": latest_scan,
@@ -400,11 +402,16 @@ def _disable_automatic_scans(user):
     )
 
 
-def _render_account_settings(request, username_form=None, password_form=None):
+def _render_account_settings(request, username_form=None, password_form=None, base_currency_form=None):
     return render(
         request,
         "registration/account_settings.html",
-        _account_settings_context(request, username_form=username_form, password_form=password_form),
+        _account_settings_context(
+            request,
+            username_form=username_form,
+            password_form=password_form,
+            base_currency_form=base_currency_form,
+        ),
     )
 
 
@@ -507,6 +514,23 @@ def account_settings_view(request):
     if gate:
         return gate
     return _render_account_settings(request)
+
+
+@login_required
+@require_POST
+def update_base_currency_view(request):
+    gate = _require_verified_session(request)
+    if gate:
+        return gate
+
+    form = BaseCurrencyForm(request.POST, user=request.user)
+    if form.is_valid():
+        request.user.base_currency = form.cleaned_data["base_currency"]
+        request.user.save(update_fields=["base_currency"])
+        messages.success(request, "Reporting currency updated.")
+    else:
+        messages.error(request, "Choose a supported reporting currency.")
+    return redirect("accounts:account_settings")
 
 
 @login_required

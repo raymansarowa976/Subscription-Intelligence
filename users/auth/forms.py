@@ -6,6 +6,13 @@ import re
 
 User = get_user_model()
 
+BASE_CURRENCY_CHOICES = [
+    ("USD", "USD - US Dollar"),
+    ("CAD", "CAD - Canadian Dollar"),
+    ("EUR", "EUR - Euro"),
+    ("GBP", "GBP - British Pound"),
+]
+
 
 class SignupForm(forms.ModelForm):
     NAME_PATTERN = re.compile(r"^[A-Za-z]{2,}$")
@@ -133,6 +140,31 @@ class LoginTokenVerificationForm(forms.Form):
 
 class ResendTokenForm(forms.Form):
     pass
+
+
+class BaseCurrencyForm(forms.Form):
+    base_currency = forms.ChoiceField(
+        choices=BASE_CURRENCY_CHOICES,
+        label="Base reporting currency",
+        error_messages={"invalid_choice": "Choose a supported reporting currency."},
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user is not None:
+            self.fields["base_currency"].initial = user.base_currency
+        self.fields["base_currency"].widget.attrs.update(
+            {
+                "class": (
+                    "block w-full rounded-2xl border-black/10 bg-stone-50 px-4 py-3 "
+                    "text-sm shadow-sm transition focus:border-pine focus:ring-pine"
+                ),
+                "aria-label": "Base reporting currency",
+            }
+        )
+
+    def clean_base_currency(self):
+        return self.cleaned_data["base_currency"].strip().upper()
 
 
 class AccountRecoveryForm(forms.Form):
