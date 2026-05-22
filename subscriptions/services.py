@@ -17,8 +17,6 @@ from urllib.request import Request, urlopen
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Sum
-from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
 from .models import (
@@ -26,6 +24,7 @@ from .models import (
     EmailScanPreference,
     EmailScanRun,
     EmailSubscriptionLead,
+    ExchangeRate,
     Subscription,
     SubscriptionCandidate,
     TransactionEvidence,
@@ -98,6 +97,15 @@ NEWSLETTER_SENDERS = [
     "freecodecamp",
     "mermaid",
 ]
+
+CURRENCY_SYMBOLS = {
+    "USD": "$",
+    "CAD": "$",
+    "AUD": "$",
+    "EUR": "€",
+    "GBP": "£",
+    "JPY": "¥",
+}
 
 
 class IngestionValidationError(Exception):
@@ -727,6 +735,42 @@ def _add_months(value, months):
     return date(year, month, day)
 
 
+def normalize_currency(currency):
+    return (currency or "USD").strip().upper()
+
+
+def currency_symbol(currency):
+    return CURRENCY_SYMBOLS.get(normalize_currency(currency), f"{normalize_currency(currency)} ")
+
+
+def base_currency_for_user(user):
+    return normalize_currency(getattr(user, "base_currency", "USD"))
+
+
+def exchange_rate_for_date(from_currency, to_currency, effective_date):
+    from_currency = normalize_currency(from_currency)
+    to_currency = normalize_currency(to_currency)
+    if from_currency == to_currency:
+        return Decimal("1")
+    rate = (
+        ExchangeRate.objects.filter(
+            from_currency=from_currency,
+            to_currency=to_currency,
+            effective_date__lte=effective_date,
+        )
+        .order_by("-effective_date", "-id")
+        .first()
+    )
+    if rate is None:
+        return Decimal("1")
+    return rate.rate
+
+
+def convert_currency(amount, from_currency, to_currency, effective_date):
+    converted = Decimal(amount) * exchange_rate_for_date(from_currency, to_currency, effective_date)
+    return converted.quantize(Decimal("0.01"))
+
+
 def calculate_next_renewal(last_charge_date, cadence):
     if cadence == SubscriptionCandidate.CADENCE_YEARLY or cadence == "yearly":
         return date(
@@ -783,6 +827,7 @@ def _subscription_sort_key(subscription):
 
 def build_dashboard_context(user):
     today = date.today()
+    base_currency = base_currency_for_user(user)
     subscriptions = list(Subscription.objects.filter(user=user))
     active_email_connection = EmailConnection.objects.filter(
         user=user,
@@ -824,6 +869,11 @@ def build_dashboard_context(user):
     renewal_entries = []
     for subscription in subscriptions:
         next_renewal = infer_subscription_next_renewal(subscription)
+        monthly_amount = monthly_amount_for_subscription(subscription)
+        annual_amount = annual_amount_for_subscription(subscription)
+        monthly_amount_base = convert_currency(monthly_amount, subscription.currency, base_currency, today)
+        annual_amount_base = convert_currency(annual_amount, subscription.currency, base_currency, today)
+        subscription.currency_symbol = currency_symbol(subscription.currency)
         subscription.dashboard_category = subscription.category or infer_subscription_category(subscription.merchant_name)
         subscription.dashboard_category_label = dict(Subscription.CATEGORY_CHOICES).get(
             subscription.dashboard_category,
@@ -838,8 +888,10 @@ def build_dashboard_context(user):
             {
                 "subscription": subscription,
                 "next_renewal": next_renewal,
-                "monthly_amount": monthly_amount_for_subscription(subscription),
-                "annual_amount": annual_amount_for_subscription(subscription),
+                "monthly_amount": monthly_amount_base,
+                "annual_amount": annual_amount_base,
+                "source_monthly_amount": monthly_amount,
+                "source_annual_amount": annual_amount,
             }
         )
 
@@ -855,7 +907,7 @@ def build_dashboard_context(user):
         for entry in active_entries
         if entry["next_renewal"] and today <= entry["next_renewal"] <= today + timedelta(days=7)
     ]
-    upcoming_renewals_cost = sum((entry["subscription"].amount for entry in upcoming_entries), Decimal("0.00"))
+    upcoming_renewals_cost = sum((entry["monthly_amount"] for entry in upcoming_entries), Decimal("0.00"))
     next_five_renewals = sorted(
         [entry for entry in active_entries if entry["next_renewal"]],
         key=lambda entry: entry["next_renewal"],
@@ -872,25 +924,25 @@ def build_dashboard_context(user):
         category_labels.append(dict(Subscription.CATEGORY_CHOICES).get(category, category.title()))
         category_values.append(float(amount))
 
-    trend_rows = (
-        TransactionEvidence.objects.filter(user=user, posted_at__gte=_add_months(today.replace(day=1), -5))
-        .annotate(month=TruncMonth("posted_at"))
-        .values("month")
-        .annotate(total=Sum("amount"))
-        .order_by("month")
-    )
-    trend_map = {
-        row["month"].strftime("%b"): float(row["total"] or 0)
-        for row in trend_rows
-        if row["month"] is not None
-    }
+    trend_transactions = TransactionEvidence.objects.filter(
+        user=user,
+        posted_at__gte=_add_months(today.replace(day=1), -5),
+    ).order_by("posted_at", "id")
+    trend_map = defaultdict(lambda: Decimal("0.00"))
+    for tx in trend_transactions:
+        trend_map[tx.posted_at.strftime("%b")] += convert_currency(
+            tx.amount,
+            tx.currency,
+            base_currency,
+            tx.posted_at,
+        )
     trend_labels = []
     trend_values = []
     for month_offset in range(-5, 1):
         month_date = _add_months(today.replace(day=1), month_offset)
         label = month_date.strftime("%b")
         trend_labels.append(label)
-        trend_values.append(trend_map.get(label, 0))
+        trend_values.append(float(trend_map[label]))
 
     savings_insights = []
     sortable_entries = sorted(
@@ -913,7 +965,7 @@ def build_dashboard_context(user):
         savings_insights.append(
             {
                 "title": f"You have {len(grouped_entries)} {category_label.lower()} subscriptions",
-                "detail": f"They add up to ${sum((entry['monthly_amount'] for entry in grouped_entries), Decimal('0.00')):.2f} per month. Consider whether any overlap can be removed.",
+                "detail": f"They add up to {currency_symbol(base_currency)}{sum((entry['monthly_amount'] for entry in grouped_entries), Decimal('0.00')):.2f} per month. Consider whether any overlap can be removed.",
             }
         )
 
@@ -935,6 +987,8 @@ def build_dashboard_context(user):
 
     return {
         "subscriptions": subscriptions,
+        "base_currency": base_currency,
+        "currency_symbol": currency_symbol(base_currency),
         "subscription_category_choices": Subscription.CATEGORY_CHOICES,
         "active_subscription_query": "",
         "active_subscription_category": "",

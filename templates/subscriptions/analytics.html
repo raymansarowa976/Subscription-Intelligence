@@ -18,15 +18,15 @@
 <section class="mt-8 grid gap-6 xl:grid-cols-3">
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 text-ink shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Total monthly spend</p>
-        <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight">${{ total_monthly_spend|floatformat:2 }}</p>
+        <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight">{{ currency_symbol }}{{ total_monthly_spend|floatformat:2 }}</p>
     </article>
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 text-ink shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Upcoming renewals</p>
-        <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight">${{ upcoming_renewals_cost|floatformat:2 }}</p>
+        <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight">{{ currency_symbol }}{{ upcoming_renewals_cost|floatformat:2 }}</p>
     </article>
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 text-ink shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Annual run-rate</p>
-        <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight">${{ annual_run_rate|floatformat:2 }}</p>
+        <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight">{{ currency_symbol }}{{ annual_run_rate|floatformat:2 }}</p>
     </article>
 </section>
 

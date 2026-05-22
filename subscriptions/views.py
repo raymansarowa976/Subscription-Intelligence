@@ -27,6 +27,7 @@ from .services import (
     build_dashboard_context,
     calculate_next_renewal,
     classify_inbox_lead,
+    currency_symbol,
     infer_subscription_category,
     ingest_transactions,
     is_reviewable_inbox_lead,
@@ -244,6 +245,7 @@ def _filtered_subscriptions(request):
 
     rows = list(subscriptions.order_by("merchant_name", "id"))
     for subscription in rows:
+        subscription.currency_symbol = currency_symbol(subscription.currency)
         subscription.dashboard_category = subscription.category or infer_subscription_category(
             subscription.merchant_name
         )

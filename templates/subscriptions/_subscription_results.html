@@ -11,7 +11,7 @@
                 <h3 class="text-base font-extrabold text-ink">{{ subscription.merchant_name }}</h3>
                 <p class="mt-1 text-sm font-semibold text-stone-500">{{ subscription.dashboard_category_label }} - {{ subscription.dashboard_status_label }}</p>
             </div>
-            <p class="text-sm font-extrabold tabular-nums text-ink">${{ subscription.amount|floatformat:2 }} {{ subscription.currency }}</p>
+            <p class="text-sm font-extrabold tabular-nums text-ink">{{ subscription.currency_symbol }}{{ subscription.amount|floatformat:2 }} {{ subscription.currency }}</p>
         </div>
     </article>
     {% empty %}
