@@ -119,10 +119,10 @@
 
 ### Issue #10: Search & Advanced Filtering
 **Acceptance Criteria:**
-- [ ] Search bar filters subscription results via HTMX `keyup` trigger.
-- [ ] Category filter updates the UI without full page refresh.
-- [ ] Empty states remain clear when filters return no results.
-- [ ] Filtering preserves user data isolation.
+- [x] Search bar filters subscription results via HTMX `keyup` trigger.
+- [x] Category filter updates the UI without full page refresh.
+- [x] Empty states remain clear when filters return no results.
+- [x] Filtering preserves user data isolation.
 
 ### Issue #11: Multi-Currency Support
 **Acceptance Criteria:**
