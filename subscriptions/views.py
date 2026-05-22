@@ -25,6 +25,7 @@ from .services import (
     IngestionValidationError,
     InboxScanError,
     build_dashboard_context,
+    build_monthly_report,
     calculate_next_renewal,
     classify_inbox_lead,
     currency_symbol,
@@ -222,6 +223,14 @@ def analytics_view(request):
     if gate:
         return gate
     return render(request, "subscriptions/analytics.html", build_dashboard_context(request.user))
+
+
+@login_required
+def analytics_monthly_report_view(request):
+    gate = _require_verified_session(request)
+    if gate:
+        return gate
+    return JsonResponse(build_monthly_report(request.user, request.GET.get("month", "")))
 
 
 @login_required
