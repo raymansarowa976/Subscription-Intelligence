@@ -117,17 +117,17 @@
 <section class="mt-8 grid gap-6 xl:grid-cols-3">
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Total monthly spend</p>
-        <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">${{ total_monthly_spend|floatformat:2 }}</p>
+        <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">{{ currency_symbol }}{{ total_monthly_spend|floatformat:2 }}</p>
         <p class="mt-4 text-sm font-medium leading-7 text-stone-600">The current monthly cost of your active recurring services.</p>
     </article>
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Upcoming renewals</p>
-        <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">${{ upcoming_renewals_cost|floatformat:2 }}</p>
+        <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">{{ currency_symbol }}{{ upcoming_renewals_cost|floatformat:2 }}</p>
         <p class="mt-4 text-sm font-medium leading-7 text-stone-600">{{ upcoming_renewal_count }} renewal{{ upcoming_renewal_count|pluralize }} due in the next 7 days.</p>
     </article>
     <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Annual run-rate</p>
-        <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">${{ annual_run_rate|floatformat:2 }}</p>
+        <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">{{ currency_symbol }}{{ annual_run_rate|floatformat:2 }}</p>
         <p class="mt-4 text-sm font-medium leading-7 text-stone-600">What this portfolio costs over 12 months if nothing changes.</p>
     </article>
 </section>

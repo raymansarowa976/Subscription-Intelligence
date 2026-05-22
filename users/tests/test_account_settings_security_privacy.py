@@ -317,6 +317,47 @@ class AccountSettingsSecurityPrivacyTest(TestCase):
         self.assertEqual(preferences.retention_period_days, 90)
         self.assertFalse(preferences.automatic_scans)
 
+    def test_verified_user_can_update_base_currency_from_account_settings(self):
+        response = self.client.post(
+            reverse("accounts:update_base_currency"),
+            {"base_currency": "CAD"},
+            follow=True,
+        )
+
+        self.user.refresh_from_db()
+        self.assertRedirects(response, self.account_settings_url)
+        self.assertContains(response, "Reporting currency updated.")
+        self.assertEqual(self.user.base_currency, "CAD")
+
+    def test_base_currency_update_rejects_unsupported_currency(self):
+        self.user.base_currency = "USD"
+        self.user.save(update_fields=["base_currency"])
+
+        response = self.client.post(
+            reverse("accounts:update_base_currency"),
+            {"base_currency": "DOGE"},
+            follow=True,
+        )
+
+        self.user.refresh_from_db()
+        self.assertRedirects(response, self.account_settings_url)
+        self.assertContains(response, "Choose a supported reporting currency.")
+        self.assertEqual(self.user.base_currency, "USD")
+
+    def test_base_currency_update_requires_verified_login_token(self):
+        session = self.client.session
+        session[LOGIN_TOKEN_VERIFIED_SESSION_KEY] = False
+        session.save()
+
+        response = self.client.post(
+            reverse("accounts:update_base_currency"),
+            {"base_currency": "EUR"},
+        )
+
+        self.user.refresh_from_db()
+        self.assertRedirects(response, reverse("accounts:verify_token"))
+        self.assertEqual(self.user.base_currency, "USD")
+
     def test_account_settings_does_not_render_deprecated_destructive_disclosures(self):
         response = self.client.get(self.account_settings_url)
 

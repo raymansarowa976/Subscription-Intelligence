@@ -235,6 +235,28 @@ class TransactionEvidence(models.Model):
         ordering = ["-posted_at", "-id"]
 
 
+class ExchangeRate(models.Model):
+    from_currency = models.CharField(max_length=3)
+    to_currency = models.CharField(max_length=3)
+    rate = models.DecimalField(max_digits=18, decimal_places=8)
+    effective_date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-effective_date", "from_currency", "to_currency"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["from_currency", "to_currency", "effective_date"],
+                name="uniq_exchange_rate_currency_pair_per_day",
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        self.from_currency = self.from_currency.upper()
+        self.to_currency = self.to_currency.upper()
+        super().save(*args, **kwargs)
+
+
 class SubscriptionCandidate(models.Model):
     STATUS_PENDING = "pending"
     STATUS_CONFIRMED = "confirmed"

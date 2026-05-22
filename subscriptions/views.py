@@ -25,8 +25,10 @@ from .services import (
     IngestionValidationError,
     InboxScanError,
     build_dashboard_context,
+    build_monthly_report,
     calculate_next_renewal,
     classify_inbox_lead,
+    currency_symbol,
     infer_subscription_category,
     ingest_transactions,
     is_reviewable_inbox_lead,
@@ -224,6 +226,14 @@ def analytics_view(request):
 
 
 @login_required
+def analytics_monthly_report_view(request):
+    gate = _require_verified_session(request)
+    if gate:
+        return gate
+    return JsonResponse(build_monthly_report(request.user, request.GET.get("month", "")))
+
+
+@login_required
 def data_sources_view(request):
     gate = _require_verified_session(request)
     if gate:
@@ -244,6 +254,7 @@ def _filtered_subscriptions(request):
 
     rows = list(subscriptions.order_by("merchant_name", "id"))
     for subscription in rows:
+        subscription.currency_symbol = currency_symbol(subscription.currency)
         subscription.dashboard_category = subscription.category or infer_subscription_category(
             subscription.merchant_name
         )

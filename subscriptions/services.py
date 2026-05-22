@@ -17,8 +17,6 @@ from urllib.request import Request, urlopen
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Sum
-from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
 from .models import (
@@ -26,6 +24,7 @@ from .models import (
     EmailScanPreference,
     EmailScanRun,
     EmailSubscriptionLead,
+    ExchangeRate,
     Subscription,
     SubscriptionCandidate,
     TransactionEvidence,
@@ -98,6 +97,15 @@ NEWSLETTER_SENDERS = [
     "freecodecamp",
     "mermaid",
 ]
+
+CURRENCY_SYMBOLS = {
+    "USD": "$",
+    "CAD": "$",
+    "AUD": "$",
+    "EUR": "€",
+    "GBP": "£",
+    "JPY": "¥",
+}
 
 
 class IngestionValidationError(Exception):
@@ -727,6 +735,42 @@ def _add_months(value, months):
     return date(year, month, day)
 
 
+def normalize_currency(currency):
+    return (currency or "USD").strip().upper()
+
+
+def currency_symbol(currency):
+    return CURRENCY_SYMBOLS.get(normalize_currency(currency), f"{normalize_currency(currency)} ")
+
+
+def base_currency_for_user(user):
+    return normalize_currency(getattr(user, "base_currency", "USD"))
+
+
+def exchange_rate_for_date(from_currency, to_currency, effective_date):
+    from_currency = normalize_currency(from_currency)
+    to_currency = normalize_currency(to_currency)
+    if from_currency == to_currency:
+        return Decimal("1")
+    rate = (
+        ExchangeRate.objects.filter(
+            from_currency=from_currency,
+            to_currency=to_currency,
+            effective_date__lte=effective_date,
+        )
+        .order_by("-effective_date", "-id")
+        .first()
+    )
+    if rate is None:
+        return Decimal("1")
+    return rate.rate
+
+
+def convert_currency(amount, from_currency, to_currency, effective_date):
+    converted = Decimal(amount) * exchange_rate_for_date(from_currency, to_currency, effective_date)
+    return converted.quantize(Decimal("0.01"))
+
+
 def calculate_next_renewal(last_charge_date, cadence):
     if cadence == SubscriptionCandidate.CADENCE_YEARLY or cadence == "yearly":
         return date(
@@ -771,6 +815,10 @@ def annual_amount_for_subscription(subscription):
     return subscription.amount * Decimal("12")
 
 
+def _money(value):
+    return Decimal(value).quantize(Decimal("0.01"))
+
+
 def _subscription_sort_key(subscription):
     next_renewal = infer_subscription_next_renewal(subscription)
     return (
@@ -783,6 +831,7 @@ def _subscription_sort_key(subscription):
 
 def build_dashboard_context(user):
     today = date.today()
+    base_currency = base_currency_for_user(user)
     subscriptions = list(Subscription.objects.filter(user=user))
     active_email_connection = EmailConnection.objects.filter(
         user=user,
@@ -824,6 +873,11 @@ def build_dashboard_context(user):
     renewal_entries = []
     for subscription in subscriptions:
         next_renewal = infer_subscription_next_renewal(subscription)
+        monthly_amount = monthly_amount_for_subscription(subscription)
+        annual_amount = annual_amount_for_subscription(subscription)
+        monthly_amount_base = convert_currency(monthly_amount, subscription.currency, base_currency, today)
+        annual_amount_base = convert_currency(annual_amount, subscription.currency, base_currency, today)
+        subscription.currency_symbol = currency_symbol(subscription.currency)
         subscription.dashboard_category = subscription.category or infer_subscription_category(subscription.merchant_name)
         subscription.dashboard_category_label = dict(Subscription.CATEGORY_CHOICES).get(
             subscription.dashboard_category,
@@ -838,8 +892,10 @@ def build_dashboard_context(user):
             {
                 "subscription": subscription,
                 "next_renewal": next_renewal,
-                "monthly_amount": monthly_amount_for_subscription(subscription),
-                "annual_amount": annual_amount_for_subscription(subscription),
+                "monthly_amount": monthly_amount_base,
+                "annual_amount": annual_amount_base,
+                "source_monthly_amount": monthly_amount,
+                "source_annual_amount": annual_amount,
             }
         )
 
@@ -855,7 +911,7 @@ def build_dashboard_context(user):
         for entry in active_entries
         if entry["next_renewal"] and today <= entry["next_renewal"] <= today + timedelta(days=7)
     ]
-    upcoming_renewals_cost = sum((entry["subscription"].amount for entry in upcoming_entries), Decimal("0.00"))
+    upcoming_renewals_cost = sum((entry["monthly_amount"] for entry in upcoming_entries), Decimal("0.00"))
     next_five_renewals = sorted(
         [entry for entry in active_entries if entry["next_renewal"]],
         key=lambda entry: entry["next_renewal"],
@@ -872,25 +928,66 @@ def build_dashboard_context(user):
         category_labels.append(dict(Subscription.CATEGORY_CHOICES).get(category, category.title()))
         category_values.append(float(amount))
 
-    trend_rows = (
-        TransactionEvidence.objects.filter(user=user, posted_at__gte=_add_months(today.replace(day=1), -5))
-        .annotate(month=TruncMonth("posted_at"))
-        .values("month")
-        .annotate(total=Sum("amount"))
-        .order_by("month")
-    )
-    trend_map = {
-        row["month"].strftime("%b"): float(row["total"] or 0)
-        for row in trend_rows
-        if row["month"] is not None
-    }
+    top_vendor_insights = [
+        {
+            "merchant_name": entry["subscription"].merchant_name,
+            "category_label": entry["subscription"].dashboard_category_label,
+            "amount": _money(entry["monthly_amount"]),
+            "annual_amount": _money(entry["annual_amount"]),
+            "share": float((entry["monthly_amount"] / total_monthly_spend) * Decimal("100"))
+            if total_monthly_spend
+            else 0.0,
+        }
+        for entry in sorted(active_entries, key=lambda row: (-row["monthly_amount"], row["subscription"].merchant_name.lower()))
+    ][:5]
+    category_detail_insights = [
+        {
+            "label": dict(Subscription.CATEGORY_CHOICES).get(category, category.title()),
+            "amount": _money(amount),
+            "share": float((amount / total_monthly_spend) * Decimal("100")) if total_monthly_spend else 0.0,
+        }
+        for category, amount in sorted(category_totals.items(), key=lambda item: (-item[1], item[0]))
+    ]
+
+    renewal_windows = [
+        ("Next 7 days", lambda renewal_date: today <= renewal_date <= today + timedelta(days=7)),
+        ("Next 30 days", lambda renewal_date: today <= renewal_date <= today + timedelta(days=30)),
+        ("Beyond 30 days", lambda renewal_date: renewal_date > today + timedelta(days=30)),
+    ]
+    renewal_window_insights = []
+    for label, predicate in renewal_windows:
+        window_entries = [
+            entry
+            for entry in active_entries
+            if entry["next_renewal"] is not None and predicate(entry["next_renewal"])
+        ]
+        renewal_window_insights.append(
+            {
+                "label": label,
+                "count": len(window_entries),
+                "amount": _money(sum((entry["monthly_amount"] for entry in window_entries), Decimal("0.00"))),
+            }
+        )
+
+    trend_transactions = TransactionEvidence.objects.filter(
+        user=user,
+        posted_at__gte=_add_months(today.replace(day=1), -5),
+    ).order_by("posted_at", "id")
+    trend_map = defaultdict(lambda: Decimal("0.00"))
+    for tx in trend_transactions:
+        trend_map[tx.posted_at.strftime("%b")] += convert_currency(
+            tx.amount,
+            tx.currency,
+            base_currency,
+            tx.posted_at,
+        )
     trend_labels = []
     trend_values = []
     for month_offset in range(-5, 1):
         month_date = _add_months(today.replace(day=1), month_offset)
         label = month_date.strftime("%b")
         trend_labels.append(label)
-        trend_values.append(trend_map.get(label, 0))
+        trend_values.append(float(trend_map[label]))
 
     savings_insights = []
     sortable_entries = sorted(
@@ -913,7 +1010,7 @@ def build_dashboard_context(user):
         savings_insights.append(
             {
                 "title": f"You have {len(grouped_entries)} {category_label.lower()} subscriptions",
-                "detail": f"They add up to ${sum((entry['monthly_amount'] for entry in grouped_entries), Decimal('0.00')):.2f} per month. Consider whether any overlap can be removed.",
+                "detail": f"They add up to {currency_symbol(base_currency)}{sum((entry['monthly_amount'] for entry in grouped_entries), Decimal('0.00')):.2f} per month. Consider whether any overlap can be removed.",
             }
         )
 
@@ -935,6 +1032,8 @@ def build_dashboard_context(user):
 
     return {
         "subscriptions": subscriptions,
+        "base_currency": base_currency,
+        "currency_symbol": currency_symbol(base_currency),
         "subscription_category_choices": Subscription.CATEGORY_CHOICES,
         "active_subscription_query": "",
         "active_subscription_category": "",
@@ -952,6 +1051,9 @@ def build_dashboard_context(user):
         "next_five_renewals": next_five_renewals,
         "category_labels": category_labels,
         "category_values": category_values,
+        "top_vendor_insights": top_vendor_insights,
+        "category_detail_insights": category_detail_insights,
+        "renewal_window_insights": renewal_window_insights,
         "trend_labels": trend_labels,
         "trend_values": trend_values,
         "savings_insights": savings_insights[:2],
@@ -964,6 +1066,66 @@ def build_dashboard_context(user):
         "suppressed_inbox_lead_count": suppressed_inbox_lead_count,
         "reviewable_inbox_confidence_threshold": reviewable_inbox_confidence_threshold(),
         "show_dashboard_zero_state": show_dashboard_zero_state,
+    }
+
+
+def _month_range(month_value):
+    if month_value:
+        try:
+            year, month = (int(part) for part in month_value.split("-", 1))
+            start = date(year, month, 1)
+        except (TypeError, ValueError):
+            start = date.today().replace(day=1)
+    else:
+        start = date.today().replace(day=1)
+    return start, _add_months(start, 1)
+
+
+def build_monthly_report(user, month_value=""):
+    base_currency = base_currency_for_user(user)
+    start, end = _month_range(month_value)
+    transactions = TransactionEvidence.objects.filter(
+        user=user,
+        posted_at__gte=start,
+        posted_at__lt=end,
+    ).order_by("posted_at", "merchant_name", "id")
+    vendor_totals = defaultdict(lambda: Decimal("0.00"))
+    category_totals = defaultdict(lambda: Decimal("0.00"))
+    transaction_rows = []
+    for tx in transactions:
+        converted_amount = convert_currency(tx.amount, tx.currency, base_currency, tx.posted_at)
+        category = infer_subscription_category(tx.merchant_name)
+        vendor_totals[tx.merchant_name] += converted_amount
+        category_totals[category] += converted_amount
+        transaction_rows.append(
+            {
+                "posted_at": tx.posted_at.isoformat(),
+                "merchant_name": tx.merchant_name,
+                "amount": f"{converted_amount:.2f}",
+                "source_amount": f"{tx.amount:.2f}",
+                "source_currency": tx.currency,
+            }
+        )
+    total_spend = sum(vendor_totals.values(), Decimal("0.00"))
+    return {
+        "month": start.strftime("%Y-%m"),
+        "base_currency": base_currency,
+        "currency_symbol": currency_symbol(base_currency),
+        "total_spend": f"{total_spend:.2f}",
+        "transaction_count": len(transaction_rows),
+        "vendor_totals": [
+            {"merchant_name": merchant_name, "amount": f"{amount:.2f}"}
+            for merchant_name, amount in sorted(vendor_totals.items(), key=lambda item: (-item[1], item[0].lower()))
+        ],
+        "category_totals": [
+            {
+                "category": category,
+                "label": dict(Subscription.CATEGORY_CHOICES).get(category, category.title()),
+                "amount": f"{amount:.2f}",
+            }
+            for category, amount in sorted(category_totals.items(), key=lambda item: (-item[1], item[0]))
+        ],
+        "transactions": transaction_rows,
     }
 
 
