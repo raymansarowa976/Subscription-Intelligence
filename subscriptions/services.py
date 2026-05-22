@@ -936,6 +936,10 @@ def build_dashboard_context(user):
     return {
         "subscriptions": subscriptions,
         "subscription_category_choices": Subscription.CATEGORY_CHOICES,
+        "active_subscription_query": "",
+        "active_subscription_category": "",
+        "active_subscription_category_label": "",
+        "subscription_result_count": len(subscriptions),
         "active_subscription_count": active_subscription_count,
         "inactive_subscription_count": inactive_subscription_count,
         "featured_subscription": featured_subscription,

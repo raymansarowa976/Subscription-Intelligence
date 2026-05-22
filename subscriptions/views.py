@@ -258,6 +258,20 @@ def _filtered_subscriptions(request):
     return rows
 
 
+def _subscription_filter_context(request):
+    query = request.GET.get("q", "").strip()
+    category = request.GET.get("category", "").strip()
+    category_labels = dict(Subscription.CATEGORY_CHOICES)
+    subscriptions = _filtered_subscriptions(request)
+    return {
+        "subscriptions": subscriptions,
+        "active_subscription_query": query,
+        "active_subscription_category": category,
+        "active_subscription_category_label": category_labels.get(category, ""),
+        "subscription_result_count": len(subscriptions),
+    }
+
+
 @login_required
 def subscription_results_view(request):
     gate = _require_verified_session(request)
@@ -266,9 +280,7 @@ def subscription_results_view(request):
     return render(
         request,
         "subscriptions/_subscription_results.html",
-        {
-            "subscriptions": _filtered_subscriptions(request),
-        },
+        _subscription_filter_context(request),
     )
 
 
