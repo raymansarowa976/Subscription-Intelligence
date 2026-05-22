@@ -985,9 +985,7 @@ def cancel_token_verification_view(request):
 
 @require_POST
 def browser_session_closed_view(request):
-    if request.user.is_authenticated:
-        logout(request)
-    return JsonResponse({"status": "signed_out"})
+    return JsonResponse({"status": "ignored"})
 
 
 def reactivate_legacy_account_view(request):

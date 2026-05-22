@@ -138,14 +138,14 @@
             <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Subscriptions</p>
             <h2 class="mt-2 text-2xl font-extrabold text-ink">Tracked services</h2>
         </div>
-        <form id="subscription-filter-form" class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px]" method="get" action="{% url 'subscription_results' %}">
+        <form id="subscription-filter-form" class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px]" method="get" action="{% url 'subscription_results' %}" role="search">
             <label class="grid gap-2 text-sm font-bold text-ink">
                 <span class="sr-only">Search subscriptions</span>
-                <input class="rounded-2xl border-black/10 bg-stone-50 px-4 py-3 text-sm" type="search" name="q" placeholder="Search subscriptions" hx-get="{% url 'subscription_results' %}" hx-trigger="keyup changed delay:300ms" hx-target="#subscription-results" hx-push-url="false" hx-include="#subscription-filter-form">
+                <input class="rounded-2xl border-black/10 bg-stone-50 px-4 py-3 text-sm" type="search" name="q" placeholder="Search subscriptions" autocomplete="off" hx-get="{% url 'subscription_results' %}" hx-trigger="keyup changed delay:300ms" hx-target="#subscription-results" hx-swap="outerHTML" hx-push-url="false" hx-include="#subscription-filter-form">
             </label>
             <label class="grid gap-2 text-sm font-bold text-ink">
                 <span class="sr-only">Category</span>
-                <select class="rounded-2xl border-black/10 bg-stone-50 px-4 py-3 text-sm" name="category" hx-get="{% url 'subscription_results' %}" hx-trigger="change" hx-target="#subscription-results" hx-push-url="false" hx-include="#subscription-filter-form">
+                <select class="rounded-2xl border-black/10 bg-stone-50 px-4 py-3 text-sm" name="category" aria-label="Filter subscriptions by category" hx-get="{% url 'subscription_results' %}" hx-trigger="change" hx-target="#subscription-results" hx-swap="outerHTML" hx-push-url="false" hx-include="#subscription-filter-form">
                     <option value="">All categories</option>
                     {% for value, label in subscription_category_choices %}
                     <option value="{{ value }}">{{ label }}</option>

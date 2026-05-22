@@ -188,7 +188,7 @@ class UserSecurityTest(TestCase):
     def test_sessions_expire_when_browser_closes(self):
         self.assertTrue(settings.SESSION_EXPIRE_AT_BROWSER_CLOSE)
 
-    def test_browser_session_closed_endpoint_logs_out_current_user(self):
+    def test_browser_session_closed_endpoint_preserves_current_user_session(self):
         user = User.objects.create_user(
             username="browserclose",
             email="browserclose@gmail.com",
@@ -203,4 +203,6 @@ class UserSecurityTest(TestCase):
         response = self.client.post(reverse("accounts:browser_session_closed"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertEqual(response.json(), {"status": "ignored"})
+        self.assertIn("_auth_user_id", self.client.session)
+        self.assertTrue(self.client.session["login_token_verified"])

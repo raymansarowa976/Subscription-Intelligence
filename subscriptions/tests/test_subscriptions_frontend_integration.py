@@ -283,14 +283,19 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="subscription-filter-form"', html=False)
+        self.assertContains(response, 'role="search"', html=False)
         self.assertContains(response, 'id="subscription-results"', html=False)
         self.assertContains(response, 'name="q"', html=False)
         self.assertContains(response, 'type="search"', html=False)
+        self.assertContains(response, 'autocomplete="off"', html=False)
         self.assertContains(response, 'hx-get="/dashboard/subscriptions/"', html=False)
         self.assertContains(response, 'hx-trigger="keyup changed delay:300ms"', html=False)
         self.assertContains(response, 'hx-target="#subscription-results"', html=False)
+        self.assertContains(response, 'hx-swap="outerHTML"', html=False)
         self.assertContains(response, 'hx-push-url="false"', html=False)
+        self.assertContains(response, 'hx-include="#subscription-filter-form"', html=False)
         self.assertContains(response, 'name="category"', html=False)
+        self.assertContains(response, 'aria-label="Filter subscriptions by category"', html=False)
         self.assertContains(response, "Streaming")
         self.assertContains(response, "Software")
         self.assertContains(response, "Netflix")
@@ -323,6 +328,9 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="subscription-results"', html=False)
+        self.assertContains(response, 'data-active-query="net"', html=False)
+        self.assertContains(response, 'data-active-category=""', html=False)
+        self.assertContains(response, 'aria-live="polite"', html=False)
         self.assertContains(response, "Netflix")
         self.assertNotContains(response, "Adobe Creative Cloud")
         self.assertNotContains(response, "Portfolio overview")
@@ -356,6 +364,9 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="subscription-results"', html=False)
+        self.assertContains(response, 'data-active-query=""', html=False)
+        self.assertContains(response, f'data-active-category="{Subscription.CATEGORY_SOFTWARE}"', html=False)
+        self.assertContains(response, "1 subscription")
         self.assertContains(response, "Notion")
         self.assertContains(response, "Software")
         self.assertNotContains(response, "Netflix")
@@ -381,7 +392,8 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="subscription-results"', html=False)
         self.assertContains(response, "No subscriptions match those filters")
-        self.assertContains(response, "Try a different search or category.")
+        self.assertContains(response, "No subscriptions match \"does-not-exist\" in Software")
+        self.assertContains(response, "Clear filters")
         self.assertNotContains(response, "Netflix")
 
     def test_htmx_subscription_filtering_preserves_user_data_isolation(self):
@@ -417,6 +429,7 @@ class SubscriptionsFrontendIntegrationTest(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-result-count="1"', html=False)
         self.assertContains(response, "Netflix")
         self.assertNotContains(response, "Netflix Team Account")
 
