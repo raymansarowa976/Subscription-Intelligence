@@ -501,7 +501,7 @@ class FrontendIntegrationTest(TestCase):
         self.assertContains(response, self.account_settings_url)
         self.assertNotContains(response, "Profile and username management")
 
-    def test_authenticated_pages_send_close_signal_for_transient_sessions(self):
+    def test_authenticated_pages_do_not_log_out_on_refresh_or_navigation(self):
         user = User.objects.create_user(
             username="closedsession",
             email="closedsession@gmail.com",
@@ -515,9 +515,9 @@ class FrontendIntegrationTest(TestCase):
 
         response = self.client.get(self.dashboard_url)
 
-        self.assertContains(response, reverse("accounts:browser_session_closed"))
-        self.assertContains(response, "beforeunload")
-        self.assertContains(response, "keepalive: true")
+        self.assertNotContains(response, reverse("accounts:browser_session_closed"))
+        self.assertNotContains(response, "beforeunload")
+        self.assertNotContains(response, "keepalive: true")
 
     def test_account_settings_page_links_to_account_change_pages(self):
         user = User.objects.create_user(
