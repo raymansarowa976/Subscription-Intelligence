@@ -126,18 +126,18 @@
 
 ### Issue #11: Multi-Currency Support
 **Acceptance Criteria:**
-- [ ] **Test:** Total spend converts different currencies to user's base currency.
-- [ ] **Test:** Historical exchange-rate behavior is defined and covered.
-- [ ] UI displays appropriate currency symbols based on model data.
-- [ ] Subscription and transaction models support currency-aware calculations.
+- [x] **Test:** Total spend converts different currencies to user's base currency.
+- [x] **Test:** Historical exchange-rate behavior is defined and covered.
+- [x] UI displays appropriate currency symbols based on model data.
+- [x] Subscription and transaction models support currency-aware calculations.
 
 ### Issue #12: Advanced Analytics
 **Acceptance Criteria:**
 - [x] Dashboard includes category distribution chart.
 - [x] Dashboard includes monthly spend trend chart.
-- [ ] Add deeper spending insights across vendors, categories, and renewal windows.
-- [ ] Add exportable monthly report view.
-- [ ] Add tests for analytics aggregation edge cases.
+- [x] Add deeper spending insights across vendors, categories, and renewal windows.
+- [x] Add exportable monthly report view.
+- [x] Add tests for analytics aggregation edge cases.
 
 ### Issue #13: Tooling & Quality Gates
 **Acceptance Criteria:**
