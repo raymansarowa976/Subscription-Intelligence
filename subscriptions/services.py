@@ -1072,7 +1072,7 @@ def build_dashboard_context(user):
 def _month_range(month_value):
     if month_value:
         try:
-            year, month = [int(part) for part in month_value.split("-", 1)]
+            year, month = (int(part) for part in month_value.split("-", 1))
             start = date(year, month, 1)
         except (TypeError, ValueError):
             start = date.today().replace(day=1)
