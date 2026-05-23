@@ -16,3 +16,11 @@
 - [ ] Gmail OAuth production redirect URI configured
 - [ ] Dependency audit run
 - [ ] Error monitoring/logging configured
+## Okay To Do After Private Staging Starts
+
+- [ ] Refine incident response checklist
+- [ ] Tune security event logging
+- [ ] Admin URL hardening
+- [ ] Backup restore drills
+- [ ] Dependency patch cadence
+- [ ] CSP tuning
