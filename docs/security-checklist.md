@@ -5,9 +5,9 @@
   - [x] Normalize username/email input before lookup.
   - [x] Return the same error message for “unknown user” and “wrong password.”
 
-- [ ] **Rate-limit login and recovery flows**
-  - [ ] Limit attempts by normalized username/email.
-  - [ ] Limit attempts by IP address.
+- [x] **Rate-limit login and recovery flows**
+  - [x] Limit attempts by normalized username/email.
+  - [x] Limit attempts by IP address.
   - [x] Apply rate limits to:
     - [x] Login
     - [x] Login token verification
