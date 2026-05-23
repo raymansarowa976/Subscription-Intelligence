@@ -52,10 +52,10 @@ from .forms import (
 )
 from .rate_limiter import (
     RATE_LIMIT_MESSAGE,
-    clear_attempts,
+    clear_identifier_attempts,
     get_client_ip,
-    is_rate_limited,
-    record_attempt,
+    is_identifier_or_ip_rate_limited,
+    record_identifier_and_ip_attempt,
 )
 from .token_service import clear_email_token, issue_email_token, verify_email_token
 
@@ -194,7 +194,7 @@ class SubscriptionLoginView(LoginView):
     def post(self, request, *args, **kwargs):
         username = request.POST.get("username", "")
         ip_address = get_client_ip(request)
-        if is_rate_limited(
+        if is_identifier_or_ip_rate_limited(
             "login",
             username,
             ip_address,
@@ -225,14 +225,14 @@ class SubscriptionLoginView(LoginView):
 
         login(self.request, user)
         self.request.session.pop(LEGACY_REACTIVATION_SESSION_KEY, None)
-        clear_attempts("login", form.cleaned_data.get("username", ""), get_client_ip(self.request))
+        clear_identifier_attempts("login", form.cleaned_data.get("username", ""))
         self.request.session[LOGIN_TOKEN_VERIFIED_SESSION_KEY] = False
         messages.success(self.request, "Enter the 6-digit token we sent to your email to finish signing in.")
         return redirect("accounts:verify_token")
 
     def form_invalid(self, form):
         username = self.request.POST.get("username", "")
-        record_attempt(
+        record_identifier_and_ip_attempt(
             "login",
             username,
             get_client_ip(self.request),
@@ -270,7 +270,7 @@ def forgot_username_view(request):
     if request.method == "POST" and form.is_valid():
         email = form.cleaned_data["email"]
         ip_address = get_client_ip(request)
-        if is_rate_limited(
+        if is_identifier_or_ip_rate_limited(
             "forgot-username",
             email,
             ip_address,
@@ -279,7 +279,7 @@ def forgot_username_view(request):
         ):
             form.add_error(None, RATE_LIMIT_MESSAGE)
         else:
-            record_attempt(
+            record_identifier_and_ip_attempt(
                 "forgot-username",
                 email,
                 ip_address,
@@ -307,7 +307,7 @@ def forgot_password_view(request):
     if request.method == "POST" and form.is_valid():
         email = form.cleaned_data["email"]
         ip_address = get_client_ip(request)
-        if is_rate_limited(
+        if is_identifier_or_ip_rate_limited(
             "forgot-password",
             email,
             ip_address,
@@ -316,7 +316,7 @@ def forgot_password_view(request):
         ):
             form.add_error(None, RATE_LIMIT_MESSAGE)
         else:
-            record_attempt(
+            record_identifier_and_ip_attempt(
                 "forgot-password",
                 email,
                 ip_address,
@@ -906,7 +906,7 @@ def verify_token_view(request):
     if request.method == "POST":
         form = LoginTokenVerificationForm(request.POST)
         resend_form = ResendTokenForm()
-        if is_rate_limited(
+        if is_identifier_or_ip_rate_limited(
             "login-token-verify",
             email,
             ip_address,
@@ -918,7 +918,7 @@ def verify_token_view(request):
             token = form.cleaned_data["token"]
             if verify_email_token(email, token):
                 request.session[LOGIN_TOKEN_VERIFIED_SESSION_KEY] = True
-                clear_attempts("login-token-verify", email, ip_address)
+                clear_identifier_attempts("login-token-verify", email)
                 clear_email_token(email)
                 active_connection = EmailConnection.objects.filter(
                     user=request.user,
@@ -928,7 +928,7 @@ def verify_token_view(request):
                     _queue_automatic_gmail_scan(request.user, active_connection)
                 messages.success(request, "Token verified. Welcome back.")
                 return redirect("dashboard")
-            record_attempt(
+            record_identifier_and_ip_attempt(
                 "login-token-verify",
                 email,
                 ip_address,
@@ -957,7 +957,7 @@ def resend_token_view(request):
     ip_address = get_client_ip(request)
     email = request.user.email
     if request.method == "POST":
-        if is_rate_limited(
+        if is_identifier_or_ip_rate_limited(
             "login-token-resend",
             email,
             ip_address,
@@ -966,7 +966,7 @@ def resend_token_view(request):
         ):
             messages.error(request, RATE_LIMIT_MESSAGE)
         else:
-            record_attempt(
+            record_identifier_and_ip_attempt(
                 "login-token-resend",
                 email,
                 ip_address,
