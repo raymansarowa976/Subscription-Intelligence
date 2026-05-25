@@ -1,0 +1,47 @@
+subtrack_root/               <--  Git Repo Folder
+├── .env                     <-- Secret variables (DB, API Keys)
+├── .gitignore               <-- Files Git should ignore
+├── manage.py                <-- Django's command-line utility
+├── pytest.ini               <-- Configuration for your TDD suite
+├── requirements.txt         <-- Python dependencies
+│
+├── config/                  <-- Project settings & global routing
+│   ├── __init__.py
+│   ├── settings.py          
+│   ├── urls.py              
+│   └── wsgi.py / asgi.py
+│
+├── users/                   <-- Custom User Management
+│   ├── __init__.py
+│   ├── models.py            <-- CustomUser class (Email-based)
+│   ├── tests/               <-- TDD for Auth
+│   │   └── test_user_auth.py
+│   └── admin.py
+│
+├── subscriptions/           <-- Core Business Logic
+│   ├── __init__.py
+│   ├── models.py            <-- Subscription model & Billing logic
+│   ├── views.py             <-- HTMX-powered views
+│   ├── tasks.py             <-- Huey background email tasks
+│   ├── urls.py
+│   └── tests/               <-- TDD for features
+│       ├── test_models.py   <-- Billing math & renewal dates
+│       └── test_views.py    <-- CRUD & HTMX partials
+│
+├── templates/               <-- HTML (Tailwind & HTMX)
+│   ├── base.html            <-- Main layout (Nav/Footer/Scripts)
+│   ├── dashboard.html       <-- Subscription list & stats
+│   ├── subscriptions/       <-- Specific app templates
+│   │   ├── create_form.html
+│   │   └── detail.html
+│   └── partials/            <-- HTMX snippets (e.g., table_row.html)
+│
+├── static/                  <-- Assets
+│   ├── css/
+│   │   └── output.css       <-- Compiled Tailwind
+│   └── js/
+│
+└── docs/                    <-- Planning Documentation
+    ├── architecture.md
+    ├── backlog.md
+    └── structure.md
