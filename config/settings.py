@@ -13,8 +13,9 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Read the .env file
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+# Read the project .env file. Let local project settings win over broad shell
+# variables such as DEBUG=release that may exist on the developer machine.
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'), overwrite=True)
 
 # Now use the variables
 SECRET_KEY = env('SECRET_KEY')
