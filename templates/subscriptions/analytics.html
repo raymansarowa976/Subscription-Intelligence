@@ -1,0 +1,181 @@
+{% extends "subscriptions/app_shell.html" %}
+
+{% block title %}Analytics | Subscription Intelligence{% endblock %}
+{% block app_title %}Analytics{% endblock %}
+
+{% block app_panel %}
+{{ category_labels|json_script:"category-labels" }}
+{{ category_values|json_script:"category-values" }}
+{{ trend_labels|json_script:"trend-labels" }}
+{{ trend_values|json_script:"trend-values" }}
+
+<section class="mt-8 rounded-[30px] border border-black/10 bg-white/90 p-7 text-ink shadow-panel backdrop-blur-xl md:p-8">
+    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Analytics and reports</p>
+    <h1 class="mt-2 text-3xl font-extrabold tracking-tight">Spending intelligence</h1>
+    <p class="mt-3 max-w-3xl text-sm font-medium leading-7 text-stone-600">Monthly trend reports, category mix, renewal exposure, and savings signals live here instead of crowding the dashboard.</p>
+</section>
+
+<section class="mt-8 grid gap-6 xl:grid-cols-3">
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 text-ink shadow-panel backdrop-blur-xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Total monthly spend</p>
+        <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight">{{ currency_symbol }}{{ total_monthly_spend|floatformat:2 }}</p>
+    </article>
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 text-ink shadow-panel backdrop-blur-xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Upcoming renewals</p>
+        <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight">{{ currency_symbol }}{{ upcoming_renewals_cost|floatformat:2 }}</p>
+    </article>
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 text-ink shadow-panel backdrop-blur-xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Annual run-rate</p>
+        <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight">{{ currency_symbol }}{{ annual_run_rate|floatformat:2 }}</p>
+    </article>
+</section>
+
+<section class="mt-8 grid gap-6 xl:grid-cols-3">
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 text-ink shadow-panel backdrop-blur-xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Vendor concentration</p>
+        <h2 class="mt-2 text-xl font-extrabold">Top vendors</h2>
+        <div class="mt-5 grid gap-3">
+            {% for vendor in top_vendor_insights %}
+            <div class="flex items-center justify-between gap-4 rounded-2xl border border-black/5 bg-stone-50 px-4 py-3">
+                <div>
+                    <p class="text-sm font-extrabold">{{ vendor.merchant_name }}</p>
+                    <p class="mt-1 text-xs font-semibold text-stone-500">{{ vendor.category_label }}</p>
+                </div>
+                <p class="text-sm font-extrabold tabular-nums">{{ currency_symbol }}{{ vendor.amount|floatformat:2 }}</p>
+            </div>
+            {% empty %}
+            <p class="rounded-2xl border border-dashed border-black/10 bg-stone-50 px-4 py-3 text-sm font-semibold text-stone-500">No vendor spend yet.</p>
+            {% endfor %}
+        </div>
+    </article>
+
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 text-ink shadow-panel backdrop-blur-xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Category detail</p>
+        <h2 class="mt-2 text-xl font-extrabold">Monthly mix</h2>
+        <div class="mt-5 grid gap-3">
+            {% for category in category_detail_insights %}
+            <div class="flex items-center justify-between gap-4 rounded-2xl border border-black/5 bg-stone-50 px-4 py-3">
+                <p class="text-sm font-extrabold">{{ category.label }}</p>
+                <p class="text-sm font-extrabold tabular-nums">{{ currency_symbol }}{{ category.amount|floatformat:2 }}</p>
+            </div>
+            {% empty %}
+            <p class="rounded-2xl border border-dashed border-black/10 bg-stone-50 px-4 py-3 text-sm font-semibold text-stone-500">No category spend yet.</p>
+            {% endfor %}
+        </div>
+    </article>
+
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 text-ink shadow-panel backdrop-blur-xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Renewal windows</p>
+        <h2 class="mt-2 text-xl font-extrabold">Upcoming exposure</h2>
+        <div class="mt-5 grid gap-3">
+            {% for window in renewal_window_insights %}
+            <div class="flex items-center justify-between gap-4 rounded-2xl border border-black/5 bg-stone-50 px-4 py-3">
+                <div>
+                    <p class="text-sm font-extrabold">{{ window.label }}</p>
+                    <p class="mt-1 text-xs font-semibold text-stone-500">{{ window.count }} renewal{{ window.count|pluralize }}</p>
+                </div>
+                <p class="text-sm font-extrabold tabular-nums">{{ currency_symbol }}{{ window.amount|floatformat:2 }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </article>
+</section>
+
+<section class="mt-8 rounded-[28px] border border-black/10 bg-white/90 p-6 text-ink shadow-panel backdrop-blur-xl">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Monthly report</p>
+            <h2 class="mt-2 text-xl font-extrabold">Export current month</h2>
+        </div>
+        <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-extrabold text-ink transition hover:border-pine hover:text-pine" href="{% url 'analytics_monthly_report' %}">Download JSON report</a>
+    </div>
+</section>
+
+<section class="mt-8 grid gap-6 lg:grid-cols-2">
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 text-ink shadow-panel backdrop-blur-xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Spending by category</p>
+        <h2 class="mt-2 text-xl font-extrabold">Category mix</h2>
+        <div class="mt-4 h-56">
+            <canvas id="categoryChart" aria-label="Spending by category chart"></canvas>
+        </div>
+    </article>
+
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-6 text-ink shadow-panel backdrop-blur-xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Monthly trend</p>
+        <h2 class="mt-2 text-xl font-extrabold">6-month spend curve</h2>
+        <div class="mt-4 h-56">
+            <canvas id="trendChart" aria-label="Monthly spend trend chart"></canvas>
+        </div>
+    </article>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const categoryLabels = JSON.parse(document.getElementById("category-labels").textContent);
+    const categoryValues = JSON.parse(document.getElementById("category-values").textContent);
+    const trendLabels = JSON.parse(document.getElementById("trend-labels").textContent);
+    const trendValues = JSON.parse(document.getElementById("trend-values").textContent);
+
+    const chartDefaults = {
+        color: "#57534e",
+        plugins: {
+            legend: {
+                labels: {
+                    color: "#1c1917",
+                    font: { family: "ui-sans-serif, system-ui, sans-serif", weight: "600" },
+                },
+            },
+            tooltip: {
+                titleColor: "#111827",
+                bodyColor: "#111827",
+            },
+        },
+    };
+
+    const categoryCanvas = document.getElementById("categoryChart");
+    if (categoryCanvas && categoryLabels.length) {
+        new Chart(categoryCanvas, {
+            type: "doughnut",
+            data: {
+                labels: categoryLabels,
+                datasets: [{
+                    data: categoryValues,
+                    backgroundColor: ["#0f766e", "#14b8a6", "#c96f3b", "#334155", "#a8a29e"],
+                    borderWidth: 0,
+                }],
+            },
+            options: {
+                ...chartDefaults,
+                maintainAspectRatio: false,
+            },
+        });
+    }
+
+    const trendCanvas = document.getElementById("trendChart");
+    if (trendCanvas) {
+        new Chart(trendCanvas, {
+            type: "line",
+            data: {
+                labels: trendLabels,
+                datasets: [{
+                    label: "Spend",
+                    data: trendValues,
+                    borderColor: "#0f766e",
+                    backgroundColor: "rgba(15, 118, 110, 0.15)",
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.35,
+                }],
+            },
+            options: {
+                ...chartDefaults,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { ticks: { color: "#57534e" }, grid: { display: false } },
+                    y: { ticks: { color: "#57534e" }, grid: { color: "rgba(28, 25, 23, 0.08)" } },
+                },
+            },
+        });
+    }
+</script>
+{% endblock %}

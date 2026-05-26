@@ -1,0 +1,59 @@
+{% extends "subscriptions/app_shell.html" %}
+{% load static %}
+
+{% block title %}Change Username | Subscription Intelligence{% endblock %}
+{% block app_title %}Account controls{% endblock %}
+{% block settings_nav_class %}border-pine bg-white text-pine shadow-[0_0_0_4px_rgba(14,90,82,0.08),0_12px_28px_rgba(15,23,42,0.08)]{% endblock %}
+
+{% block app_panel %}
+<section class="mt-8 mx-auto w-full max-w-2xl rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl md:p-8">
+    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Current username</p>
+    <p class="mt-2 text-2xl font-extrabold text-ink">{{ request.user.username }}</p>
+
+    <form method="post" class="mt-7 space-y-5" novalidate hx-boost="true">
+        {% csrf_token %}
+        {% for field in form %}
+        <div>
+            <label class="mb-2 block text-sm font-bold text-ink" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {% if field.name == "current_password" %}
+            <div class="relative">
+                {{ field }}
+                <button class="absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-2xl text-stone-600 transition hover:text-pine" type="button" data-password-toggle="{{ field.id_for_label }}" aria-controls="{{ field.id_for_label }}" aria-label="Show {{ field.label|lower }}" aria-pressed="false">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true" data-eye-open>
+                        <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <svg class="hidden h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true" data-eye-closed>
+                        <path d="M3 3l18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M10.6 10.7a3 3 0 0 0 3.8 3.7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M7.4 7.8C4.4 9.4 2.5 12 2.5 12s3.5 6 9.5 6c1.6 0 3-.4 4.3-1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M19.2 15.2c1.5-1.4 2.3-3.2 2.3-3.2s-3.5-6-9.5-6c-.9 0-1.8.1-2.6.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            {% else %}
+            {{ field }}
+            {% endif %}
+            {% if field.help_text %}
+            <div class="mt-2 text-xs leading-6 text-stone-500">{{ field.help_text }}</div>
+            {% endif %}
+            {% if field.errors %}
+            <ul class="mt-2 list-disc pl-5 text-sm text-rose-700">
+                {% for error in field.errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+        {% endfor %}
+        <div class="flex flex-wrap gap-3">
+            <button class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" type="submit">Send confirmation token</button>
+            <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'accounts:account_settings' %}">Back</a>
+        </div>
+    </form>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/password_visibility.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "subscriptions/app_shell.html" %}
+
+{% block title %}Data Sources | Subscription Intelligence{% endblock %}
+{% block app_title %}Data sources{% endblock %}
+
+{% block app_panel %}
+<section class="mt-8 rounded-[30px] border border-black/10 bg-white/90 p-7 text-ink shadow-panel backdrop-blur-xl md:p-8">
+    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Data sources</p>
+    <h1 class="mt-2 text-3xl font-extrabold tracking-tight">Mailbox health and connection logs</h1>
+    <p class="mt-3 max-w-3xl text-sm font-medium leading-7 text-stone-600">Review source status, scan outcomes, and provider activity without mixing operational health into the dashboard or review queue.</p>
+</section>
+
+<section class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1fr)]">
+    <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 text-ink shadow-panel backdrop-blur-xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Mailbox health</p>
+        <h2 class="mt-2 text-2xl font-extrabold">Connected mailboxes</h2>
+        <div class="mt-5 grid gap-3">
+            {% for connection in email_connections %}
+            <article class="rounded-2xl border border-black/10 bg-stone-50 p-4">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <p class="break-words text-sm font-extrabold">{{ connection.email_address }}</p>
+                        <p class="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">{{ connection.provider|title }}</p>
+                    </div>
+                    <span class="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] {% if connection.status == 'active' %}text-emerald-700{% else %}text-rose-700{% endif %}">{{ connection.get_status_display }}</span>
+                </div>
+            </article>
+            {% empty %}
+            <div class="rounded-2xl border border-dashed border-black/15 bg-stone-50 p-5">
+                <p class="text-sm font-extrabold">No mailbox connected</p>
+                <p class="mt-2 text-sm leading-6 text-stone-600">Connect Gmail before running inbox scans.</p>
+                <a class="mt-4 inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" href="{% url 'gmail_integrations' %}">Open Gmail integrations</a>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="rounded-[28px] border border-black/10 bg-white/90 p-7 text-ink shadow-panel backdrop-blur-xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Connection logs</p>
+        <h2 class="mt-2 text-2xl font-extrabold">Recent inbox scans</h2>
+        <div class="mt-5 grid gap-3">
+            {% for scan in recent_email_scans %}
+            <article class="rounded-2xl border border-black/10 bg-stone-50 p-4">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <p class="text-sm font-extrabold">{{ scan.status_label }}</p>
+                        <p class="mt-1 break-words text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">{{ scan.mailbox }}</p>
+                    </div>
+                    {% if scan.status == "failed" %}
+                    <span class="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-rose-700">Needs attention</span>
+                    {% endif %}
+                </div>
+                <p class="mt-3 text-sm font-semibold text-stone-700">{{ scan.scanned_message_count }} processed - {{ scan.matched_message_count }} matched</p>
+                <p class="mt-2 text-xs font-medium leading-5 text-stone-600">Started {{ scan.created_at|date:"M j, Y g:i A" }}. Completed {{ scan.completed_at|date:"M j, Y g:i A" }}. Duration {{ scan.duration_seconds }}s. Parser candidates {{ scan.parser_candidate_count }}.</p>
+                {% if scan.error_summary %}
+                <p class="mt-3 rounded-2xl border border-rose-100 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700">{{ scan.error_summary }}</p>
+                {% endif %}
+            </article>
+            {% empty %}
+            <div class="rounded-2xl border border-dashed border-black/15 bg-stone-50 p-5">
+                <p class="text-sm font-extrabold">No connection logs yet</p>
+                <p class="mt-2 text-sm leading-6 text-stone-600">Scan history appears after Gmail scans run.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+</section>
+{% endblock %}

@@ -49,6 +49,7 @@ coverage.xml
 *.py.cover
 .hypothesis/
 .pytest_cache/
+pytest-cache-files-*/
 cover/
 
 # Translations
@@ -137,6 +138,7 @@ celerybeat.pid
 # Environments
 .env
 .envrc
+node_modules/
 .venv
 env/
 venv/
@@ -205,3 +207,13 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+#added stuff
+venv/
+
+*.pyc
+
+__pycache__/
+node_modules/
+.env
+
+db.sqlite3

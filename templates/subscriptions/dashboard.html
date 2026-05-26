@@ -1,0 +1,161 @@
+{% extends "subscriptions/app_shell.html" %}
+
+{% block title %}Dashboard | Subscription Intelligence{% endblock %}
+{% block app_title %}Dashboard{% endblock %}
+{% block sidebar_subscription_link %}{% endblock %}
+{% block top_subscription_link %}{% endblock %}
+
+{% block app_panel %}
+<section class="mt-8 rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_78%_20%,rgba(236,72,153,0.20),transparent_28%),radial-gradient(circle_at_20%_0%,rgba(56,189,248,0.18),transparent_28%),linear-gradient(135deg,rgba(7,20,92,0.74),rgba(5,11,47,0.82))] p-6 shadow-panel backdrop-blur-xl md:p-7">
+    <div class="grid gap-6 xl:grid-cols-[minmax(250px,0.72fr)_minmax(0,1.8fr)] xl:items-start">
+        <div class="grid gap-5 rounded-[30px] border border-white/15 bg-white/[0.07] p-6 text-white shadow-[0_20px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100/70">Portfolio overview</p>
+                <p class="mt-4 text-5xl font-extrabold tabular-nums tracking-tight">{{ active_subscription_count }}</p>
+                <p class="mt-2 text-sm font-medium text-sky-50/75">Active subscriptions tracked right now.</p>
+            </div>
+            <div class="grid gap-3">
+                <div class="grid gap-3 md:grid-cols-2">
+                    <div class="rounded-[20px] border border-white/10 bg-[#07145c]/50 p-4">
+                        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-sky-100/60">Inactive</p>
+                        <p class="mt-2 text-2xl font-extrabold tabular-nums">{{ inactive_subscription_count }}</p>
+                    </div>
+                    <div class="rounded-[20px] border border-white/10 bg-[#07145c]/50 p-4">
+                        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-sky-100/60">Tracked</p>
+                        <p class="mt-2 text-2xl font-extrabold tabular-nums">{{ active_subscription_count }}</p>
+                    </div>
+                </div>
+                <div class="rounded-[22px] border border-white/10 bg-[#07145c]/50 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100/60">Discovery pipeline</p>
+                    <div class="mt-4 grid grid-cols-3 gap-2">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-sky-100/60">Found</p>
+                            <p id="dashboard-inbox-lead-count-value" class="mt-2 text-2xl font-extrabold tabular-nums">{{ inbox_lead_count }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-sky-100/60">Review</p>
+                            <p id="dashboard-review-queue-count-value" class="mt-2 text-2xl font-extrabold tabular-nums">{{ candidate_count }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-sky-100/60">Tracked</p>
+                            <p class="mt-2 text-2xl font-extrabold tabular-nums">{{ active_subscription_count }}</p>
+                        </div>
+                    </div>
+                    <p class="mt-3 text-sm font-medium text-sky-50/75">Email matches move from found signals into review, then into your tracked portfolio once confirmed.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid gap-5 content-start">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.18em] text-sky-100/70">Personalized snapshot</p>
+                <h2 class="mt-2 max-w-3xl text-3xl font-extrabold tracking-tight text-white">Hello, {{ display_name }}, you have {{ upcoming_renewal_count }} renewal{{ upcoming_renewal_count|pluralize }} this week.</h2>
+                <p class="mt-3 max-w-3xl text-sm font-medium leading-7 text-sky-50/70">Everything on this dashboard is filtered to your account so you can review recurring spend with confidence, spot overlap, and stay ahead of the next billing cycle.</p>
+            </div>
+
+            <div class="rounded-[28px] border border-black/10 bg-white/90 p-6 text-ink shadow-panel backdrop-blur-xl">
+                <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Guided onboarding</p>
+                <h3 class="mt-2 text-2xl font-extrabold">Connect Gmail to unlock inbox scanning</h3>
+                <p class="mt-3 text-sm font-medium leading-7 text-stone-600">
+                    Gmail setup now lives in its own workspace, so scan controls only appear after a mailbox is connected and ready.
+                </p>
+                <div class="mt-5 flex flex-wrap gap-3">
+                    <a class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" href="{% url 'gmail_integrations' %}">Open Gmail integrations</a>
+                    <a class="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-bold text-ink transition hover:border-pine hover:text-pine" href="{% url 'analytics' %}">View analytics</a>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-3 px-6">
+                <a id="dashboard-review-cta" class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-pine to-pineDeep px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pine/20 transition hover:-translate-y-0.5" href="{% url 'transactions:candidates' %}">
+                    Review Pending Items
+                </a>
+            </div>
+
+            {% if show_dashboard_zero_state %}
+            <div class="overflow-hidden rounded-[30px] border border-black/10 bg-white/90 shadow-panel backdrop-blur-xl">
+                <div class="grid gap-6 p-7 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.45fr)] lg:items-center">
+                    <div>
+                        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">First workspace setup</p>
+                        <h2 class="mt-2 max-w-3xl text-3xl font-extrabold tracking-tight text-ink">Turn this empty dashboard into a renewal map.</h2>
+                        <p class="mt-3 max-w-3xl text-sm font-medium leading-7 text-stone-600">Start with one signal source. Scan your inbox for receipts, add a known subscription manually, then review anything the system finds so your spend cards become useful instead of just showing zeros.</p>
+                        <div class="mt-5 grid gap-3 md:grid-cols-3">
+                            <div class="rounded-[22px] border border-black/10 bg-stone-50 p-4">
+                                <p class="text-xs font-bold uppercase tracking-[0.18em] text-stone-500">Step 1</p>
+                                <p class="mt-2 text-sm font-extrabold text-ink">Connect Gmail</p>
+                                <p class="mt-1 text-xs font-medium leading-5 text-stone-600">Enable inbox discovery first.</p>
+                            </div>
+                            <div class="rounded-[22px] border border-black/10 bg-stone-50 p-4">
+                                <p class="text-xs font-bold uppercase tracking-[0.18em] text-stone-500">Step 2</p>
+                                <p class="mt-2 text-sm font-extrabold text-ink">Review matches</p>
+                                <p class="mt-1 text-xs font-medium leading-5 text-stone-600">Confirm recurring services.</p>
+                            </div>
+                            <div class="rounded-[22px] border border-black/10 bg-stone-50 p-4">
+                                <p class="text-xs font-bold uppercase tracking-[0.18em] text-stone-500">Step 3</p>
+                                <p class="mt-2 text-sm font-extrabold text-ink">Track renewals</p>
+                                <p class="mt-1 text-xs font-medium leading-5 text-stone-600">Watch spend and due dates fill in.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="rounded-[28px] border border-dashed border-black/15 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(245,245,244,0.96))] p-5">
+                        <div class="grid gap-3">
+                            <div class="h-3 rounded-full bg-stone-200"></div>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div class="h-20 rounded-[18px] bg-stone-100"></div>
+                                <div class="h-20 rounded-[18px] bg-stone-200"></div>
+                                <div class="h-20 rounded-[18px] bg-stone-100"></div>
+                            </div>
+                            <div class="h-24 rounded-[22px] border border-black/10 bg-white"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<section class="mt-8 grid gap-6 xl:grid-cols-3">
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Total monthly spend</p>
+        <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">{{ currency_symbol }}{{ total_monthly_spend|floatformat:2 }}</p>
+        <p class="mt-4 text-sm font-medium leading-7 text-stone-600">The current monthly cost of your active recurring services.</p>
+    </article>
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Upcoming renewals</p>
+        <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">{{ currency_symbol }}{{ upcoming_renewals_cost|floatformat:2 }}</p>
+        <p class="mt-4 text-sm font-medium leading-7 text-stone-600">{{ upcoming_renewal_count }} renewal{{ upcoming_renewal_count|pluralize }} due in the next 7 days.</p>
+    </article>
+    <article class="rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Annual run-rate</p>
+        <p class="mt-4 text-4xl font-extrabold tabular-nums tracking-tight text-ink">{{ currency_symbol }}{{ annual_run_rate|floatformat:2 }}</p>
+        <p class="mt-4 text-sm font-medium leading-7 text-stone-600">What this portfolio costs over 12 months if nothing changes.</p>
+    </article>
+</section>
+
+<section class="mt-8 rounded-[28px] border border-black/10 bg-white/90 p-7 shadow-panel backdrop-blur-xl">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Subscriptions</p>
+            <h2 class="mt-2 text-2xl font-extrabold text-ink">Tracked services</h2>
+        </div>
+        <form id="subscription-filter-form" class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px]" method="get" action="{% url 'subscription_results' %}" role="search">
+            <label class="grid gap-2 text-sm font-bold text-ink">
+                <span class="sr-only">Search subscriptions</span>
+                <input class="rounded-2xl border-black/10 bg-stone-50 px-4 py-3 text-sm" type="search" name="q" placeholder="Search subscriptions" autocomplete="off" hx-get="{% url 'subscription_results' %}" hx-trigger="keyup changed delay:300ms" hx-target="#subscription-results" hx-swap="outerHTML" hx-push-url="false" hx-include="#subscription-filter-form">
+            </label>
+            <label class="grid gap-2 text-sm font-bold text-ink">
+                <span class="sr-only">Category</span>
+                <select class="rounded-2xl border-black/10 bg-stone-50 px-4 py-3 text-sm" name="category" aria-label="Filter subscriptions by category" hx-get="{% url 'subscription_results' %}" hx-trigger="change" hx-target="#subscription-results" hx-swap="outerHTML" hx-push-url="false" hx-include="#subscription-filter-form">
+                    <option value="">All categories</option>
+                    {% for value, label in subscription_category_choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </form>
+    </div>
+    <div class="mt-5">
+        {% include "subscriptions/_subscription_results.html" %}
+    </div>
+</section>
+{% endblock %}
