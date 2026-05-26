@@ -125,7 +125,7 @@
                 {% for lead in inbox_leads %}
                 <article class="min-w-0 overflow-hidden rounded-[24px] border border-black/10 bg-stone-50 p-6">
                     <label class="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">
-                        <input class="rounded border-black/20" type="checkbox" name="lead_ids" value="{{ lead.id }}">
+                        <input class="rounded border-black/20" type="checkbox" name="lead_ids" value="{{ lead.id }}" form="bulk-inbox-leads-form" data-inbox-lead-select>
                         Select
                     </label>
                     <div class="flex items-start justify-between gap-4">
@@ -157,11 +157,11 @@
                     </details>
                     {% endif %}
                     <div class="mt-4 flex flex-wrap gap-2">
-                        <form method="post" action="{% url 'transactions:dismiss_inbox_lead' lead.id %}" hx-post="{% url 'transactions:dismiss_inbox_lead' lead.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML">
+                        <form method="post" action="{% url 'transactions:dismiss_inbox_lead' lead.id %}">
                             {% csrf_token %}
                             <button class="rounded-2xl border border-black/10 bg-white px-3 py-2 text-xs font-extrabold text-ink" type="submit">Dismiss</button>
                         </form>
-                        <form method="post" action="{% url 'transactions:mark_inbox_lead_newsletter' lead.id %}" hx-post="{% url 'transactions:mark_inbox_lead_newsletter' lead.id %}" hx-target="#candidate-review-list" hx-swap="outerHTML">
+                        <form method="post" action="{% url 'transactions:mark_inbox_lead_newsletter' lead.id %}">
                             {% csrf_token %}
                             <button class="rounded-2xl border border-black/10 bg-white px-3 py-2 text-xs font-extrabold text-ink" type="submit">Mark as newsletter</button>
                         </form>
@@ -179,12 +179,15 @@
                 </div>
                 {% endfor %}
             </div>
-            <form class="mt-6 flex flex-wrap items-center gap-3 rounded-2xl border border-black/10 bg-stone-50 p-5" method="post" action="{% url 'transactions:bulk_update_inbox_leads' %}" hx-post="{% url 'transactions:bulk_update_inbox_leads' %}" hx-target="#candidate-review-list" hx-swap="outerHTML">
+            {% if inbox_leads %}
+            <form id="bulk-inbox-leads-form" class="mt-6 flex flex-wrap items-center gap-3 rounded-2xl border border-black/10 bg-stone-50 p-5" method="post" action="{% url 'transactions:bulk_update_inbox_leads' %}">
                 {% csrf_token %}
-                <span class="text-sm font-extrabold text-ink">0 selected</span>
-                <button class="rounded-2xl bg-pine px-4 py-2 text-xs font-extrabold uppercase tracking-[0.14em] text-white" type="submit" name="action" value="dismiss">Dismiss selected</button>
-                <button class="rounded-2xl border border-black/10 bg-white px-4 py-2 text-xs font-extrabold uppercase tracking-[0.14em] text-ink" type="submit" name="action" value="newsletter">Mark selected newsletter</button>
+                <span class="text-sm font-extrabold text-ink" data-inbox-selected-count>0 selected</span>
+                <span data-inbox-selected-fields></span>
+                <button class="rounded-2xl bg-pine px-4 py-2 text-xs font-extrabold uppercase tracking-[0.14em] text-white disabled:cursor-not-allowed disabled:opacity-45" type="submit" name="action" value="dismiss" data-inbox-bulk-action>Dismiss selected</button>
+                <button class="rounded-2xl border border-black/10 bg-white px-4 py-2 text-xs font-extrabold uppercase tracking-[0.14em] text-ink disabled:cursor-not-allowed disabled:opacity-45" type="submit" name="action" value="newsletter" data-inbox-bulk-action>Mark selected newsletter</button>
             </form>
+            {% endif %}
 
             {% if filtered_view %}
             <section class="mt-8 rounded-[24px] border border-black/10 bg-stone-50 p-6">
@@ -279,3 +282,72 @@
 </section>
 {% endblock %}
 
+{% block extra_scripts %}
+{{ block.super }}
+<script>
+    (function () {
+        function syncInboxBulkControls() {
+            var form = document.getElementById("bulk-inbox-leads-form");
+            var fieldTarget = document.querySelector("[data-inbox-selected-fields]");
+            var checkboxes = Array.prototype.slice.call(document.querySelectorAll("[data-inbox-lead-select]"));
+            var count = document.querySelector("[data-inbox-selected-count]");
+            var actions = Array.prototype.slice.call(document.querySelectorAll("[data-inbox-bulk-action]"));
+
+            if (!form || !fieldTarget || !checkboxes.length || !count || !actions.length) {
+                return;
+            }
+
+            function selectedCheckboxes() {
+                return checkboxes.filter(function (checkbox) {
+                    return checkbox.checked;
+                });
+            }
+
+            function syncSelectedFields() {
+                fieldTarget.replaceChildren();
+                selectedCheckboxes().forEach(function (checkbox) {
+                    var input = document.createElement("input");
+                    input.type = "hidden";
+                    input.name = "lead_ids";
+                    input.value = checkbox.value;
+                    fieldTarget.appendChild(input);
+                });
+            }
+
+            function update() {
+                var selectedCount = selectedCheckboxes().length;
+                count.textContent = selectedCount + " selected";
+                actions.forEach(function (button) {
+                    button.disabled = selectedCount === 0;
+                });
+                syncSelectedFields();
+            }
+
+            checkboxes.forEach(function (checkbox) {
+                if (checkbox.dataset.inboxBulkBound === "true") {
+                    return;
+                }
+                checkbox.dataset.inboxBulkBound = "true";
+                checkbox.addEventListener("change", update);
+            });
+            if (form.dataset.inboxBulkBound !== "true") {
+                form.dataset.inboxBulkBound = "true";
+                form.addEventListener("submit", function (event) {
+                    update();
+                    if (!selectedCheckboxes().length) {
+                        event.preventDefault();
+                    }
+                });
+            }
+            update();
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            syncInboxBulkControls();
+        });
+        document.body.addEventListener("htmx:afterSwap", function (event) {
+            syncInboxBulkControls();
+        });
+    })();
+</script>
+{% endblock %}

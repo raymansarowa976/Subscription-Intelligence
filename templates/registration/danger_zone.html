@@ -13,10 +13,10 @@
 </section>
 
 <section class="mt-8 grid gap-6 lg:grid-cols-2">
-    <form method="post" action="{% url 'accounts:delete_imported_evidence' %}" class="rounded-[24px] border border-rose-200 bg-rose-50/70 p-7 text-ink">
+    <form method="post" action="{% url 'accounts:delete_imported_evidence' %}" class="rounded-[24px] border border-rose-200 bg-white/90 p-7 text-ink shadow-panel backdrop-blur-xl">
         {% csrf_token %}
         <h2 class="text-2xl font-extrabold">Delete imported evidence</h2>
-        <p class="mt-3 text-sm leading-7 text-rose-900">Remove imported transactions, scan runs, leads, and review candidates.</p>
+        <p class="mt-3 text-sm leading-7 text-stone-500">Remove imported transactions, scan runs, leads, and review candidates.</p>
         <label class="mt-6 block text-sm font-bold" for="danger-delete-password">Password</label>
         <div class="relative mt-2">
             <input id="danger-delete-password" class="block w-full rounded-2xl border-black/10 bg-white px-4 py-3 pr-12 text-sm shadow-sm transition focus:border-pine focus:ring-pine" type="password" name="password" autocomplete="current-password">
@@ -32,10 +32,10 @@
         <button class="mt-5 inline-flex items-center justify-center rounded-2xl bg-rose-700 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-rose-800" type="submit">Delete imported evidence</button>
     </form>
 
-    <form method="post" action="{% url 'accounts:close_account' %}" class="rounded-[24px] border border-rose-200 bg-rose-50/70 p-7 text-ink">
+    <form method="post" action="{% url 'accounts:close_account' %}" class="rounded-[24px] border border-rose-200 bg-white/90 p-7 text-ink shadow-panel backdrop-blur-xl">
         {% csrf_token %}
         <h2 class="text-2xl font-extrabold">Close account</h2>
-        <p class="mt-3 text-sm leading-7 text-rose-900">Deactivate your account and sign out active sessions.</p>
+        <p class="mt-3 text-sm leading-7 text-stone-500">Deactivate your account and sign out active sessions.</p>
         <label class="mt-6 block text-sm font-bold" for="danger-close-password">Password</label>
         <div class="relative mt-2">
             <input id="danger-close-password" class="block w-full rounded-2xl border-black/10 bg-white px-4 py-3 pr-12 text-sm shadow-sm transition focus:border-pine focus:ring-pine" type="password" name="password" autocomplete="current-password">
