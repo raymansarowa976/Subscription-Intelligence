@@ -2,23 +2,23 @@
 
 ## Security
 
-- [ ] Rotate Gmail app password (current one is exposed in local `.env`)
-- [ ] Rotate Gmail OAuth client secret in Google Cloud Console
+- [x] Rotate Gmail app password (current one is exposed in local `.env`)
+- [x] Rotate Gmail OAuth client secret in Google Cloud Console
 - [ ] Generate a new production `SECRET_KEY`
 
 ## Code Changes
 
-- [ ] Add `gunicorn` to `requirements.txt`
-- [ ] Create `config/wsgi.py` (only `asgi.py` exists currently)
-- [ ] Create `Procfile` with web and worker entries
+- [x] Add `gunicorn` to `requirements.txt`
+- [x] Create `config/wsgi.py` (only `asgi.py` exists currently)
+- [x] Create `Procfile` with web and worker entries
   ```
   web: gunicorn config.wsgi --bind 0.0.0.0:$PORT
   worker: python manage.py run_huey
   ```
-- [ ] Update `ALLOWED_HOSTS` in `config/settings.py` to read from env var
+- [x] Update `ALLOWED_HOSTS` in `config/settings.py` to read from env var
   - Currently hardcoded to `['127.0.0.1', 'localhost']`
-- [ ] Add `CSRF_TRUSTED_ORIGINS` setting (not set at all currently)
-- [ ] Make Huey/Redis config dynamic — replace hardcoded `localhost:6379` with `REDIS_URL` env var
+- [x] Add `CSRF_TRUSTED_ORIGINS` setting (not set at all currently)
+- [x] Make Huey/Redis config dynamic — replace hardcoded `localhost:6379` with `REDIS_URL` env var
 - [ ] Add a build command for Tailwind + collectstatic + migrate
   ```bash
   npm install && npm run tailwind:build && python manage.py collectstatic --noinput && python manage.py migrate
