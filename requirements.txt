@@ -23,6 +23,7 @@ google-crc32c==1.6.0
 google-resumable-media==2.7.2
 googleapis-common-protos==1.66.0
 grpcio==1.67.1
+gunicorn==23.0.0
 grpcio-status==1.67.1
 httplib2==0.22.0
 huey==2.5.2
