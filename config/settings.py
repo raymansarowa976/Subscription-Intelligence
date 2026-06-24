@@ -8,7 +8,8 @@ env = environ.Env(
     # set casting, default value
     DEBUG=(bool, True)
 )
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['127.0.0.1', 'localhost'])
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -46,7 +47,7 @@ else:
 HUEY = {
     'huey_class': 'huey.RedisHuey',
     'name': 'subtrack_tasks',
-    'connection': {'host': 'localhost', 'port': 6379},
+    'url': env('REDIS_URL', default='redis://localhost:6379'),
     'immediate': RUNNING_TESTS,
 }
 MIDDLEWARE = [
